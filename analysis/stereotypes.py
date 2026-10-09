@@ -31,6 +31,7 @@ def lecturer_power_table(events_path: Path) -> pl.DataFrame:
                 arch[a] = e["archetype"]
             case "snapshot":
                 snap_rank[(a, t)] = e["state"]["rank"]
+                d[a]["semesters"] += 1
                 last[a] = e["state"]
             case "allocation":
                 ext[a].append(e["hours"]["external"] / sum(e["hours"].values()))
@@ -66,6 +67,7 @@ def lecturer_power_table(events_path: Path) -> pl.DataFrame:
             "final_favor": s.get("favor", 0.0),
             "external_share": statistics.fmean(ext[a]) if ext[a] else 0.0,
             "income_M": s["cumulative_income"] / 1e6,
+            "income_per_year_M": s["cumulative_income"] / 1e6 / (d[a]["semesters"] / 2),
             "pubs_per_semester": sum(s["publications"].values()) / max(1, s["semesters_service"]),
             **{k: d[a].get(k, 0.0) for k in ("committee_seats", "reluctant_seats",
                                               "lab_head_terms", "leader_terms",
@@ -89,6 +91,7 @@ def report(run_dirs: list[Path]) -> str:
             pl.col("leader_terms").mean().round(3),
             pl.col("lab_head_terms").mean().round(3),
             pl.col("income_M").median().round(0),
+            pl.col("income_per_year_M").median().round(0),
             pl.col("royalty_M").mean().round(1),
             pl.col("grants").mean().round(2),
             pl.col("final_rank_i").mean().round(2),

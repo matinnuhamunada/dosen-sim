@@ -64,6 +64,9 @@ export function scoreRows(run: Run, t: number): ScoreRow[] {
     row["age"] = s.age;
     row["years of service"] = s.service;
     row["pay (M IDR)"] = s.cumIncome / 1e6;
+    const years = sems.length / (run.info.semesters_per_year || 2); // years served in the run
+    row["pay/yr (M IDR)"] = years > 0 ? s.cumIncome / 1e6 / years : null;
+    row["papers/yr"] = years > 0 ? a.events.filter((e) => e.kind === "paper" && e.t <= t).length / years : null;
     for (const c of run.info.credit_categories) row[`credit ${c}`] = s.credits[c] ?? 0;
     row["papers"] = s.publications;
     row["grants"] = a.events.filter((e) => e.kind === "grant" && e.t <= t).length;

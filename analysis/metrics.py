@@ -94,8 +94,10 @@ def agent_table(events_path: str | Path) -> pl.DataFrame:
         }
         for r in info["rank_names"][1:]:  # semesters from hiring to reaching each rank
             row[f"t_{r}"] = reached[a][r] - tenure_start if r in reached[a] else None
+        years = max(1, len(sems[a])) / info["semesters_per_year"]  # years served in the run
         row |= {
             "cumulative_income": s["cumulative_income"],
+            "income_per_year": s["cumulative_income"] / years,
             "publications": sum(s["publications"].values()),
             "credits_total": sum(s["credits_total"].values()),
             **{f"credits_{k}": v for k, v in sorted(s["credits_total"].items())},

@@ -156,19 +156,17 @@ class Engine:
         return lid
 
     def _seed_history(self) -> None:
-        """Founders' accumulated pay, credits and papers at t = 0, estimated from rank and
-        service: the career is assumed to have climbed evenly from the first rank."""
-        demo, reg, f = self.sc.demography, self.reg, self.forecast
+        """Founders' credits and papers at t = 0, estimated from rank and service (the
+        career is assumed to have climbed evenly from the first rank). They drive promotion
+        and grant chances. Pay is not seeded: income counts from t = 0, and comparisons use
+        pay per year served."""
+        demo, reg = self.sc.demography, self.reg
         ranks = reg.rank_names
         tiers = demo.initial_pub_tier_shares
         need = {r.name: r for r in reg.career.ranks}
         for lec in self.state.lecturers.values():
             top, n = ranks.index(lec.rank), lec.semesters_service
             path = [ranks[top * k // n] if n else lec.rank for k in range(n)]
-            lec.cumulative_income = sum(
-                f.fixed_income(r, k, k + 1 >= reg.certification.min_semesters_service)
-                for k, r in enumerate(path)
-            )
             if demo.initial_credit_shares:
                 total = need[lec.rank].min_cumulative_credit
                 lec.credits_total = {c: total * demo.initial_credit_shares.get(c, 0.0)

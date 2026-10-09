@@ -81,6 +81,7 @@ def compare(run_dirs: list[Path], baseline: str) -> dict[str, pl.DataFrame]:
             pl.col(top).median().alias(f"median_{top}"),
             pl.col(top).is_not_null().mean().alias(f"share_{top}"),
             (pl.col("cumulative_income").median() / 1e6).alias("median_income_M"),
+            (pl.col("income_per_year").median() / 1e6).alias("median_income_per_year_M"),
             pl.col("mean_burnout").median().alias("median_burnout"),
             pl.col("left_at").is_not_null().mean().alias("share_left"),
             pl.col("own_score").median().alias("median_own_score"),

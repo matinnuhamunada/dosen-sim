@@ -244,6 +244,7 @@ const PODIUM_METRICS: Record<string, string> = {
   "common score": "Common score",
   "own score": "Own score",
   "pay (M IDR)": "Pay (M IDR)",
+  "pay/yr (M IDR)": "Pay per year",
   papers: "Papers",
 };
 

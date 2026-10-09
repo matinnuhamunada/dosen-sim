@@ -160,3 +160,7 @@ One entry per milestone gate: what was built, open inputs, and the gate outcome.
 - Viewer: the score dashboard shows lab, age and years of service; the top-3 card also ranks labs by the mean of the chosen metric over active members.
 - 30 seeds × 60 semesters: 34–40 retirements and 24–42 burnout leavers per run; bonus share 0.39 (0.46 without power); ~15 patents filed and 4 licensed per run (~0.5 bn IDR royalties). Stereotypes persist over 30 years: external earners end at rank index 1.82 with credit factor 0.50 and standing −1.79; teaching loyalists carry 9.6 committee seats and the most leadership (0.68 terms) but earn least among non-consultants (2218 M IDR); research maximisers earn most (3816 M IDR, 7.3 M royalties) and head labs but never lead the faculty. Faculty leaders earn 4035 vs 2428 M IDR. Dean's lab wins 44.8 % of grant applications vs 38.8 % for others.
 - Fix: metrics infer column types from all rows (a long run crashed polars' default inference).
+
+## 2026-10-10 — Pay starts at zero; per-year comparisons
+
+- Founders' accumulated pay is no longer seeded (credits and papers still are, since they drive promotion and grants). Scoreboard adds `pay/yr (M IDR)` and `papers/yr` (years served in the run; also a top-3 metric); `agents.csv` adds `income_per_year`, the archetype table its median.

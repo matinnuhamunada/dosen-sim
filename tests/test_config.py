@@ -53,7 +53,7 @@ def test_faculty_case_masks_ids_with_names():
     profs = [x.lab for x in eng.state.lecturers.values() if x.rank == "Profesor"]
     assert {profs.count(lab) for lab in sc.department.labs} <= {1, 2}
     prof = next(x for x in eng.state.lecturers.values() if x.rank == "Profesor")
-    assert prof.cumulative_income > 0 and sum(prof.credits_total.values()) == 800
+    assert prof.cumulative_income == 0 and sum(prof.credits_total.values()) == 800  # pay unseeded
     assert prof.publications["international_reputable"] >= 1  # rank requirement already met
 
 
