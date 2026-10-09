@@ -117,3 +117,35 @@ external_earner, balanced_strategist.
 22. **Journal tier choice:** utility agents maximise c·d^delay − risk_aversion·c·√(p(1−p)) over tiers that count toward an unmet requirement. Rule agents use their preferred tier, raised to the required tier. The optimiser is risk-neutral (max c·d^delay).
 23. **Optimiser:** plans hold one bundle per rank. The search over that class is exact under certainty-equivalent dynamics (verified against brute force in `tests/agents/test_optimiser.py`), and it re-plans after every promotion. It ignores publication lag and the grant productivity boost while planning, so planned promotions are optimistic (about 2 semesters per rank in the archetype runs).
 24. **Archetype scenario** starts every lecturer as Asisten Ahli with a doctorate, so the Profesor degree requirement never binds (no degree acquisition is modelled).
+
+## Department (M3) — `configs/department.yaml` (shared include) and regulation additions
+
+| Parameter | Placeholder value | Status | Meaning |
+| --- | --- | --- | --- |
+| `credit_table.admin_role_semesters` (regulation) | 3.0 support points | TODO | KUM credit per semester holding a role |
+| `coauthor_credit.first_author_share` (regulation) | 0.6 | TODO | KUM split; remainder split equally among co-authors |
+| `burnout.sustainable_hours` | 30 h/week | TODO | Working hours with no strain |
+| `burnout.strain_rate` / `recovery_rate` | 0.5 / 0.3 | TODO | Burnout dynamics |
+| `burnout.productivity_penalty` | 0.5 | TODO | Research/community output × (1 − penalty × burnout) |
+| `burnout.attrition_threshold` / `attrition_prob` | 0.8 / 0.2 | TODO | Leaving hazard |
+| `department.teaching_demand.hours_per_lecturer` | 8 h/week | TODO | Demand = this × initial headcount |
+| `department.teaching_demand.sigma` | 0.1 | TODO | Cohort-size variation |
+| `department.head.rank_load_weights` | 1.2 / 1.0 / 0.9 / 0.8 | TODO | Teaching share by rank |
+| `department.head.max_concession` / `max_rounds` | 0.2 / 2 | TODO | Bargaining protocol |
+| `department.head.max_teaching_hours` | 16 h/week | TODO | Per-lecturer cap |
+| `department.roles` | 3 roles, 4–8 h, 4 semesters, 0.3–1.0 M IDR/month | TODO | Departmental roles and allowances |
+| `department.coauthorship.productivity_boost` | 0.3 | TODO | Research multiplier while paired |
+| `department.hiring.lag_semesters` | 2 | TODO | Replacement delay |
+| Interaction thresholds (`agents/common.py`) | role 0.7, co-author 0.5, research share 0.25 | TODO | Cooperativeness cut-offs |
+| Burnout sensitivity for random agents | 1.0 | struct | Agents without a persona |
+
+## Structural assumptions (M3)
+
+25. **Phase order within negotiation:** roles are filled first (multi-semester terms), then teaching is split, then co-authors are paired.
+26. **Commitments** (agreed teaching hours, role hours) are weekly floors that every allocation must meet; the engine rejects violations. The head caps commitments at max duty × (1 − minimum shares of uncommitted categories), so they stay feasible.
+27. **Teaching bargaining:** the head offers demand × rank weight share. The lecturer accepts up to reservation = preferred teaching × (1 + cooperativeness), otherwise counters at the reservation. The head accepts counters within `max_concession`, meets lower ones halfway, and imposes its last offer after `max_rounds`. A volunteering round (lowest load first) covers any shortfall; the rest is uncovered teaching (quality proxy).
+28. **Roles (volunteer's dilemma with side payment):** the least-committed lecturers are asked in turn. A lecturer accepts if the archetype's own admin time covers at least half the role, or if cooperativeness ≥ 0.7 and they hold no role. If nobody accepts, the head imposes the role on the least-committed lecturer. The allowance is paid monthly and the role earns support credit.
+29. **Co-authorship:** each semester, in random order, a lecturer is offered the unmatched colleague with the most publications. Both must accept. Tit-for-tat applies on the partner's last answer (engine-held memory); otherwise a lecturer accepts if cooperativeness ≥ 0.5 or research share ≥ 0.25. Pairs get a research boost. Manuscripts finished while paired are co-authored (producer is first author). Every author gets the publication count, and credit is split by `first_author_share`. Rejected co-authored manuscripts return to the first author as solo.
+30. **Burnout:** b' = b + sensitivity × strain × max(0, work − S)/S − recovery × rest/budget, where work = all non-rest hours (including external), clamped to [0, 1]. It scales research and community productivity; above the threshold the lecturer leaves with `attrition_prob` per semester and is replaced by a new Asisten Ahli with the same policy and archetype after `lag_semesters`.
+31. **Teaching demand does not shrink** when lecturers leave (students remain); demand = hours_per_lecturer × initial headcount × lognormal noise.
+32. **Utility wellbeing** is now rest share − expected burnout after the semester. The optimiser uses steady-state burnout per bundle (1 if strain > recovery, else 0) and ignores co-authorship and transients. Optimiser bundles that break commitments are refitted when acting.

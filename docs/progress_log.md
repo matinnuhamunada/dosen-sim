@@ -50,3 +50,27 @@ One entry per milestone gate: what was built, open inputs, and the gate outcome.
 - Frontier is nearly degenerate under placeholders: optimiser weight sweep w_rank 0 → 0.56 gives the same outcomes; above 0.64 income falls about 35% with no faster promotion. Rank and pay are aligned (promotion raises pay), promotion timing is bound by minimum semesters and publication lag, so the real trade-off is pay vs rest.
 - Placeholder artefacts: external work (100k IDR/h) dominates pay relative to salary (1–4M/month); research productivity gives about 90 papers in 20 years for research maximisers.
 - Optimiser planning is optimistic (ignores publication lag): planned rank starts 4/8/15 vs realised 6/10/20 in a sample run.
+
+## M3 Department — gate review (2026-10-09)
+
+**Built** (branch `m3-department`, based on `m2-rule-agents`):
+- Burnout rule (strain/recovery, productivity penalty, attrition hazard) with replacement hiring.
+- Head of department: role filling (volunteer's dilemma with side payment, imposition fallback) and teaching split (rank-weighted offers, alternating-offers bargaining, volunteering round, uncovered teaching as quality proxy).
+- Co-authorship pairing with engine-held tit-for-tat memory, research boost and regulation-configurable credit split.
+- Commitments as weekly floors enforced by the engine; every policy fits to them. Shared archetype `respond` strategies.
+- Recursive scenario `include:` with shared `configs/department.yaml`; scenarios `department` (15 mixed agents) and `department_stress`.
+- Reproducibility hardening: removed set-order dependence (found while debugging); a test now checks byte-identical logs across different `PYTHONHASHSEED`s in separate processes.
+- Tests: 99 passing.
+
+**Gate: stable multi-agent runs** (30 seeds × 40 semesters per scenario, 120 runs, no crashes):
+
+| Scenario | Worst-semester coverage (median, min) | Peak mean burnout | Leavers / 20 y | Imposed loads/roles | Profesors at end |
+| --- | --- | --- | --- | --- | --- |
+| department (15 mixed) | 1.00, 0.98 | 0.11 (max 0.14) | 1 (0–2) | 0 (0–1) | 13 of 15 |
+| department_stress (12, demand 14 h) | 0.71, 0.59 | 0.23 (max 0.26) | 6 (4–9) | 145 | 9 |
+| archetypes (10 stage) | 1.00, 0.98 | 0.00 | 0 | 0 | 8 |
+| baseline (5 random) | 1.00 | 0.57 | 0 (0–2) | 12 | 0 |
+
+- Department leavers are mostly utility-policy external earners (27 over 30 runs) and utility admin climbers (5).
+- Roles are filled voluntarily by teaching loyalists, admin climbers and research maximisers (lab head); imposition is rare except under stress.
+- Performance with the full department: 20 agents × 60 semesters in 0.6 s (stage), 2.4 s (optimiser), 4.3 s (utility).

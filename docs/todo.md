@@ -31,6 +31,15 @@ Status: open unless marked. Add new items under the right heading as they come u
 - [ ] Face validity of promotion timing: research-heavy archetypes reach Profesor in about 9–10 years; fixed-share teaching/external/admin archetypes never do in 20 years.
 - [ ] Optimiser plans ignore publication lag (planned rank starts about 2 semesters early per rank). Add expected lag to planning if the gap matters.
 
+## M3 gate notes (for later review)
+
+- [ ] Normal department (30 seeds): stable; leavers are mostly utility-policy external earners (they work long weeks for external pay and burn out).
+- [ ] Stress scenario (14 h/lecturer demand): coverage drops to about 0.6–0.8 in the worst semesters, about 6 leavers per 20 years, many imposed loads; random agents are the main leavers.
+- [ ] Interaction thresholds (role 0.7, co-author 0.5 / 0.25) are code constants; move to archetype config if they need tuning.
+- [ ] Co-authorship lifts publication counts further (up to about 170 papers in 20 years under placeholder production).
+- [ ] Do co-authored papers count fully toward each author's publication requirement? Currently yes.
+- [ ] Should external work count as "work" for burnout? Currently yes.
+
 ## Engineering to-dos
 
 - [ ] Invalid allocations abort the run; add a fallback-to-rule-policy path (needed for Phase 2 LLM agents).
