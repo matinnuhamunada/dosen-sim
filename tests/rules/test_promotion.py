@@ -90,7 +90,7 @@ def test_degree_gate_and_multiple_blockers(reg):
     assert promotion_blockers(lec, reg) == [
         "cumulative credit 100 < 300",
         "publications at tier >= international: 0 < 1",
-        "degree master < doctorate",
+        "degree below doctorate",
     ]
 
 
