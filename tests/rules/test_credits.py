@@ -53,3 +53,13 @@ def test_author_shares():
     assert author_shares(3, 0.6) == pytest.approx([0.6, 0.2, 0.2])
     with pytest.raises(ValueError):
         author_shares(0, 0.6)
+
+
+def test_factor_scales_before_cap(reg):
+    # probation: half credit for the same teaching hours; 100 h * 0.1 * 0.5 = 5
+    f = {"teaching_hours": 0.5}
+    out = score_credits({"teaching_hours": 100, "supervision_hours": 20}, reg.credit_table,
+                        reg.credit_categories, f)  # fmt: skip
+    assert out["education"] == pytest.approx(5 + 2)
+    capped = score_credits({"teaching_hours": 400}, reg.credit_table, reg.credit_categories, f)
+    assert capped["education"] == 15  # 400 * 0.1 * 0.5 = 20, capped at 15

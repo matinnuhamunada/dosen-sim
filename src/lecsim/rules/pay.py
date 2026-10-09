@@ -12,11 +12,17 @@ def monthly_pay(
     certified: bool,
     rules: PayRules,
     role_allowance: float = 0.0,
+    probation_salary_factor: float | None = None,
 ) -> dict:
     """Fixed monthly pay components in IDR; ``role_allowance`` is the sum of the monthly
-    allowances of departmental roles held."""
+    allowances of departmental roles held. On probation (``probation_salary_factor`` set)
+    only the base salary is paid, scaled by that factor."""
     base = rules.base_salary_by_rank[rank] + rules.seniority_increment_per_year * years_of_service
     remun = rules.remuneration
+    if probation_salary_factor is not None:
+        zero = ("functional_allowance", "professional_allowance", "honorary_allowance",
+                "remuneration_base", "role_allowance")  # fmt: skip
+        return {"base_salary": base * probation_salary_factor, **dict.fromkeys(zero, 0.0)}
     return {
         "base_salary": base,
         "functional_allowance": rules.functional_allowance_by_rank.get(rank, 0.0),
@@ -36,18 +42,20 @@ def semester_income(
     credits_earned: float,
     external_hours: float,
     rules: PayRules,
+    performance_pay: bool = True,
 ) -> dict[str, float]:
     """Semester income per component plus ``total``.
 
-    ``credits_earned`` is this semester's credit points (drives performance remuneration);
-    ``external_hours`` is total external work hours over the semester.
+    ``credits_earned`` is this semester's credit points (drives performance remuneration,
+    unless ``performance_pay`` is off, as on probation); ``external_hours`` is total
+    external work hours over the semester.
     """
     if credits_earned < 0 or external_hours < 0:
         raise ValueError("credits_earned and external_hours must be non-negative")
     out = {k: v * months for k, v in monthly.items()}
     remun = rules.remuneration
     out["remuneration_performance"] = (
-        remun.per_credit_point * credits_earned if remun.enabled else 0.0
+        remun.per_credit_point * credits_earned if remun.enabled and performance_pay else 0.0
     )
     out["external"] = rules.external_rate_per_hour * external_hours
     out["total"] = sum(out.values())

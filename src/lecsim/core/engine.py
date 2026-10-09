@@ -2,8 +2,9 @@
 
 Each tick runs six fixed phases (PRD FR-01):
 
-1. events       journal decisions, grant expiry, attrition, hiring
-2. negotiation  head fills roles and splits teaching demand; co-authorship pairing
+1. events       journal decisions, grant expiry, retirement, attrition, hiring
+2. negotiation  head fills roles and splits teaching demand; probation mentors;
+                co-authorship pairing
 3. allocation   each lecturer's policy returns a weekly allocation (validated)
 4. resolution   production, submissions, grant applications
 5. evaluation   credits, certification, pay, burnout, promotion, snapshots
@@ -13,6 +14,7 @@ Each tick runs six fixed phases (PRD FR-01):
 from __future__ import annotations
 
 import math
+from collections import Counter
 from collections.abc import Callable
 
 from lecsim.agents.base import Observation, Policy
@@ -30,8 +32,8 @@ from lecsim.env import grants, journals
 from lecsim.institution.head import HeadOfDepartment
 from lecsim.interactions import coauthorship
 from lecsim.logging.events import EventLog
-from lecsim.rules import burnout, credits, pay, production, promotion
-from lecsim.rules.workload import check_commitments, check_workload
+from lecsim.rules import burnout, credits, pay, production, promotion, retirement
+from lecsim.rules.workload import check_commitments, check_limits, check_workload
 
 POLICIES: dict[str, Callable[..., Policy]] = {
     "random": RandomPolicy,
@@ -56,7 +58,7 @@ class Engine:
         self.log = log
         self.clock = Clock(self.reg.time.months_per_semester)
         self.forecast = Forecaster(scenario)
-        self.head = HeadOfDepartment(scenario.department, self.reg.workload)
+        self.head = HeadOfDepartment(scenario.department, self.reg.workload, self.reg.rank_names)
         self.policies: dict[str, Policy] = {}
         self.state = DepartmentState(lecturers={})
         for spec in scenario.lecturers:
@@ -66,6 +68,13 @@ class Engine:
                 raise ValueError(f"policy {spec.policy!r} needs an archetype")
             for _ in range(spec.count):
                 self._add_lecturer(spec.policy, spec.archetype, spec.rank, spec.degree, 0)
+        if scenario.demography is not None:
+            spy = self.clock.semesters_per_year
+            years = scenario.demography.initial_service_years
+            for lec in self.state.lecturers.values():
+                lo, hi = years[lec.rank]
+                lec.semesters_service = round(self._draw(lo, hi) * spy)
+                lec.age = self._draw(*scenario.demography.start_age) + lec.semesters_service / spy
         demand = scenario.department.teaching_demand
         self.state.teaching_demand_base = demand.hours_per_lecturer * len(self.state.lecturers)
         self._log_run_info()
@@ -107,6 +116,18 @@ class Engine:
             stages=book.stages if book else None,
         )
         return lid
+
+    def _draw(self, lo: float, hi: float) -> float:
+        return float(self.rng.get("demography").uniform(lo, hi))
+
+    def _leave(self, t: int, lec: LecturerState, kind: str, **fields: object) -> None:
+        """Deactivate ``lec`` and queue a replacement under the recruitment rules."""
+        lec.active, lec.left_at, lec.roles, lec.mentor = False, t, {}, None
+        self.log.event(t, "events", kind, lec.id, **fields)
+        hiring = self.sc.department.hiring
+        if hiring.replace_leavers:
+            self.state.hires.append(Hire(due=t + hiring.lag_semesters, policy=lec.policy,
+                                         archetype=lec.archetype, degree=lec.degree))  # fmt: skip
 
     def _sensitivity(self, lec: LecturerState) -> float:
         if lec.archetype is None:
@@ -163,7 +184,6 @@ class Engine:
     # --- phases -------------------------------------------------------------
 
     def _events(self, t: int) -> None:
-        dept = self.sc.department
         for lid in self.state.active_ids():
             lec = self.state.lecturers[lid]
             for g in lec.grants:
@@ -171,18 +191,27 @@ class Engine:
                     self.log.event(t, "events", "grant_ended", lid, start=g.start)
             lec.grants = [g for g in lec.grants if g.end > t]
             lec.roles = {r: end for r, end in lec.roles.items() if end > t}
+            if retirement.must_retire(lec.age, lec.rank, self.reg.retirement):
+                self._leave(t, lec, "retirement", age=lec.age, rank=lec.rank)
+                continue
             risk = burnout.attrition_risk(lec.burnout, self.sc.environment.burnout)
             if risk > 0 and self.rng.get("attrition").random() < risk:
-                lec.active, lec.left_at, lec.roles = False, t, {}
-                self.log.event(t, "events", "attrition", lid, burnout=lec.burnout)
-                if dept.hiring.replace_leavers:
-                    self.state.hires.append(Hire(due=t + dept.hiring.lag_semesters,
-                                                 policy=lec.policy, archetype=lec.archetype,
-                                                 degree=lec.degree))  # fmt: skip
+                self._leave(t, lec, "attrition", burnout=lec.burnout)
+        rec, prob, degrees = self.reg.recruitment, self.reg.probation, self.reg.degrees
         for h in [h for h in self.state.hires if h.due <= t]:
             self.state.hires.remove(h)
-            lid = self._add_lecturer(h.policy, h.archetype, self.reg.rank_names[0], h.degree, t)
-            self.log.event(t, "events", "hire", lid, policy=h.policy, archetype=h.archetype)
+            rank, degree = self.reg.rank_names[0], h.degree
+            if rec is not None:  # e.g. doctorate only, appointed straight to Lektor
+                rank, degree = rec.entry_rank, max(h.degree, rec.min_degree, key=degrees.index)
+            lid = self._add_lecturer(h.policy, h.archetype, rank, degree, t)
+            lec = self.state.lecturers[lid]
+            if self.sc.demography is not None:
+                lec.age = self._draw(*self.sc.demography.start_age)
+            if prob is not None:
+                lec.probation_until = t + prob.semesters
+            self.log.event(t, "events", "hire", lid, policy=h.policy, archetype=h.archetype,
+                           rank=rank, degree=degree, age=lec.age,
+                           probation_until=lec.probation_until)  # fmt: skip
 
     def _collect_publications(self, t: int, outputs: dict[str, dict[str, float]]) -> None:
         due = [s for s in self.state.submissions if s.decision_due == t]
@@ -208,7 +237,8 @@ class Engine:
     def _negotiate(self, t: int, ids: list[str]) -> tuple[float, float]:
         lecs = {i: self.state.lecturers[i] for i in ids}
         for lec in lecs.values():
-            lec.commitments, lec.coauthor = {}, None
+            lec.commitments, lec.coauthor, lec.limits = {}, None, {}
+        self._mentor(t, lecs)
         self.head.fill_roles(t, lecs, self.ask, self.log.event)
         for lec in lecs.values():
             if lec.roles:
@@ -227,11 +257,33 @@ class Engine:
                 self.log.event(t, "negotiation", "coauthorship", a, partner=b)
         return uncovered, demand
 
+    def _mentor(self, t: int, lecs: dict[str, LecturerState]) -> None:
+        """Probationers may not do barred activities and co-teach with a senior mentor
+        (least-loaded first, kept for the whole probation unless the mentor leaves)."""
+        prob = self.reg.probation
+        if prob is None:
+            return
+        trainees = [lec for lec in lecs.values() if lec.on_probation(t)]
+        for lec in lecs.values():
+            if not lec.on_probation(t):
+                lec.mentor = None
+        seniors = [i for i, lec in lecs.items()
+                   if lec.rank in prob.mentor_ranks and not lec.on_probation(t)]  # fmt: skip
+        load = Counter(lec.mentor for lec in trainees if lec.mentor in seniors)
+        for lec in trainees:
+            lec.limits = dict.fromkeys(prob.barred_activities, 0.0)
+            if lec.mentor not in seniors and seniors:
+                lec.mentor = min(seniors, key=lambda i: (load[i], i))
+                load[lec.mentor] += 1
+                self.log.event(t, "negotiation", "mentor_assigned", lec.id, mentor=lec.mentor,
+                               until=lec.probation_until)  # fmt: skip
+
     def _allocate(self, t: int, lid: str) -> Allocation:
         lec = self.state.lecturers[lid]
         alloc = self.policies[lid].decide_allocation(self.observe(lid))
         violations = check_workload(alloc.hours, self.reg.workload, self.reg.time.hours_per_week)
         violations += check_commitments(alloc.hours, lec.commitments)
+        violations += check_limits(alloc.hours, lec.limits)
         if alloc.journal_tier is not None and alloc.journal_tier not in self.reg.journal_tiers:
             violations.append(f"unknown journal tier {alloc.journal_tier!r}")
         self.log.event(
@@ -317,7 +369,9 @@ class Engine:
     def _evaluate(self, t: int, lid: str, alloc: Allocation, out: dict[str, float]) -> None:
         lec = self.state.lecturers[lid]
         reg = self.reg
-        earned = credits.score_credits(out, reg.credit_table, reg.credit_categories)
+        prob = reg.probation if lec.on_probation(t) else None
+        factors = {"teaching_hours": prob.teaching_credit_factor} if prob else None
+        earned = credits.score_credits(out, reg.credit_table, reg.credit_categories, factors)
         lec.credits_total = credits.add_credits(lec.credits_total, earned)
         lec.credits_in_rank = credits.add_credits(lec.credits_in_rank, earned)
         lec.semesters_in_rank += 1
@@ -332,12 +386,13 @@ class Engine:
             rank=lec.rank, years_of_service=self.clock.years(lec.semesters_service),
             certified=lec.certified, rules=reg.pay,
             role_allowance=self.forecast.role_allowance(lec),
+            probation_salary_factor=prob.salary_factor if prob else None,
         )  # fmt: skip
         income = pay.semester_income(
             monthly=monthly, months=reg.time.months_per_semester,
             credits_earned=sum(earned.values()),
             external_hours=alloc.hours[Activity.EXTERNAL] * reg.time.weeks_per_semester,
-            rules=reg.pay,
+            rules=reg.pay, performance_pay=prob is None,
         )  # fmt: skip
         lec.monthly_pay = sum(monthly.values())
         lec.cumulative_income += income["total"]
@@ -356,6 +411,8 @@ class Engine:
             lec.rank = target.name
             lec.semesters_in_rank = 0
             lec.credits_in_rank = dict.fromkeys(reg.credit_categories, 0.0)
+        if lec.age is not None:
+            lec.age += 1 / self.clock.semesters_per_year
         self.log.event(
             t, "evaluation", "snapshot", lid,
             label=self.clock.label(t), blockers=blockers,

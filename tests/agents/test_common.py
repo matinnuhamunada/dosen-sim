@@ -134,3 +134,19 @@ def test_surplus_taken_from_unfloored_activities_at_capacity():
     h = fit_to_workload(shares, rules, 40, floors)
     assert not check_workload(h, rules, 40)
     assert h[A.ADMIN] >= 20 - 1e-9 and h[A.TEACHING] >= floors["teaching"] - 1e-9
+
+
+def test_ceiling_moves_barred_hours_into_same_category():
+    # probation: supervision capped at 0, its hours go to teaching (same education category)
+    shares = {"teaching": 0.1, "supervision": 0.15, "research": 0.2, "admin": 0.1, "rest": 0.45}
+    h = fit_to_workload(shares, RULES, 40, {"teaching": 4}, {"supervision": 0})
+    assert not check_workload(h, RULES, 40)
+    assert h[A.SUPERVISION] == 0
+    assert h[A.TEACHING] == pytest.approx(10)
+
+
+def test_ceiling_respected_when_education_must_grow():
+    # education 0 and duty below minimum: the fit raises duty and education via teaching only
+    h = fit_to_workload({"research": 0.3, "rest": 0.7}, RULES, 40, None, {"supervision": 0})
+    assert not check_workload(h, RULES, 40)
+    assert h[A.SUPERVISION] == 0 and h[A.TEACHING] > 0

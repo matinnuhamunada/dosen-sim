@@ -47,12 +47,15 @@ Status: open unless marked. Add new items under the right heading as they come u
 - [ ] Viewer multi-seed board includes replacement hires in group counts (e.g. n=18 for a seat with many leavers); decide whether to show founders only.
 - [ ] Viewer was checked in headless Chrome screenshots only; try it interactively in a browser.
 
-## Faculty case (faculty_case) notes
+## Faculty case notes (`faculty_case`, anonymised)
 
 - Real rank split of non-professors at the faculty (only the 16 professors are known).
-- Real hours, terms and allowances for dean, vice deans, head of department and study-programme heads.
-- Role eligibility (minimum rank/degree for dean, vice dean, heads); currently anyone below the commitment cap can be asked.
-- Whether the 12 laboratory heads should be modelled as roles.
+- Real hours, terms and allowances for dean, vice deans, head of department, programme heads and laboratory heads; minimum rank for programme heads; degree requirements for positions.
+- Founders' real ages / years of service (now drawn by rank).
+- Probation details: source for half teaching credit, the supervision bar and co-teaching (likely institutional, not national); whether the 80 % CPNS salary applies to non-ASN PTNBH lecturers; whether "base salary only" also excludes the functional allowance.
+- Recruitment: the 2025 rule's first-author SINTA 4 article for first appointment as Lektor; whether master's holders can still be hired for undergraduate-only teaching; hiring lag for predictable retirements (could be hired ahead).
+- Whether to apply the 2025 recruitment and probation rules nationally (move from `regulation_overrides` to `national.yaml`) and rerun the M4 sweep.
+- Professor promotion is fast under placeholder rules (about half the faculty is Profesor after 20 years).
 - Faculty-level teaching demand (currently 8 h/week per lecturer, as in the department scenario).
 
 ## Engineering to-dos

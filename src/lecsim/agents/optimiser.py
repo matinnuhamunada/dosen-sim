@@ -33,7 +33,7 @@ from lecsim.agents.base import Observation
 from lecsim.agents.common import ArchetypeResponder, fit_to_workload
 from lecsim.config import Archetype, Persona, StageRules
 from lecsim.core.actions import Activity, Allocation
-from lecsim.rules.workload import check_commitments
+from lecsim.rules.workload import check_commitments, check_limits
 
 
 def _plan_tier(obs: Observation, rank_index: int, discount: float) -> str:
@@ -189,10 +189,10 @@ class OptimiserPolicy(ArchetypeResponder):
             info["replanned"] = True
         idx, tier = self.plan[me.rank]
         hours = obs.forecast.candidates(obs.forecast.sc.optimiser_grid_steps)[idx]
-        if check_commitments(hours, me.commitments):
+        if check_commitments(hours, me.commitments) or check_limits(hours, me.limits):
             budget = obs.hours_per_week
             shares = {a: h / budget for a, h in hours.items()}
-            hours = fit_to_workload(shares, obs.workload, budget, me.commitments)
+            hours = fit_to_workload(shares, obs.workload, budget, me.commitments, me.limits)
             info["fitted_to_commitments"] = True
         return Allocation(
             hours=hours, journal_tier=tier, apply_grant=self.arch.apply_grants, info=info

@@ -33,7 +33,7 @@ senior lecturers.
 
 | Entity | State variables |
 | --- | --- |
-| **Lecturer** (`LecturerState`) | id; policy; archetype; active / hired_at / left_at; rank; degree; semesters in rank and in service; certification; credit points by category (cumulative and earned in the current rank); publications by journal tier; manuscripts ready and fractional manuscript progress; active grants; burnout ∈ [0, 1]; weekly commitments (teaching, admin); roles held (with term end); co-author this semester; monthly pay; cumulative income |
+| **Lecturer** (`LecturerState`) | id; policy; archetype; active / hired_at / left_at; rank; degree; semesters in rank and in service; certification; credit points by category (cumulative and earned in the current rank); publications by journal tier; manuscripts ready and fractional manuscript progress; active grants; burnout ∈ [0, 1]; weekly commitments (teaching, admin); roles held (with term end); co-author this semester; monthly pay; cumulative income; age (optional); probation end, hour limits and mentor (new hires) |
 | **Department** (`DepartmentState`) | semester; lecturers; pending journal submissions (with co-authors and hidden decisions); base teaching demand; hiring queue; co-authorship reciprocity memory |
 | **Head of department** (`institution/head.py`) | Rule parameters only: rank load weights, concession limit, rounds, teaching cap, commitment cap |
 | **Environment** | Journals (acceptance probability and decision lag per tier); grant agency (success probability rising with track record); teaching demand from an aggregate student cohort |
@@ -56,12 +56,16 @@ no spatial structure. Money is in IDR.
 Each semester runs six fixed phases (`core/engine.py`). Within a phase, lecturers are
 processed in sorted-id order. Each stochastic process draws from its own named RNG stream.
 
-1. **Events.** Expired grants and roles end. Burnout-driven attrition is drawn, and leavers
-   are queued for replacement. Due hires join as Asisten Ahli. Journal decisions fall due:
+1. **Events.** Expired grants and roles end. Lecturers who have reached their retirement
+   age retire; burnout-driven attrition is drawn; both are queued for replacement. Due hires
+   join as Asisten Ahli, or under the recruitment rule if one is set (e.g. doctorate only,
+   as Lektor), starting probation if one is set. Journal decisions fall due:
    for accepted papers, every author gets the publication count and the credit is split
    between authors; rejected manuscripts return to the first author.
 2. **Negotiation.**
-   1. The head fills vacant roles.
+   1. Probationers get their hour ceilings (no supervision) and a senior co-teaching mentor.
+      The head fills vacant roles (eligible: rank ≥ the role's minimum, not on probation,
+      below the per-lecturer role limit).
    2. Teaching demand is drawn, and the head bargains a load with each lecturer, then runs a
       volunteering round for any shortfall.
    3. Lecturers are paired as co-authors.
@@ -147,7 +151,10 @@ From the scenario file:
 - base teaching demand = hours per lecturer × initial headcount.
 
 All credits, publications, income and burnout start at zero, and nobody holds a role at
-t = 0. Main scenarios start every lecturer as Asisten Ahli with a doctorate.
+t = 0. Main scenarios start every lecturer as Asisten Ahli with a doctorate. If the
+scenario has a `demography` block (faculty case), each founder gets a start age (uniform
+29–31) plus years of service drawn by rank; these set age and seniority. Ages are not
+modelled otherwise, and nobody retires.
 
 ## 6. Input data
 
@@ -161,22 +168,23 @@ tests (`tests/rules/`, 100% line coverage).
 
 | Submodel | Code | Specification |
 | --- | --- | --- |
-| Workload check | `rules/workload.py` | Σ hours = weekly budget; duty hours ∈ [min, max]; each tridharma category ≥ its minimum share of duty hours; activity hours ≥ commitments |
-| Credit scoring | `rules/credits.py` | Credits = units × points per unit, capped per semester, by category; co-author shares: first author `first_author_share`, the rest split equally |
+| Workload check | `rules/workload.py` | Σ hours = weekly budget; duty hours ∈ [min, max]; each tridharma category ≥ its minimum share of duty hours; activity hours ≥ commitments and ≤ limits (probation) |
+| Credit scoring | `rules/credits.py` | Credits = units × points per unit × factor (probation: teaching 0.5), capped per semester, by category; co-author shares: first author `first_author_share`, the rest split equally |
 | Promotion | `rules/promotion.py` | Eligible for the next rank when semesters in rank, cumulative credit, in-rank minimum and maximum category shares, publications at or above a tier, and degree are all met. Promotion distance = Σ normalised shortfalls. In-rank credit resets at promotion |
 | Certification | `rules/promotion.py` | Rank ≥ minimum rank and service ≥ minimum semesters; gates the professional allowance |
-| Pay | `rules/pay.py` | Monthly = base by rank + seniority × years + functional allowance + professional allowance (× base, if certified) + honorary allowance (× base) + remuneration base + role allowances. Semester = monthly × 6 + remuneration per credit + external hours × rate |
+| Pay | `rules/pay.py` | Monthly = base by rank + seniority × years + functional allowance + professional allowance (× base, if certified) + honorary allowance (× base) + remuneration base + role allowances. Semester = monthly × 6 + remuneration per credit + external hours × rate. On probation: base salary × factor (0.8) only, no performance pay |
+| Retirement | `rules/retirement.py` | Retire once age ≥ retirement age for the current rank (65; Profesor 70) |
 | Production | `rules/production.py` | Output = scale × multiplier × hours^α × exp(σz − σ²/2), with α < 1 for diminishing returns. Research accumulates into whole manuscripts (a lag). Multipliers: grant, co-authorship, burnout productivity |
 | Burnout | `rules/burnout.py` | b′ = clamp(b + s·k·max(0, work − S)/S − r·rest/budget, 0, 1); productivity = 1 − p·b; attrition hazard q while b ≥ threshold |
 | Journals | `env/journals.py` | Acceptance drawn at submission (probability by tier), revealed after the tier's lag |
 | Grants | `env/grants.py` | P(success) = min(max, base + slope × publications); boosts research for a fixed duration |
 | Forecaster | `core/forecast.py` | Expected outputs with mean-one noise; every manuscript eventually published after expected delay lag/p; expected credits, income, burnout and distance after one semester |
-| Workload fitting | `agents/common.py` | Raises committed activities to their floors, clamps duty hours, then fills minimum shares from other categories' surplus and, if needed, from free time |
+| Workload fitting | `agents/common.py` | Cuts capped activities to their ceiling (excess to the same category), raises committed activities to their floors, clamps duty hours, then fills minimum shares from other categories' surplus and, if needed, from free time |
 | Rule policies | `agents/rule_policies.py` | Fixed share; threshold rules (gap → research or the category's activity; burnout > limit → rest); stage machine with precedence senior > push > post-promotion > early > mid |
 | Utility policy | `agents/utility_policy.py` | U = w_rank·Δdistance + w_pay·income/income_ref + w_wellbeing·(rest share − burnout); logit choice over about 400 grid bundles satisfying the commitments |
 | Optimiser | `agents/optimiser.py` | Enumerates one-bundle-per-rank plans (numpy broadcasting). Promotion time T = max(1, min semesters, ⌈credit gap/flow⌉, ⌈publication gap/rate⌉), or ∞ if share or degree rules fail. Objective = Σ discount^t · u_t. Verified against brute force |
 | Bargaining | `interactions/negotiation.py` | Counter ≥ (1 − concession) × offer is accepted; a lower counter is met halfway; after the maximum rounds the head imposes its offer |
-| Head of department | `institution/head.py` | Fills roles (least committed first; imposes if nobody accepts); teaching offers = demand × rank weight share, capped; volunteering round, lowest load first |
+| Head of department | `institution/head.py` | Fills roles (eligible lecturers, least committed first; imposes if nobody accepts); teaching offers = demand × rank weight share, capped; volunteering round, lowest load first. A probationer's hour covers `probation_coverage` of demand (co-taught) |
 | Co-authorship | `interactions/coauthorship.py` | Random order; each lecturer is offered the strongest unmatched colleague; both accept; tit-for-tat memory |
 | Lecturer responses | `agents/common.py` | Teaching reservation = preferred teaching × (1 + cooperativeness), else counter; roles accepted if own admin time ≥ half the role, or cooperative and holding no role; co-authorship by tit-for-tat, otherwise by cooperativeness or research orientation |
 

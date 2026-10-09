@@ -13,7 +13,7 @@ from lecsim.agents.common import (
 )
 from lecsim.config import Archetype, StageRules
 from lecsim.core.actions import Allocation
-from lecsim.rules.workload import check_commitments
+from lecsim.rules.workload import check_commitments, check_limits
 
 
 class UtilityPolicy(ArchetypeResponder):
@@ -24,8 +24,8 @@ class UtilityPolicy(ArchetypeResponder):
           + w_wellbeing * (rest_share - expected burnout after)
 
     using the engine's forecasts, then picks one with logit noise (``choice_noise``).
-    Candidates that break agreed commitments are excluded; if none remain, the archetype's
-    fixed shares are fitted to the commitments instead.
+    Candidates that break agreed commitments or hour limits are excluded; if none remain,
+    the archetype's fixed shares are fitted to them instead.
     """
 
     def __init__(
@@ -37,11 +37,12 @@ class UtilityPolicy(ArchetypeResponder):
     def decide_allocation(self, obs: Observation) -> Allocation:
         f, p = obs.forecast, self.arch.persona
         tier = risk_adjusted_tier(obs, p)
-        floors = obs.me.commitments
+        floors, caps = obs.me.commitments, obs.me.limits
         cands = [h for h in f.candidates(f.sc.candidate_grid_steps)
-                 if not check_commitments(h, floors)]  # fmt: skip
+                 if not check_commitments(h, floors) and not check_limits(h, caps)]  # fmt: skip
         if not cands:
-            cands = [fit_to_workload(self.arch.shares, obs.workload, obs.hours_per_week, floors)]
+            cands = [fit_to_workload(self.arch.shares, obs.workload, obs.hours_per_week, floors,
+                                     caps)]  # fmt: skip
         ref = f.income_ref
         # ponytail: one Python outlook per candidate (~400); vectorise if sweeps get slow.
         utils = np.empty(len(cands))

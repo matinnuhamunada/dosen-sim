@@ -48,3 +48,12 @@ def check_commitments(hours: Mapping[str, float], floors: Mapping[str, float]) -
         for act, floor in floors.items()
         if hours.get(act, 0.0) < floor - TOLERANCE
     ]
+
+
+def check_limits(hours: Mapping[str, float], ceilings: Mapping[str, float]) -> list[str]:
+    """Violations of maximum weekly hours per activity (probation bars supervision)."""
+    return [
+        f"{act} {hours.get(act, 0.0):g} > limit {cap:g}"
+        for act, cap in ceilings.items()
+        if hours.get(act, 0.0) > cap + TOLERANCE
+    ]

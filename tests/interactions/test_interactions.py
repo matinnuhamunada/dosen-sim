@@ -92,17 +92,20 @@ DEPT = Department.model_validate({
 })  # fmt: skip
 
 
+RANKS = ["Asisten Ahli", "Lektor", "Lektor Kepala"]
+
+
 def lec(i, rank="Asisten Ahli", **kw):
     return LecturerState(id=i, policy="test", rank=rank, degree="doctorate", **kw)
 
 
 def test_commit_cap():
     # committed teaching/admin may use max duty minus the research minimum: 30 * (1 - .2)
-    assert HeadOfDepartment(DEPT, WORKLOAD).commit_cap == pytest.approx(24)
+    assert HeadOfDepartment(DEPT, WORKLOAD, RANKS).commit_cap == pytest.approx(24)
 
 
 def test_teaching_split_by_rank_weight_and_volunteering():
-    head = HeadOfDepartment(DEPT, WORKLOAD)
+    head = HeadOfDepartment(DEPT, WORKLOAD, RANKS)
     lecs = {"A": lec("A"), "B": lec("B", rank="Lektor")}
     # demand 30: offers A 20 -> capped 16, B 10. A accepts 16, B counters 8 (>= 8, accepted).
     # shortfall 6: B (lowest load) asked for 6 more -> accepts
@@ -119,7 +122,7 @@ def test_teaching_split_by_rank_weight_and_volunteering():
 
 
 def test_teaching_uncovered_when_nobody_volunteers():
-    head = HeadOfDepartment(DEPT, WORKLOAD)
+    head = HeadOfDepartment(DEPT, WORKLOAD, RANKS)
     lecs = {"A": lec("A"), "B": lec("B")}
 
     def ask(lid, p):
@@ -130,7 +133,7 @@ def test_teaching_uncovered_when_nobody_volunteers():
 
 
 def test_role_volunteer_then_imposed():
-    head = HeadOfDepartment(DEPT, WORKLOAD)
+    head = HeadOfDepartment(DEPT, WORKLOAD, RANKS)
     log = []
     lecs = {"A": lec("A"), "B": lec("B")}
     head.fill_roles(0, lecs, lambda lid, p: Response(kind="accept" if lid == "B" else "reject"),
@@ -140,3 +143,32 @@ def test_role_volunteer_then_imposed():
     head.fill_roles(0, lecs, lambda lid, p: Response(kind="reject"),
                     lambda *a, **k: log.append(k))  # fmt: skip
     assert lecs["A"].roles == {"sec": 4} and log[-1]["outcome"] == "imposed"
+
+
+def test_role_eligibility_rank_probation_and_role_limit():
+    dept = DEPT.model_copy(update={
+        "roles": [*DEPT.roles, DEPT.roles[0].model_copy(update={"name": "dean",
+                                                                "min_rank": "Lektor Kepala"})],
+        "max_roles_per_lecturer": 1,
+    })  # fmt: skip
+    head = HeadOfDepartment(dept, WORKLOAD, RANKS)
+    dean = dept.roles[1]
+    assert not head.eligible(0, lec("A", rank="Lektor"), dean)
+    assert head.eligible(0, lec("A", rank="Lektor Kepala"), dean)
+    assert not head.eligible(0, lec("A", rank="Lektor Kepala", probation_until=2), dean)
+    assert head.eligible(2, lec("A", rank="Lektor Kepala", probation_until=2), dean)
+    assert not head.eligible(0, lec("A", rank="Lektor Kepala", roles={"sec": 4}), dean)
+
+
+def test_probationer_teaching_covers_part_of_demand():
+    dept = DEPT.model_copy(update={"hiring": DEPT.hiring.model_copy(
+        update={"probation_coverage": 0.5})})  # fmt: skip
+    head = HeadOfDepartment(dept, WORKLOAD, RANKS)
+    lecs = {"A": lec("A", rank="Lektor"), "B": lec("B", rank="Lektor", probation_until=2)}
+
+    def ask(lid, p):
+        return Response(kind="accept") if p.topic == "teaching_load" else Response(kind="reject")
+
+    # demand 20 split 10/10; B's 10 co-taught hours cover 5 -> 5 uncovered
+    assert head.assign_teaching(0, lecs, 20, ask, lambda *a, **k: None) == pytest.approx(5)
+    assert head.assign_teaching(2, lecs, 20, ask, lambda *a, **k: None) == pytest.approx(0)

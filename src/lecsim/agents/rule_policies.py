@@ -29,7 +29,9 @@ class FixedSharePolicy(ArchetypeResponder):
     def decide_allocation(self, obs: Observation) -> Allocation:
         shares, info = self.target_shares(obs)
         return Allocation(
-            hours=fit_to_workload(shares, obs.workload, obs.hours_per_week, obs.me.commitments),
+            hours=fit_to_workload(
+                shares, obs.workload, obs.hours_per_week, obs.me.commitments, obs.me.limits
+            ),
             journal_tier=self.tier(obs),
             apply_grant=self.arch.apply_grants,
             info=info,

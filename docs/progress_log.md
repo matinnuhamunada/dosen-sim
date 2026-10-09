@@ -5,7 +5,7 @@ One entry per milestone gate: what was built, open inputs, and the gate outcome.
 ## M1 Rules core — gate passed 2026-10-09
 
 **Built** (branch `m1-rules-core`):
-- Regulation YAML (`configs/regulations/national.yaml`) with `extends`-based local override (`ptnbh.yaml`, enables remuneration); Pydantic validation with cross-checks.
+- Regulation YAML (`configs/regulations/national.yaml`) with `extends`-based local override (`ptnbh.yaml`, formerly `ptnbh.yaml`, enables remuneration); Pydantic validation with cross-checks.
 - Pure rules with 100% line coverage: workload, credits (per-semester caps), promotion blockers + certification, pay, production (diminishing returns, mean-one lognormal noise, accumulation lag).
 - Engine with six phases (negotiation/reflection no-ops), named seeded RNG streams (`sha256(name)` spawn keys), journal and grant processes, `Policy` protocol + `RandomPolicy`.
 - JSONL event log with header (config hash, seed, git commit, version; no timestamp); `lecsim run` writes `events.jsonl` + `summary.csv` (metrics from the log only).
@@ -86,9 +86,19 @@ One entry per milestone gate: what was built, open inputs, and the gate outcome.
 
 **MVP results** (placeholder values; see ODD §8): department-level policy effects are small. The teaching cap lowers worst-semester coverage (1.00 → 0.95, CI −0.07 to −0.02). Supervision and community rewards slightly raise the mean common score and mainly help teaching loyalists (Profesor 1–2 semesters sooner, +50–94 M IDR; after the 2026-10-09 workload-fit fix: 0.5–2 semesters, +25–88 M IDR). Research credit dominates under placeholders, which mutes reweighting policies.
 
-## 2026-10-09 — Faculty case: an anonymised faculty-sized scenario
+## 2026-10-09 — Faculty case scenario
 
-- `configs/scenarios/faculty_case.yaml`: 68 lecturers (16 Profesor, ~53 doctorates; from the faculty's public staff directory (source withheld)), PTNBH regulation, eight structural roles (dean; vice deans for academic, finance and collaboration; head of department; heads of the undergraduate, master and doctoral programmes). Non-professor rank split and all role hours/allowances are placeholders (assumptions 35–37, todo).
+- `configs/scenarios/faculty_case.yaml` (anonymised): 68 lecturers (16 Profesor, ~53 doctorates, from the faculty's public staff directory), PTNBH regulation, eight structural roles (dean; vice deans for academic, finance and collaboration; head of department; heads of the undergraduate, master and doctoral programmes). Non-professor rank split and all role hours/allowances are placeholders (assumptions 35–37, todo).
 - Names are masked: scenario `names` gives pseudonymous IDs `L01_Budi`, `L02_Siti`, … (common Indonesian given names).
 - Bug fix in `fit_to_workload` (assumption 38): a full commitment cap (dean) made the fit fail. All logs shift slightly; the M4 sweep was rerun and ODD §8 updated (headline results unchanged).
 - 10 seeds × 40 semesters: no crashes, coverage ≥ 0.97, mean burnout 0.05–0.07, 3–4 leavers per run. Viewer hides unfocused name tags above 24 lecturers.
+
+## 2026-10-09 — Faculty case: ages, retirement, recruitment, probation, lab heads
+
+- Anonymised the case: scenario renamed `faculty_case`, regulation `ptnbh.yaml` → `ptnbh.yaml`, institution names removed from configs and docs.
+- Ages (`demography`): start age 29–31; founders' service years drawn by rank. Retirement at 65, Profesor 70 (UU 14/2005 art. 67, in `national.yaml`; inert where ages are not modelled).
+- Recruitment (faculty case only): retirees and leavers replaced by doctorate holders appointed straight to Lektor (Permendiktisaintek 52/2025).
+- Probation (first 2 semesters of a hire): 80 % of base salary only, half teaching credit, no supervision (engine-enforced hour ceiling), co-teaching with a Lektor Kepala/Profesor mentor whose class covers half the demand per hour; no roles.
+- Roles: 5-year terms (10 semesters) for every structural position; 12 laboratory heads added; minimum ranks (dean Lektor Kepala; vice deans, head of department, lab and programme heads Lektor); one role per lecturer.
+- Existing scenarios unchanged (event logs identical apart from the new state fields).
+- 10 seeds × 40 semesters: 19–27 retirements, 2–6 burnout leavers, 19–27 hires (all Lektor, doctorate), teaching coverage ≥ 0.96 (mean ≥ 0.999), no vacant roles, probationers never supervise; 28–36 of 62–68 active lecturers are Profesor by year 20 (placeholder promotion rules).

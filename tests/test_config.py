@@ -16,11 +16,11 @@ def test_deep_merge_overrides_leaf_keeps_siblings():
 
 def test_local_override_merges_over_national():
     nat = load_regulation(ROOT / "configs/regulations/national.yaml")
-    local = load_regulation(ROOT / "configs/regulations/ptnbh.yaml")
+    ptnbh = load_regulation(ROOT / "configs/regulations/ptnbh.yaml")
     assert not nat.pay.remuneration.enabled
-    assert local.pay.remuneration.enabled
-    assert local.pay.base_salary_by_rank == nat.pay.base_salary_by_rank  # inherited
-    assert local.career == nat.career
+    assert ptnbh.pay.remuneration.enabled
+    assert ptnbh.pay.base_salary_by_rank == nat.pay.base_salary_by_rank  # inherited
+    assert ptnbh.career == nat.career
 
 
 def test_baseline_scenario_loads():

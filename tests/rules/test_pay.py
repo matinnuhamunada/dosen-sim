@@ -63,3 +63,18 @@ def test_role_allowance_added(reg):
                     role_allowance=500)  # fmt: skip
     assert m["role_allowance"] == 500
     assert sum(m.values()) == 4000 + 200 + 500
+
+
+def test_probation_pays_scaled_base_salary_only(reg):
+    # base 4000 + 1 year * 50 = 4050, x 0.8 = 3240; allowances, role pay all 0
+    m = monthly_pay(rank="Lektor", years_of_service=1, certified=True, rules=reg.pay,
+                    role_allowance=500, probation_salary_factor=0.8)  # fmt: skip
+    assert m["base_salary"] == pytest.approx(3240)
+    assert sum(m.values()) == pytest.approx(3240)
+    rules = PayRules.model_validate(
+        reg.pay.model_dump() | {"remuneration": {"enabled": True, "per_credit_point": 10}}
+    )
+    s = semester_income(monthly=m, months=6, credits_earned=30, external_hours=0, rules=rules,
+                        performance_pay=False)  # fmt: skip
+    assert s["remuneration_performance"] == 0
+    assert s["total"] == pytest.approx(3240 * 6)

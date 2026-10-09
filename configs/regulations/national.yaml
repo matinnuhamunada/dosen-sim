@@ -99,6 +99,11 @@ certification: # gate for the professional allowance
   min_rank: Asisten Ahli # TODO(source)
   min_semesters_service: 4 # TODO(source)
 
+retirement: # UU 14/2005 art. 67(4)-(5): lecturers retire at 65, professors at 70
+  age: 65 # sourced: UU 14/2005 art. 67(4)
+  age_by_rank:
+    Profesor: 70 # sourced: art. 67(5) ("berprestasi"; assumed to hold for every Profesor)
+
 coauthor_credit: # KUM split for co-authored publications
   first_author_share: 0.6 # TODO(source): remainder split equally among co-authors
 

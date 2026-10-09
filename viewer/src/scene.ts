@@ -52,6 +52,8 @@ const CUE_ICONS: Partial<Record<KeyEvent["kind"], string>> = {
   role: "🏷️",
   coauthor: "🤝",
   attrition: "🚪",
+  retirement: "🎓",
+  mentor: "🧑‍🏫",
   hire: "👋",
   certified: "📜",
 };

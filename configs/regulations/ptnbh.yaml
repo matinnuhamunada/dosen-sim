@@ -1,4 +1,4 @@
-# PTNBH local overrides, deep-merged over national.yaml.
+# PTNBH (autonomous state university) local overrides, deep-merged over national.yaml.
 # Only keys listed here change; everything else is inherited.
 # All values are PLACEHOLDERS — see docs/assumptions.md.
 extends: national.yaml
@@ -7,7 +7,7 @@ version: ptnbh-placeholder-0
 pay:
   remuneration:
     enabled: true
-    base_by_rank: # TODO(source): PTNBH remuneration scheme, IDR per month
+    base_by_rank: # TODO(source): institutional remuneration scheme, IDR per month
       Asisten Ahli: 500000
       Lektor: 1000000
       Lektor Kepala: 1500000

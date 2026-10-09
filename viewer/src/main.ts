@@ -302,7 +302,7 @@ function renderOps(r: Run): void {
       .join("");
   } else if (state.tab === "events") {
     const icon: Record<string, string> = { paper: "📄", promotion: "⭐", grant: "💰", role: "🏷️", teaching: "💬",
-      coauthor: "🤝", attrition: "🚪", hire: "👋", certified: "📜" };
+      coauthor: "🤝", attrition: "🚪", retirement: "🎓", mentor: "🧑‍🏫", hire: "👋", certified: "📜" };
     body.innerHTML = evs.length
       ? evs.map((e) => `<div class="ev-row" data-id="${e.agent}"><span>${icon[e.kind] ?? "•"}</span><b>${e.agent}</b>
           <span${e.outcome === "imposed" ? ' style="color:var(--red)"' : ""}>${e.text}</span></div>`).join("")
@@ -403,6 +403,8 @@ function renderTracker(r: Run): void {
     <div class="tr-status">
       <span class="pill ${present ? "green" : ""}" id="zone-now">${present ? `${ZONES[zone]?.icon ?? ""} ${ZONES[zone]?.label ?? zone}` : "Left the department"}</span>
       <span class="pill blue">${s?.rank ?? ranks[0]}</span>
+      ${s?.age != null ? `<span class="pill">age ${Math.floor(s.age)}</span>` : ""}
+      ${s?.probation ? `<span class="pill amber" title="Base salary only, half teaching credit, no supervision">probation</span>` : ""}
     </div>
     <div class="meter"><span>Burnout</span><span class="track"><i style="width:${Math.min(100, burn * 100)}%;background:${burnColor}"></i></span><b>${burn.toFixed(2)}</b></div>
     <div class="kv">
@@ -411,6 +413,7 @@ function renderTracker(r: Run): void {
       <span>Papers / grants</span><span>${s?.publications ?? 0} / ${grants}</span>
       <span>Roles</span><span>${s?.roles.join(", ") || "–"}</span>
       <span>Co-author</span><span>${s?.coauthor ?? "–"}</span>
+      ${s?.mentor ? `<span>Mentor</span><span>${s.mentor} (co-teaching)</span>` : ""}
       <span>Commitments</span><span>${Object.entries(s?.commitments ?? {}).map(([k, v]) => `${k} ${v.toFixed(1)} h`).join(", ") || "–"}</span>
       ${persona ? `<span>Weights</span><span>rank ${persona.w_rank} · pay ${persona.w_pay} · wellbeing ${persona.w_wellbeing}</span>` : ""}
     </div>

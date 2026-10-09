@@ -119,6 +119,7 @@ def run_metrics(events_path: str | Path) -> dict[str, Any]:
         "min_coverage": min(d["teaching_coverage"] for d in dep),
         "mean_burnout": statistics.fmean(d["mean_burnout"] for d in dep),
         "attrition": sum(e["type"] == "attrition" for e in events),
+        "retirements": sum(e["type"] == "retirement" for e in events),
         "imposed": sum(
             e["type"] in ("teaching_agreed", "role_assigned") and e["outcome"] == "imposed"
             for e in events

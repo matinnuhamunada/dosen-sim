@@ -43,6 +43,13 @@ class LecturerState(BaseModel):
     commitments: dict[str, float] = Field(default_factory=dict)  # agreed weekly hour floors
     roles: dict[str, int] = Field(default_factory=dict)  # role name -> end semester (exclusive)
     coauthor: str | None = None  # partner this semester
+    age: float | None = None  # years, at the start of the current semester
+    probation_until: int | None = None  # first semester after probation (new hires only)
+    limits: dict[str, float] = Field(default_factory=dict)  # weekly hour ceilings (probation)
+    mentor: str | None = None  # co-teaching senior while on probation
+
+    def on_probation(self, t: int) -> bool:
+        return self.probation_until is not None and t < self.probation_until
 
 
 class Hire(BaseModel):

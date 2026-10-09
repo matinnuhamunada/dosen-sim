@@ -11,7 +11,7 @@ import numpy as np
 from lecsim.agents.base import Observation
 from lecsim.config import Archetype, Persona, WorkloadRules
 from lecsim.core.actions import Activity, Proposal, Response
-from lecsim.rules.workload import check_commitments, check_workload
+from lecsim.rules.workload import check_commitments, check_limits, check_workload
 
 
 def _move(
@@ -37,6 +37,7 @@ def fit_to_workload(
     rules: WorkloadRules,
     budget: float,
     floors: Mapping[str, float] | None = None,
+    ceilings: Mapping[str, float] | None = None,
 ) -> dict[Activity, float]:
     """Turn target shares into a valid weekly allocation with minimal reshuffling.
 
@@ -46,10 +47,25 @@ def fit_to_workload(
     2. Clamp duty hours into [min, max], moving hours between duty and free activities.
     3. Raise any tridharma category below its minimum share, taking only from other
        categories' surplus above their own minimum.
-    No step takes an activity below its floor.
+    No step takes an activity below its floor. Activities with a ``ceiling`` (probation:
+    supervision 0) are cut to it first, the excess going to the same tridharma category,
+    and never receive hours afterwards.
     """
     floor = {Activity(a): v for a, v in (floors or {}).items()}
+    ceil = {Activity(a): v for a, v in (ceilings or {}).items()}
     h = {a: shares.get(a, 0.0) * budget for a in Activity}
+    cat_of = {Activity(a): c for a, c in rules.activity_category.items()}
+
+    def open_(acts: list[Activity]) -> list[Activity]:
+        # ponytail: a capped activity never receives hours, exact for 0 ceilings only
+        return [a for a in acts if a not in ceil]
+
+    for a, cap in ceil.items():
+        if h[a] > cap:
+            to = open_([b for b in cat_of if cat_of[b] == cat_of.get(a)]) or [Activity.REST]
+            for b in to:
+                h[b] += (h[a] - cap) / len(to)
+            h[a] = cap
 
     def free(a: Activity) -> float:
         return max(0.0, h[a] - floor.get(a, 0.0))
@@ -63,11 +79,10 @@ def fit_to_workload(
     duty = sum(h[a] for a in duty_acts)
     target = min(max(duty, rules.min_duty_hours_per_week), rules.max_duty_hours_per_week)
     if target > duty:
-        _move(h, {a: free(a) for a in free_acts}, duty_acts, target - duty)
+        _move(h, {a: free(a) for a in free_acts}, open_(duty_acts), target - duty)
     elif target < duty:
-        _move(h, {a: free(a) for a in duty_acts}, free_acts, duty - target)
+        _move(h, {a: free(a) for a in duty_acts}, open_(free_acts), duty - target)
 
-    cat_of = {Activity(a): c for a, c in rules.activity_category.items()}
     cats = sorted({cat_of[a] for a in duty_acts})  # sorted: set order varies across processes
     for _ in range(len(rules.min_share) + 1):  # raising duty can dilute an earlier category
         short_any = False
@@ -91,18 +106,19 @@ def fit_to_workload(
                     scale = min(1.0, surplus / spare)
                     donors.update({a: free(a) * scale for a in acts})
             take = min(need, sum(donors.values()))
-            _move(h, donors, mine, take)
+            _move(h, donors, open_(mine), take)
             need -= take
             # ... then from external work / rest, which also raises duty hours: x(1 - lo) = need
             if need > 1e-9:
                 x = need / (1 - lo)
                 if x > rules.max_duty_hours_per_week - duty + 1e-9:
                     raise ValueError("workload limits cannot be satisfied")
-                _move(h, {a: free(a) for a in free_acts}, mine, x)
+                _move(h, {a: free(a) for a in free_acts}, open_(mine), x)
         if not short_any:
             break
 
     violations = check_workload(h, rules, budget) + check_commitments(h, floor)
+    violations += check_limits(h, ceil)
     if violations:
         raise ValueError(f"could not fit allocation: {violations}")
     return h

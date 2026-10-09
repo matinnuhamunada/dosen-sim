@@ -16,7 +16,9 @@ class RandomPolicy:
     def decide_allocation(self, obs: Observation) -> Allocation:
         shares = dict(zip(list(Activity), self.rng.dirichlet(np.ones(len(Activity))), strict=True))
         return Allocation(
-            hours=fit_to_workload(shares, obs.workload, obs.hours_per_week, obs.me.commitments),
+            hours=fit_to_workload(
+                shares, obs.workload, obs.hours_per_week, obs.me.commitments, obs.me.limits
+            ),
             journal_tier=str(self.rng.choice(obs.journal_tiers)),
             apply_grant=bool(self.rng.random() < 0.5),
         )

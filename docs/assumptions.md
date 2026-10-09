@@ -50,8 +50,8 @@ choice; **fact** = calendar or definitional fact.
 
 | Parameter | Placeholder value | Status | Needed source |
 | --- | --- | --- | --- |
-| `pay.remuneration.base_by_rank` | 0.5 / 1.0 / 1.5 / 2.0 M IDR/month | TODO | PTNBH remuneration scheme |
-| `pay.remuneration.per_credit_point` | 10 000 IDR | TODO | PTNBH performance pay |
+| `pay.remuneration.base_by_rank` | 0.5 / 1.0 / 1.5 / 2.0 M IDR/month | TODO | Institutional (PTNBH) remuneration scheme |
+| `pay.remuneration.per_credit_point` | 10 000 IDR | TODO | Institutional performance pay |
 
 ## Environment — `configs/scenarios/baseline.yaml`
 
@@ -163,22 +163,40 @@ external_earner, balanced_strategist.
 33. **Scores** use the rank held during a semester, that semester's total income relative to income_ref, and rest share minus end-of-semester burnout. They average over semesters actually served, so leavers and late hires are comparable.
 34. **Time to rank** in metrics counts semesters from hiring, so replacement hires are comparable with founders. Condition comparisons by archetype use founders only (`hired_at == 0`).
 
-## Case scenario: faculty sized like an anonymised faculty (`configs/scenarios/faculty_case.yaml`)
+## Case scenario: anonymised faculty (`configs/scenarios/faculty_case.yaml`)
 
-Source for headcount: the faculty's public staff directory (source withheld) (accessed 2026-10-09): 68 lecturers in 12 laboratories, 16 with the title Profesor, about 53 with a doctoral title (inferred from name suffixes).
+The case is anonymised: neither the institution nor the faculty is named in the repository, and lecturers are pseudonyms. Headcount comes from the faculty's public staff directory (accessed 2026-10-09; source kept by the user): 68 lecturers in 12 laboratories, 16 with the title Profesor, about 53 with a doctoral title (inferred from name suffixes).
 
 | Item | Value | Status | Meaning |
 | --- | --- | --- | --- |
 | Headcount | 68 | sourced | Founders at t = 0 |
 | Profesor | 16 | sourced | Initial rank |
-| Lektor Kepala / Lektor / Asisten Ahli | 24 / 18 / 10 | TODO | Non-professor split; page gives none |
+| Lektor Kepala / Lektor / Asisten Ahli | 24 / 18 / 10 | TODO | Non-professor split; the directory gives none |
 | Degrees | 53 doctorate, 15 master | sourced (approx.) | From displayed titles |
-| Dean, 3 vice deans (academic, finance, collaboration) | 20 h / 16 h per week, 8 semesters, 10 M / 7.5 M IDR per month | TODO | Structural roles |
-| Head of department | 12 h/week, 8 semesters, 4 M IDR/month | TODO | |
-| Heads of study programme (S1, S2, S3) | 8 h/week, 8 semesters, 3 M IDR/month | TODO | |
-| Regulation | `ptnbh.yaml` (PTNBH remuneration on) | struct | the case university is a PTNBH |
+| Dean | 20 h/week, 10 semesters (5-year term), 10 M IDR/month, min rank Lektor Kepala | rank, term: user; rest TODO | Structural role |
+| 3 vice deans (academic, finance, collaboration) | 16 h/week, 10 semesters, 7.5 M IDR/month, min rank Lektor | rank, term: user; rest TODO | |
+| Head of department | 12 h/week, 10 semesters, 4 M IDR/month, min rank Lektor | rank, term: user; rest TODO | |
+| Heads of study programme (S1, S2, S3) | 8 h/week, 10 semesters, 3 M IDR/month, min rank Lektor | term: user; rank assumed; rest TODO | |
+| 12 laboratory heads | 4 h/week, 10 semesters, 1 M IDR/month, min rank Lektor | rank, term: user; rest TODO | One per laboratory |
+| Roles per lecturer | at most 1 | assumption | `max_roles_per_lecturer` |
+| Regulation | `ptnbh.yaml` (institutional remuneration on) | struct | PTNBH university |
+| Start age | uniform 29–31 years | user estimate | Founders and hires |
+| Founders' years of service | AA 0–6, Lektor 2–16, LK 8–30, Profesor 15–38 (uniform) | TODO | Sets founders' age and seniority pay |
+| Retirement age | 65; Profesor 70 | sourced | UU 14/2005 art. 67(4)–(5) (`national.yaml`) |
+| Recruitment | doctorate only; appointed directly as Lektor | user-stated; partly sourced | Permendiktisaintek 52/2025 and its juknis (Kepmendiktisaintek 39/M/KEP/2026): doctorate holders can be appointed straight to Lektor |
+| Probation | 2 semesters | sourced | PP 11/2017: one-year CPNS probation |
+| Probation pay | 80 % of base salary only; no allowances, remuneration, performance or role pay | factor sourced; "base only" user-stated | PP 7/1977 art. 5(1); Perka BKN 1/2024 art. 10 |
+| Probation teaching credit | 0.5 × | user-stated, TODO(source) | Half credit for the same hours |
+| Probation supervision | barred (0 h) | user-stated, TODO(source) | No national rule found; likely institutional |
+| Co-teaching mentor | a Lektor Kepala or Profesor | user-stated, TODO(source) | Least-loaded senior, kept through probation |
+| Co-taught coverage | 0.5 | assumption | A probationer's teaching hour covers half a class-hour of demand |
+| Hiring lag | 2 semesters | TODO | Retirees and leavers replaced with the same policy and archetype |
 
-35. **Masking:** lecturers are pseudonymous. IDs are `L01_<common Indonesian given name>` from the scenario's `names` list, in creation order, so they do not identify the real staff. Hires continue down the list.
+35. **Masking:** lecturers are pseudonymous. IDs are `L01_<common Indonesian given name>` from the scenario's `names` list (133 names), in creation order, so they do not identify the real staff. Hires continue down the list; past its end, IDs are bare (`L134`).
 36. **Archetypes and policies** are cycled across lecturers (stage, utility, optimiser; five archetypes); they are not observed behaviour.
-37. **Roles have no rank or degree eligibility** yet: any lecturer below the commitment cap can be asked, so an Asisten Ahli can become dean. Real eligibility rules (e.g. statute requirements for dean) are a calibration item.
+37. **Role eligibility:** a role goes only to lecturers at or above its `min_rank`, not on probation, holding fewer than `max_roles_per_lecturer` roles and with room under the commitment cap. Degree requirements for positions are not modelled.
 38. **Workload fit fix (2026-10-09):** when moving hours to meet a category's minimum share, a donor category's surplus is now split by each activity's free hours (above its commitment floor) rather than by its total hours. Before, floored teaching hid spare supervision hours, so the fit pulled hours from rest instead, and at a full commitment cap (dean) it failed. All logs change slightly; the M4 sweep was rerun and the ODD §8 numbers updated (headline results unchanged).
+39. **Ages and retirement:** age advances half a year per semester. A lecturer retires at the start of the semester in which they have reached their rank's retirement age (65, Profesor 70), giving up any role. The 70 limit requires "berprestasi" in the law; every Profesor is assumed to qualify. Retirement pensions are not modelled (the retiree leaves the simulation).
+40. **Recruitment rule scope:** the doctorate-only, enter-as-Lektor rule and probation are applied in the faculty case only (`regulation_overrides`), so the M4 scenarios keep their earlier rules (hire as Asisten Ahli with the leaver's degree). Hires take the leaver's policy and archetype. The first-author SINTA 4 article required for first appointment as Lektor is not modelled.
+41. **Probation mechanics:** probation applies only to new hires. The engine sets the barred activities' weekly ceiling to 0 (validated like commitments), halves teaching credit, pays only the scaled base salary (seniority included) and no performance remuneration; external work is still paid at the market rate. Probationers cannot hold roles. Agents' forecasts ignore probation pay and credit (they plan as if confirmed).
+42. **Founders' seniority:** drawn years of service also set `semesters_service` (seniority pay, certification); founders still start with 0 semesters in rank.

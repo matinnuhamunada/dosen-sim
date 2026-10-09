@@ -45,6 +45,9 @@ export interface AgentSem {
   publications: number;
   roles: string[];
   coauthor: string | null;
+  age: number | null; // end of semester; null when ages are not modelled
+  probation: boolean; // on probation during this semester
+  mentor: string | null;
 }
 
 export type EventKind =
@@ -55,6 +58,8 @@ export type EventKind =
   | "teaching"
   | "coauthor"
   | "attrition"
+  | "retirement"
+  | "mentor"
   | "hire"
   | "certified";
 
@@ -176,6 +181,9 @@ export function parseLog(text: string, name = "run"): Run {
           ),
           roles: Object.keys(s.roles ?? {}),
           coauthor: s.coauthor ?? null,
+          age: s.age ?? null,
+          probation: s.probation_until != null && t < s.probation_until,
+          mentor: s.mentor ?? null,
         });
         a.sems.set(t, p as AgentSem);
         break;
@@ -216,9 +224,22 @@ export function parseLog(text: string, name = "run"): Run {
         getAgent(e.agent).leftAt = t;
         push({ t, kind: "attrition", agent: e.agent, text: `left (burnout ${e.burnout.toFixed(2)})` });
         break;
+      case "retirement":
+        getAgent(e.agent).leftAt = t;
+        push({ t, kind: "retirement", agent: e.agent, text: `retired at ${Math.floor(e.age)} (${e.rank})` });
+        break;
+      case "mentor_assigned":
+        push({ t, kind: "mentor", agent: e.agent, text: `co-teaching with mentor ${e.mentor}` });
+        push({ t, kind: "mentor", agent: e.mentor, text: `mentoring ${e.agent}` });
+        break;
       case "hire":
         getAgent(e.agent, e.policy, e.archetype, t).hiredAt = t;
-        push({ t, kind: "hire", agent: e.agent, text: "hired" });
+        push({
+          t,
+          kind: "hire",
+          agent: e.agent,
+          text: e.rank ? `hired as ${e.rank}${e.probation_until != null ? " (probation)" : ""}` : "hired",
+        });
         break;
       case "certified":
         push({ t, kind: "certified", agent: e.agent, text: "certified (serdos)" });

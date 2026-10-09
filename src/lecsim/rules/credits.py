@@ -11,10 +11,12 @@ def score_credits(
     outputs: Mapping[str, float],
     table: Mapping[str, CreditRule],
     categories: list[str],
+    factors: Mapping[str, float] | None = None,
 ) -> dict[str, float]:
     """Credit points per category for one semester's outputs.
 
-    Each output earns ``units * points_per_unit``, capped at ``max_per_semester``.
+    Each output earns ``units * points_per_unit * factor`` (``factors``: per-output
+    multipliers, default 1; probation halves teaching), capped at ``max_per_semester``.
     Unknown outputs raise ``KeyError``: every scored output must be in the regulation.
     """
     credits = dict.fromkeys(categories, 0.0)
@@ -22,7 +24,7 @@ def score_credits(
         if units < 0:
             raise ValueError(f"negative output {name}={units}")
         rule = table[name]
-        points = units * rule.points_per_unit
+        points = units * rule.points_per_unit * (factors or {}).get(name, 1.0)
         if rule.max_per_semester is not None:
             points = min(points, rule.max_per_semester)
         credits[rule.category] += points

@@ -77,6 +77,26 @@ class CoauthorRules(_Model):
     first_author_share: float = Field(ge=0, le=1)  # rest split equally among co-authors
 
 
+class RetirementRules(_Model):
+    age: float = Field(gt=0)  # mandatory retirement age
+    age_by_rank: dict[str, float] = {}  # rank-specific overrides (Profesor)
+
+
+class RecruitmentRules(_Model):
+    min_degree: str  # new hires hold at least this degree
+    entry_rank: str  # rank given at first appointment
+
+
+class ProbationRules(_Model):
+    """First semesters of a new hire (never applies to the initial staff)."""
+
+    semesters: int = Field(ge=1)
+    salary_factor: float = Field(ge=0)  # x base salary; every other pay component is 0
+    teaching_credit_factor: float = Field(ge=0)  # credit for the same teaching hours
+    barred_activities: list[str] = []  # weekly hours capped at 0
+    mentor_ranks: list[str] = []  # ranks that may co-teach with (mentor) a probationer
+
+
 class Regulation(_Model):
     version: str
     time: TimeRules
@@ -89,6 +109,9 @@ class Regulation(_Model):
     certification: CertificationRules
     pay: PayRules
     coauthor_credit: CoauthorRules
+    retirement: RetirementRules | None = None  # None: nobody retires
+    recruitment: RecruitmentRules | None = None  # None: hire at the first rank, leaver's degree
+    probation: ProbationRules | None = None  # None: no probation
 
     @property
     def rank_names(self) -> list[str]:
@@ -112,6 +135,18 @@ class Regulation(_Model):
                 raise ValueError(f"rank {r.name}: unknown degree {r.required_degree!r}")
         if self.certification.min_rank not in ranks:
             raise ValueError(f"certification.min_rank {self.certification.min_rank!r} unknown")
+        if self.retirement and not set(self.retirement.age_by_rank) <= ranks:
+            raise ValueError("retirement.age_by_rank: unknown rank")
+        if self.recruitment and (
+            self.recruitment.entry_rank not in ranks
+            or self.recruitment.min_degree not in self.degrees
+        ):
+            raise ValueError("recruitment: unknown entry_rank or min_degree")
+        if self.probation:
+            if not set(self.probation.mentor_ranks) <= ranks:
+                raise ValueError("probation.mentor_ranks: unknown rank")
+            if not set(self.probation.barred_activities) <= set(self.workload.activity_category):
+                raise ValueError("probation.barred_activities: unknown activity")
         missing = ranks - set(self.pay.base_salary_by_rank)
         if missing:
             raise ValueError(f"pay.base_salary_by_rank missing ranks: {sorted(missing)}")
@@ -178,6 +213,7 @@ class RoleSpec(_Model):
     hours_per_week: float = Field(ge=0)
     duration_semesters: int = Field(ge=1)
     allowance_monthly: float = Field(ge=0)  # side payment, IDR
+    min_rank: str | None = None  # lowest rank eligible to hold the role
 
 
 class CoauthorshipParams(_Model):
@@ -186,14 +222,18 @@ class CoauthorshipParams(_Model):
 
 
 class HiringParams(_Model):
-    replace_leavers: bool = True
+    replace_leavers: bool = True  # leavers and retirees are replaced
     lag_semesters: int = Field(ge=0)
+    # Share of a co-taught probationer's teaching hour that covers demand (the mentor is in
+    # the same class); 1 = counts in full.
+    probation_coverage: float = Field(default=1.0, ge=0, le=1)
 
 
 class Department(_Model):
     teaching_demand: TeachingDemand
     head: HeadRules
     roles: list[RoleSpec] = []
+    max_roles_per_lecturer: int | None = Field(default=None, ge=1)  # None: limited by hours
     coauthorship: CoauthorshipParams
     hiring: HiringParams
 
@@ -204,6 +244,13 @@ class LecturerSpec(_Model):
     archetype: str | None = None
     rank: str
     degree: str
+
+
+class Demography(_Model):
+    """Ages. Initial staff: age = start age + years of service, both drawn uniformly."""
+
+    start_age: tuple[float, float]  # age at first appointment (also for new hires)
+    initial_service_years: dict[str, tuple[float, float]]  # by initial rank
 
 
 # --- agents -----------------------------------------------------------------
@@ -273,6 +320,7 @@ class Scenario(_Model):
     environment: Environment
     department: Department
     agents: AgentBook | None = None
+    demography: Demography | None = None  # None: ages not modelled (nobody retires)
     candidate_grid_steps: int = Field(default=8, ge=1)  # allocation grid: utility agents
     optimiser_grid_steps: int = Field(default=6, ge=1)  # coarser grid: optimiser enumerates plans
     # Optional pseudonyms appended to generated IDs in creation order (L01_<name>, ...);
@@ -293,6 +341,13 @@ class Scenario(_Model):
                 self.agents is None or spec.archetype not in self.agents.archetypes
             ):
                 raise ValueError(f"unknown archetype {spec.archetype!r}")
+        if self.demography and not {s.rank for s in self.lecturers} <= set(
+            self.demography.initial_service_years
+        ):
+            raise ValueError("demography.initial_service_years must cover every initial rank")
+        for role in self.department.roles:
+            if role.min_rank is not None and role.min_rank not in reg.rank_names:
+                raise ValueError(f"role {role.name}: unknown min_rank {role.min_rank!r}")
         for name, arch in self.agents.archetypes.items() if self.agents else []:
             if arch.journal_tier not in reg.journal_tiers:
                 raise ValueError(f"archetype {name}: unknown journal tier {arch.journal_tier!r}")
