@@ -205,6 +205,8 @@ The case is anonymised: neither the institution nor the faculty is named in the 
 | Claimable teaching | only the assigned load earns SKS and teaching credit | assumption | `teaching_counts_assigned_only` |
 | Research SKS without a grant | at most 6 SKS | assumption, TODO(source) | Research claims need a funded project as evidence |
 | Committee excuses | a refusal gets the lecturer excused with probability 0.2 (Lektor), 0.5 (Lektor Kepala), 0.8 (Profesor); the seat passes on | user-described; values TODO | Seniors rarely serve; hours pile up on juniors |
+| Homophily | +0.3 liking between lecturers of the same archetype | user-described; value TODO | "Like attracts like" |
+| Dean's policy | access + 0.2 for the dean's lab, + 0.1 for the dean's archetype, while the dean is in office | user-described; values TODO | Funding follows the dean's lab and kind |
 | Research resources by rank | output × 0.7 (Asisten Ahli), 0.9 (Lektor), 1.2 (Lektor Kepala), 1.7 (Profesor); grants × 1.5 on top | calibrated to user-stated rates | ~1 publication/semester early career, 4–8 for a professor (measured: 1.1 and 5.2) |
 | Leadership perks | grant chance + 0.15 / research × 1.3 (dean); + 0.10 / × 1.2 (vice deans); + 0.10 / × 1.15 (head of department); + 0.05 / × 1.1 (programme and lab heads) | user-stated idea; values TODO | Access to grants and networks while in post; role hours still take time from research and teaching |
 | Patents: TRL | lab line advances by 0.04 × lab research output ÷ current TRL per semester (slower at higher TRL); filing at TRL 4; a licensed line restarts at TRL 1 | TODO | Grants raise research output, so they speed up papers and TRL alike |

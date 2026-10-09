@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import pytest
+
 from lecsim.config import load_scenario
 from lecsim.core.actions import Response
 from lecsim.core.engine import Engine
@@ -112,3 +114,21 @@ def test_counted_caps_limit_claimable_sks():
     h = {"teaching": 20, "supervision": 5, "research": 20, "community_service": 3,
          "admin": 0, "external": 0, "rest": 8}  # fmt: skip
     assert not f.bonus_eligible(lec, h)  # counted 5 + 5 + 15 = 25 h < 30 h
+
+
+def test_homophily_and_dean_favours_own_lab_and_kind():
+    eng = engine()
+    lecs = eng.state.lecturers
+    same = [(a, b) for a in lecs for b in lecs if a < b and lecs[a].archetype == lecs[b].archetype]
+    diff = [(a, b) for a in lecs for b in lecs if a < b and lecs[a].archetype != lecs[b].archetype]
+    mean = lambda pairs: sum(eng.power.affinity(a, b) for a, b in pairs) / len(pairs)  # noqa: E731
+    assert mean(same) - mean(diff) == pytest.approx(0.3, abs=0.08)
+    ids = sorted(lecs)
+    dean = lecs[ids[0]]
+    dean.roles = {"dean": 10}
+    mate = next(x for x in lecs.values() if x.id != dean.id and x.lab == dean.lab)
+    eng.power.grant_access(0, {mate.id: mate})
+    with_dean = mate.access
+    dean.roles = {}
+    eng.power.grant_access(0, {mate.id: mate})
+    assert with_dean >= mate.access + 0.2 - 1e-9 or with_dean == 1.0

@@ -115,5 +115,43 @@ def report(run_dirs: list[Path]) -> str:
                 f"{leadership}\n")  # fmt: skip
 
 
+def dean_favour(run_dirs: list[Path]) -> str:
+    """Grant wins per lecturer-semester: the dean's lab and archetype vs everyone else,
+    plus the dean's archetype when appointed."""
+    wins: dict[str, list[int]] = defaultdict(lambda: [0, 0])  # group -> [wins, semesters]
+    deans: dict[str, int] = defaultdict(int)
+    for d in run_dirs:
+        _, events = read_events(d / "events.jsonl")
+        info = next(e for e in events if e["type"] == "run_info")
+        arch = {k: v["archetype"] for k, v in info["lecturers"].items()}
+        lab: dict[str, str] = {}
+        dean, until = None, -1
+        for e in events:
+            a, t = e.get("agent"), e["t"]
+            if e["type"] == "hire":
+                arch[a] = e["archetype"]
+            elif e["type"] == "snapshot":
+                lab[a] = e["state"].get("lab")
+            elif e["type"] == "role_assigned" and e["role"] == "dean":
+                dean, until = a, e["until"]
+                deans[arch.get(a) or "none"] += 1
+            elif e["type"] == "grant_application" and dean and t < until and a != dean:
+                group = (
+                    "dean's lab"
+                    if lab.get(a) and lab.get(a) == lab.get(dean)
+                    else "dean's archetype"
+                    if arch.get(a) == arch.get(dean)
+                    else "others"
+                )
+                wins[group][0] += e["awarded"]
+                wins[group][1] += 1
+    rows = "\n".join(f"| {g} | {w / n:.3f} | {n} |" for g, (w, n) in sorted(wins.items()))
+    kinds = ", ".join(f"{k} {v}" for k, v in sorted(deans.items()))
+    return (f"## Dean's favour: grant wins per application\n\n| group | win rate | n |\n"
+            f"|---|---|---|\n{rows}\n\nDeans appointed by archetype: {kinds}\n")  # fmt: skip
+
+
 if __name__ == "__main__":
-    print(report([Path(p) for p in sys.argv[1:]]))
+    dirs = [Path(p) for p in sys.argv[1:]]
+    print(report(dirs))
+    print(dean_favour(dirs))

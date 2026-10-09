@@ -146,3 +146,10 @@ One entry per milestone gate: what was built, open inputs, and the gate outcome.
 - Access in [0, 1] from rank (probation lowest) plus standing and the supervisor's liking scales grant chance, teaching offers and the supervision cap; a new Lektor supervises at half capacity for 2–4 semesters (examining boards first). Only the assigned teaching load is claimable; without a grant at most 6 SKS of research counts. Refusing a committee is excused with a chance rising with seniority.
 - 4 seeds: lecturers with access < 0.5 almost never earn the bonus (0–8 %) at any rank, vs 33–57 % for the favoured; committee seats per semester: Asisten Ahli 1.54, Lektor 0.45, Lektor Kepala 0.03, Profesor 0.0; overall bonus share falls to ~0.42. Fixed a rounding bug in `transfer` (tiny negative shares).
 - The viewer and the Cloudflare site now open the faculty case by default.
+
+## 2026-10-10 — Faculty case: homophily and the dean's policy
+
+- Same-archetype pairs start with +0.3 liking; while in office the dean gives their own lab + 0.2 access and their archetype + 0.1 (more grants, students, courses).
+- 30-seed sweep (faculty_case vs no_power vs unconditional_bonus): grant win rate per application is 0.405 for the dean's lab and 0.390 for the dean's archetype vs 0.343 for others (no_power: 0.442 / 0.457 vs 0.402, a selection effect of productive labs; favouritism roughly doubles the gap). Deans are admin climbers or teaching loyalists (63 / 76 terms).
+- With power dynamics, locked-out juniors cannot add claimable hours, so they overwork less: mean burnout 0.173 vs 0.206 and 20 vs 26 burnout leavers without power, but only 42 % vs 51 % earn the bonus. External earners: credit factor 0.53, rank index 1.59 vs 2.02 without power. Teaching loyalists carry most committee seats (8.2) and lead most often, yet their income stays low (1469 M IDR) now that only assigned teaching counts.
+- Note: the access step (assigned-teaching-only SKS, 6 SKS research cap) also changed `no_power`, so earlier no_power numbers are not comparable.

@@ -36,7 +36,9 @@ class Power:
         key = "|".join(sorted((a, b)))
         if key not in self.state.affinity:
             draw = self.rng.get("affinity", key).normal(0.0, self.p.affinity_sigma)
-            self.state.affinity[key] = float(draw)
+            x, y = self.state.lecturers[a], self.state.lecturers[b]
+            same = x.archetype is not None and x.archetype == y.archetype
+            self.state.affinity[key] = float(draw) + self.p.same_archetype_affinity * same
         return self.state.affinity[key]
 
     def nudge(self, a: str, b: str, delta: float) -> None:
@@ -119,11 +121,18 @@ class Power:
         moved by standing and the supervisor's liking. Sets supervision caps: a share of
         the maximum, halved while a new Lektor serves on examining boards first."""
         p, holders = self.p, self.holders()
+        top = next((r.name for r in self.dept.roles if r.reports_to is None), None)
+        dean = self.state.lecturers[holders[top]] if top in holders else None
         for lec in lecs.values():
             sup = self.supervisor(lec, holders)
             base = (
                 p.access_probation if lec.on_probation(t) else p.access_by_rank.get(lec.rank, 1.0)
             )
+            if dean is not None and dean.id != lec.id:  # the dean's policy favours their own
+                base += p.dean_lab_access_bonus * (dean.lab is not None and dean.lab == lec.lab)
+                base += p.dean_archetype_access_bonus * (
+                    dean.archetype is not None and dean.archetype == lec.archetype
+                )
             liking = self.affinity(sup, lec.id) if sup else 0.0
             lec.access = max(0.0, min(1.0, base + p.access_w_favor * (lec.favor + liking)))
             if p.supervision_max_hours is None:

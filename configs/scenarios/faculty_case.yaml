@@ -165,6 +165,10 @@ department:
     # Refusing a committee gets you excused with this chance (user: seniors are rarely
     # given committee work, and some avoid it)
     committee_excuse_prob_by_rank: { Lektor: 0.2, Lektor Kepala: 0.5, Profesor: 0.8 }
+    # Like attracts like, and the dean's policy follows their lab and archetype (user-described)
+    same_archetype_affinity: 0.3
+    dean_lab_access_bonus: 0.2
+    dean_archetype_access_bonus: 0.1
 
 # Rank x degree mix: 16 Profesor (from the page); the rest is a PLACEHOLDER split
 # (24 Lektor Kepala, 18 Lektor, 10 Asisten Ahli) chosen to give ~53 doctorates. TODO(source)

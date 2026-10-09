@@ -322,6 +322,9 @@ class PowerParams(_Model):
     phd_apprentice_semesters: tuple[int, int] = (0, 0)  # new Lektor: (favoured, not) semesters
     apprentice_supervision_factor: float = Field(default=1.0, ge=0, le=1)  # examining board only
     committee_excuse_prob_by_rank: dict[str, float] = {}  # refusing gets you excused (seniors)
+    same_archetype_affinity: float = 0.0  # homophily: added to the liking of like-minded pairs
+    dean_lab_access_bonus: float = 0.0  # the dean channels funding to their own lab
+    dean_archetype_access_bonus: float = 0.0  # ... and to lecturers like themselves
 
     @model_validator(mode="after")
     def _check(self) -> PowerParams:
