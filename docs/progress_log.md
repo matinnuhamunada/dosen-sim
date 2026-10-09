@@ -74,3 +74,14 @@ One entry per milestone gate: what was built, open inputs, and the gate outcome.
 - Department leavers are mostly utility-policy external earners (27 over 30 runs) and utility admin climbers (5).
 - Roles are filled voluntarily by teaching loyalists, admin climbers and research maximisers (lab head); imposition is rare except under stress.
 - Performance with the full department: 20 agents × 60 semesters in 0.6 s (stage), 2.4 s (optimiser), 4.3 s (utility).
+
+## M4 Experiments + viewer — MVP results (2026-10-09)
+
+**Built** (branch `m4-experiments-viewer`, based on `m3-department`):
+- FR-18 metrics from logs (`analysis/metrics.py`): time to each rank (from hiring), pay, credits, publications, burnout, attrition, imposed loads, coverage, income Gini, own-goal and common scores. `lecsim metrics` recomputes them from a log; `lecsim run --seeds N`.
+- Policy experiments as scenario files with `regulation_overrides`; `lecsim compare` gives medians, IQR and bootstrap CIs vs the baseline; `experiments/Snakefile` runs 4 conditions × 30 seeds in about 13 s on 32 cores.
+- ODD protocol fully written up, including the experiment design and results.
+- Three.js replay viewer (`viewer/`): campus zones, lecturers moving by logged hours, rank badges, burnout dimming, event cues and negotiation bubbles, timeline scrubber, HUD with seed/scenario/tier labels and caveat, department charts; agent tracker (follow camera, highlight and dimming, trail, live card, allocation bars, trajectories vs department median with IQR band, key events, pin up to 3); final score dashboard (sortable, filterable, CSV export, multi-seed median and IQR); URL state for runs, semester, selection, pins and board. Checked by vitest (score parity with Python to 1e-9) and headless-Chrome screenshots.
+- Tests: 106 Python + 7 viewer, all passing.
+
+**MVP results** (placeholder values; see ODD §8): department-level policy effects are small. The teaching cap lowers worst-semester coverage (1.00 → 0.95, CI −0.07 to −0.02). Supervision and community rewards slightly raise the mean common score and mainly help teaching loyalists (Profesor 1–2 semesters sooner, +50–94 M IDR). Research credit dominates under placeholders, which mutes reweighting policies.

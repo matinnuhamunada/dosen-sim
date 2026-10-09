@@ -149,3 +149,16 @@ external_earner, balanced_strategist.
 30. **Burnout:** b' = b + sensitivity × strain × max(0, work − S)/S − recovery × rest/budget, where work = all non-rest hours (including external), clamped to [0, 1]. It scales research and community productivity; above the threshold the lecturer leaves with `attrition_prob` per semester and is replaced by a new Asisten Ahli with the same policy and archetype after `lag_semesters`.
 31. **Teaching demand does not shrink** when lecturers leave (students remain); demand = hours_per_lecturer × initial headcount × lognormal noise.
 32. **Utility wellbeing** is now rest share − expected burnout after the semester. The optimiser uses steady-state burnout per bundle (1 if strain > recovery, else 0) and ignores co-authorship and transients. Optimiser bundles that break commitments are refitted when acting.
+
+## Experiments and metrics (M4)
+
+| Item | Value | Status | Meaning |
+| --- | --- | --- | --- |
+| Policy conditions | teaching cap 10 h; supervision credit ×3; community credit ×2 | struct | Experimental manipulations relative to placeholders, not regulation values |
+| Seeds per condition | 30 | struct | PRD success criterion |
+| Bootstrap | 2000 resamples, percentile 95% CI, seed 0 | struct | Effect intervals in `analysis/compare.py` |
+| Own / common score | mean per-semester utility; common weights 1/3 each | struct | Scoreboard scores (Python and viewer agree to 1e-9) |
+| Viewer playback | 4 s per semester at 1× | struct | Display only |
+
+33. **Scores** use the rank held during a semester, that semester's total income relative to income_ref, and rest share minus end-of-semester burnout. They average over semesters actually served, so leavers and late hires are comparable.
+34. **Time to rank** in metrics counts semesters from hiring, so replacement hires are comparable with founders. Condition comparisons by archetype use founders only (`hired_at == 0`).

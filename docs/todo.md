@@ -40,9 +40,18 @@ Status: open unless marked. Add new items under the right heading as they come u
 - [ ] Do co-authored papers count fully toward each author's publication requirement? Currently yes.
 - [ ] Should external work count as "work" for burnout? Currently yes.
 
+## M4 notes (for later review)
+
+- [ ] Policy effects are small under placeholders because research credit dominates promotion; rerun the sweep after real credit tables and production rates are in.
+- [ ] Teaching cap lowers worst-semester coverage (1.00 → 0.95) without faster promotion; check whether real caps bind differently.
+- [ ] Viewer multi-seed board includes replacement hires in group counts (e.g. n=18 for a seat with many leavers); decide whether to show founders only.
+- [ ] Viewer was checked in headless Chrome screenshots only; try it interactively in a browser.
+
 ## Engineering to-dos
 
 - [ ] Invalid allocations abort the run; add a fallback-to-rule-policy path (needed for Phase 2 LLM agents).
 - [ ] Utility policy evaluates about 400 candidates in Python per decision (9.5 s for 20 × 60); vectorise if sweeps get slow.
 - [ ] Event log is JSONL only; add Parquet export.
+- [ ] Viewer: live mode over WebSocket (FR-35) and side-by-side run comparison (FR-34) are P2.
+- [ ] Scores are implemented twice (Python, TypeScript); a parity test guards them (`viewer/test`).
 - [ ] Branches `m1-rules-core` and `m2-rule-agents` are local and unmerged; decide the merge/push flow (GitHub remote exists).
