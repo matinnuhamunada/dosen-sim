@@ -84,3 +84,36 @@ choice; **fact** = calendar or definitional fact.
 13. **Degree is fixed** in M1; there is no doctoral study.
 14. **Workload is validated in hours per week**, whereas the real rule is in SKS. An SKS ↔ hours conversion is needed (TODO(source)).
 15. **Invalid allocations abort the run** in M1. A fallback policy comes later.
+
+## Agents (M2) — `configs/agents/archetypes.yaml`
+
+All archetype values are modelling assumptions — **TODO(source)**: expert elicitation with
+senior lecturers. Five archetypes: research_maximiser, teaching_loyalist, admin_climber,
+external_earner, balanced_strategist.
+
+| Parameter | Values | Status | Meaning |
+| --- | --- | --- | --- |
+| `persona.w_rank / w_pay / w_wellbeing` | per archetype, sum 1 | TODO | Utility weights on rank, pay, rest |
+| `persona.risk_aversion` | 0.2–0.6 | TODO | Penalty on journal-tier acceptance variance |
+| `persona.discount` | 0.85–0.95 per semester | TODO | Patience for delayed payoffs |
+| `persona.choice_noise` | 0.05 | TODO | Logit temperature (utility policy) |
+| `persona.cooperativeness`, `burnout_sensitivity` | per archetype | TODO | Unused until M3 |
+| `shares`, `stage_shares` | per archetype | TODO | Fixed-share baseline and per-stage overrides |
+| `journal_tier`, `apply_grants`, `gap_shift` | per archetype | TODO | Rule-policy settings |
+| `stages.early_career_semesters` | 4 | TODO | Early-career stage length |
+| `stages.post_promotion_semesters` | 2 | TODO | Post-promotion stage length |
+| `stages.push_distance` | 0.5 | TODO | Promotion distance that triggers the pre-promotion push |
+| `candidate_grid_steps` (scenario) | 8 (5 h grid, 400 valid bundles) | struct | Utility agent's choice set |
+| `optimiser_grid_steps` (scenario) | 6 (6.7 h grid, 85 valid bundles) | struct | Optimiser's choice set |
+
+## Structural assumptions (M2)
+
+16. **Promotion distance** = sum of normalised shortfalls over unmet requirements: (need − have)/need for semesters, credit and publications; the raw share gap for share rules; 1 for degree or top rank. Used by the stage machine and by utility agents. It is a heuristic scalar, not a regulation quantity.
+17. **Fixed-share policies are repaired** to the workload rules (`fit_to_workload`): duty hours are clamped by moving time to or from external work and rest, and missing tridharma minimums are taken from other categories' surplus.
+18. **Threshold rules:** each unmet in-rank minimum share, publication requirement or cumulative-credit requirement shifts `gap_shift` of the budget toward its activity (research for publication and credit gaps); a binding maximum share shifts it away. Each target activity is boosted at most once per semester.
+19. **Career stages** (precedence order): senior (top rank) > pre-promotion push (distance ≤ `push_distance`) > post-promotion > early career > mid career.
+20. **Forecasts are engine-side** (`core/forecast.py`): expected outputs use mean-one noise, and every manuscript is assumed eventually published (rejections are resubmitted) after an expected delay of `lag / accept_prob` semesters.
+21. **Myopic utility:** U = w_rank·(distance before − expected distance after) + w_pay·income/income_ref + w_wellbeing·rest share, where income_ref is the top-rank fixed semester pay. Publication credit is discounted by `discount^delay`. The choice is logit over all 400 candidates.
+22. **Journal tier choice:** utility agents maximise c·d^delay − risk_aversion·c·√(p(1−p)) over tiers that count toward an unmet requirement. Rule agents use their preferred tier, raised to the required tier. The optimiser is risk-neutral (max c·d^delay).
+23. **Optimiser:** plans hold one bundle per rank. The search over that class is exact under certainty-equivalent dynamics (verified against brute force in `tests/agents/test_optimiser.py`), and it re-plans after every promotion. It ignores publication lag and the grant productivity boost while planning, so planned promotions are optimistic (about 2 semesters per rank in the archetype runs).
+24. **Archetype scenario** starts every lecturer as Asisten Ahli with a doctorate, so the Profesor degree requirement never binds (no degree acquisition is modelled).

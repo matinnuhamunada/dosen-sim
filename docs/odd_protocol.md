@@ -32,8 +32,11 @@ Each tick runs six phases in a fixed order, with lecturers processed in sorted-i
 
 - **Basic principles:** bounded-rational time allocation under a credit-point promotion system.
 - **Emergence** *(later)*: department output, inequality, burnout.
-- **Adaptation / objectives:** M1 agents are random; archetype objectives (weighted rank, pay, wellbeing) arrive in M2.
-- **Learning, prediction, sensing:** policies see only their own state plus the workload rules (`Observation`).
+- **Objectives:** each archetype weights rank, pay and wellbeing (rest share); discount factor and risk aversion are persona parameters (`configs/agents/archetypes.yaml`).
+- **Adaptation:** behaviour models of increasing richness, all behind the single `Policy` interface: random; fixed share; threshold rules on engine-computed promotion gaps; a career-stage state machine (early, mid, pre-promotion push, post-promotion, senior) choosing base shares; myopic expected utility with logit noise; and an optimiser baseline (one bundle per rank, exact under certainty-equivalent dynamics, re-planned at each promotion).
+- **Prediction:** planning agents use engine forecasts of expected credits, income and promotion distance per candidate allocation; they never compute outcomes themselves.
+- **Sensing:** policies see their own state, the workload rules, engine-computed promotion gaps and distance, and the forecaster (`agents/base.py: Observation`).
+- **Learning** *(P1)*: Roth–Erev propensities and peer imitation are not yet implemented.
 - **Interaction** *(M3)*: negotiation, co-authorship, head of department.
 - **Stochasticity:** production noise, journal acceptance, grant success, and random policy choices, each drawn from a named seeded stream (`core/rng.py`).
 - **Observation:** every action and outcome is written to an append-only JSONL event log; metrics are computed only from the log.
@@ -59,3 +62,9 @@ None in M1. Regulation values are placeholders; see `assumptions.md`.
 | Production | `rules/production.py` | `scale × hours^alpha × lognormal noise`; accumulation into whole units |
 | Journals | `env/journals.py` | Acceptance drawn at submission, revealed after a lag |
 | Grants | `env/grants.py` | Success probability linear in publications, capped |
+| Promotion distance | `rules/promotion.py` | Sum of normalised shortfalls; drives stage machine and utility |
+| Forecaster | `core/forecast.py` | Expected credits, income, distance per candidate allocation |
+| Workload fitting | `agents/common.py` | Repairs target shares into a valid allocation |
+| Rule policies | `agents/rule_policies.py` | Fixed share, threshold rules, career-stage machine |
+| Utility policy | `agents/utility_policy.py` | Myopic expected utility, logit choice |
+| Optimiser | `agents/optimiser.py` | Exact one-bundle-per-rank plan, re-planned at promotion |
