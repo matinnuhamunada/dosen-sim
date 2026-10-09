@@ -22,6 +22,7 @@ interface State {
   trail: boolean;
   tab: Tab;
   trackerWide: boolean;
+  podium: string;
   runUrls: string[] | null;
   sort: { key: string; dir: 1 | -1 };
   shownEndBoard: boolean;
@@ -39,6 +40,7 @@ const state: State = {
   trail: true,
   tab: "lecturers",
   trackerWide: false,
+  podium: "common score",
   runUrls: null,
   sort: { key: "own score", dir: -1 },
   shownEndBoard: false,
@@ -228,7 +230,42 @@ function renderKpis(r: Run): void {
     card("🔥", "#fdecec", "Mean burnout", now.burnout.toFixed(2), diff("burnout"), false, (x) => x.toFixed(2), "0 = fresh · 1 = exhausted"),
     card("👥", "#e7f8ee", "Active lecturers", String(now.active), diff("active"), true, (x) => x.toFixed(0), `${now.leavers} left so far`),
     card("⚖️", "#fff4e2", "Pay inequality", now.gini.toFixed(3), diff("gini"), false, (x) => x.toFixed(3), "Gini of cumulative pay"),
-  ].join("");
+  ].join("") + podium(r);
+  const sel = $<HTMLSelectElement>("podium-metric");
+  sel.addEventListener("change", () => {
+    state.podium = sel.value;
+    renderKpis(r);
+  });
+  document.querySelectorAll<HTMLElement>("#kpis .podium [data-id]").forEach((el) =>
+    el.addEventListener("click", () => select(el.dataset.id!)));
+}
+
+const PODIUM_METRICS: Record<string, string> = {
+  "common score": "Common score",
+  "own score": "Own score",
+  "pay (M IDR)": "Pay (M IDR)",
+  papers: "Papers",
+};
+
+/** Top three active lecturers at semester t by the chosen scoreboard metric. */
+function podium(r: Run): string {
+  const key = state.podium;
+  const top = scoreRows(r, state.t)
+    .filter((row) => row.status === "active" && typeof row[key] === "number" && Number.isFinite(row[key]))
+    .sort((p, q) => (q[key] as number) - (p[key] as number))
+    .slice(0, 3);
+  const opts = Object.entries(PODIUM_METRICS)
+    .map(([k, v]) => `<option value="${k}"${k === key ? " selected" : ""}>${v}</option>`).join("");
+  const chips = top.map((row, i) => {
+    const a = r.agents.get(row.agent)!;
+    return `<button class="chip${row.agent === state.selected ? " sel" : ""}" data-id="${row.agent}"
+      title="${row.agent} · ${row.archetype} · ${row.policy}">
+      <span class="medal">${["🥇", "🥈", "🥉"][i]}</span><span class="dot" style="background:${color(a)}"></span>
+      <b>${row.agent}</b><span class="pv">${fmt(row[key])}</span></button>`;
+  }).join("");
+  return `<div class="float kpi podium"><div><div class="lbl">Top 3 by
+    <select id="podium-metric" title="Ranking metric (same columns as the scoreboard)">${opts}</select></div>
+    <div class="chips">${chips || "<small>no lecturers yet</small>"}</div></div></div>`;
 }
 
 function renderOps(r: Run): void {

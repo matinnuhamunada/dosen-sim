@@ -123,6 +123,17 @@ input[type="checkbox"], input[type="range"] { accent-color: var(--blue); }
 .kpi .lbl { color: var(--ink-2); font-weight: 500; font-size: 11px; white-space: nowrap; }
 .kpi small { display: none; }
 .kpi .val { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; display: flex; align-items: baseline; gap: 8px; white-space: nowrap; }
+.kpi.podium { flex: 0 0 auto; padding: 6px 10px; }
+.podium select { font-size: 11px; padding: 0 2px; border: 0; color: var(--blue); font-weight: 600; background: none; cursor: pointer; }
+.chips { display: flex; gap: 6px; margin-top: 3px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px 3px 5px; border-radius: 999px;
+  border: 1px solid var(--line); background: #fbfcfe; cursor: pointer; font-size: 12px; white-space: nowrap;
+}
+.chip:hover { border-color: #c9d5e6; }
+.chip.sel { border-color: var(--blue); background: var(--blue-soft); }
+.chip .medal { font-size: 14px; }
+.chip .pv { color: var(--muted); font-size: 11px; }
 .delta { font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 999px; }
 .delta.up { color: var(--green); background: var(--green-soft); }
 .delta.down { color: var(--red); background: var(--red-soft); }
@@ -288,3 +299,4 @@ body.overlay #career { z-index: 7; }
 body.overlay #career-body { display: none; }
 body.overlay #scoreboard, body.overlay #tracker.wide { bottom: calc(var(--play-h) + 2 * var(--gap)); }
 body.overlay #ops { display: none; }
+@media (max-width: 1400px) { .kpi .ic { display: none; } .kpi { padding-left: 12px; } }

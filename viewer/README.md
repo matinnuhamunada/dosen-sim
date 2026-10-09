@@ -32,6 +32,8 @@ demo): white floating cards over an isometric campus.
 - **Top bar:** search lecturers (`/`), run card, semester badge, scoreboard, open logs.
 - **KPI cards:** teaching coverage, mean burnout, active lecturers, pay Gini, each with the
   change since last semester.
+- **Top 3:** podium of active lecturers by common score, own score, pay or papers at the
+  current semester (same columns as the scoreboard); click one to track them.
 - **Bottom left:** play/pause (space), speed, scrubber, and the career path (rank steps with
   the semester each was reached); with nothing selected, the department's rank mix.
 - **Bottom right:** tabs for lecturers (status pills), this semester's events, and
