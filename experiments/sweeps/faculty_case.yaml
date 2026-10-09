@@ -1,8 +1,11 @@
-# Faculty case: BKD-conditional bonus vs the same bonus paid unconditionally.
+# Faculty case (power dynamics + BKD-conditional bonus) vs two counterfactuals:
+#   no_power:            no assessments/favoritism (merit-only credit, neutral appointments)
+#   unconditional_bonus: the bonus is paid whatever the BKD load
 #   snakemake -s experiments/Snakefile -j 16 --configfile experiments/sweeps/faculty_case.yaml
 seeds: 30
 out: runs/faculty_case
-baseline: unconditional_bonus
+baseline: faculty_case
 conditions:
   faculty_case: configs/scenarios/faculty_case.yaml
+  no_power: configs/scenarios/faculty/no_power.yaml
   unconditional_bonus: configs/scenarios/faculty/unconditional_bonus.yaml

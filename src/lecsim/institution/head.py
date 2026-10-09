@@ -8,11 +8,15 @@ newly formed committees (junior staff first), and splits the stochastic teaching
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from lecsim.config import Department, RoleSpec, WorkloadRules
 from lecsim.core.actions import Proposal
 from lecsim.core.state import LecturerState
 from lecsim.interactions.negotiation import Ask, bargain
+
+if TYPE_CHECKING:
+    from lecsim.institution.power import Power
 
 Log = Callable[..., None]
 
@@ -28,6 +32,10 @@ class HeadOfDepartment:
         reserved = sum(v for c, v in workload.min_share.items() if c not in committed_cats)
         self.commit_cap = workload.max_duty_hours_per_week * (1 - reserved)
 
+    def committee_hours(self, lec: LecturerState) -> float:
+        teams = {c.name: c.hours_per_week for c in self.dept.committees}
+        return sum(teams[c] for c in lec.committees)
+
     def admin_hours(self, lec: LecturerState) -> float:
         """Weekly hours committed to structural roles and committees."""
         roles = {r.name: r.hours_per_week for r in self.dept.roles}
@@ -41,13 +49,17 @@ class HeadOfDepartment:
         return (
             self.admin_hours(lec) + role.hours_per_week <= self.commit_cap
             and (role.min_rank is None or self.rank_of[lec.rank] >= self.rank_of[role.min_rank])
+            and (role.lab is None or lec.lab == role.lab)
             and not lec.on_probation(t)
             and (most is None or len(lec.roles) < most)
         )
 
-    def fill_roles(self, t: int, lecturers: dict[str, LecturerState], ask: Ask, log: Log) -> None:
-        """Offer each vacant role to the least-committed eligible lecturers in turn; impose
-        on the least-committed eligible one if nobody accepts."""
+    def fill_roles(
+        self, t: int, lecturers: dict[str, LecturerState], ask: Ask, log: Log,
+        power: Power | None = None,
+    ) -> None:  # fmt: skip
+        """Offer each vacant role to eligible lecturers in turn (least committed first, or
+        by appointment score under power dynamics); impose on the first if nobody accepts."""
         held = {r for lec in lecturers.values() for r in lec.roles}
         for role in self.dept.roles:
             if role.name in held:
@@ -56,6 +68,9 @@ class HeadOfDepartment:
                 (lec for lec in lecturers.values() if self.eligible(t, lec, role)),
                 key=lambda lec: (self.admin_hours(lec), lec.id),
             )
+            if power is not None:
+                score = {lec.id: power.appointment_score(role, lec, lecturers) for lec in eligible}
+                eligible.sort(key=lambda lec: (-score[lec.id], lec.id))
             if not eligible:
                 log(t, "negotiation", "role_vacant", None, role=role.name)
                 continue
@@ -73,11 +88,16 @@ class HeadOfDepartment:
                 until=t + role.duration_semesters)  # fmt: skip
 
     def fill_committees(
-        self, t: int, lecturers: dict[str, LecturerState], ask: Ask, log: Log
-    ) -> None:
-        """Staff each committee formed this semester. Seats are offered to the most junior
-        lecturers first (lowest rank, then youngest) with room under the commitment cap and
-        the per-lecturer committee limit; seats nobody takes are imposed in the same order."""
+        self, t: int, lecturers: dict[str, LecturerState], ask: Ask, log: Log,
+        power: Power | None = None,
+    ) -> None:  # fmt: skip
+        """Staff each committee formed this semester from lecturers with room under the
+        commitment cap and the per-lecturer committee limit.
+
+        Without power dynamics, seats are offered to the most junior first (lowest rank, then
+        youngest) and seats nobody takes are imposed in that order. With power dynamics, the
+        assigning vice dean simply assigns the top of their priority list; members are
+        asked only whether they serve willingly, which moves liking and standing."""
         for team in self.dept.committees:
             if t < team.offset or (t - team.offset) % team.every_semesters:
                 continue
@@ -89,6 +109,19 @@ class HeadOfDepartment:
             )  # fmt: skip
             terms = {"hours": team.hours_per_week, "allowance_monthly": team.honorarium_monthly}
             proposal = Proposal(sender="head", topic="committee", terms=terms)
+            if power is not None:
+                pool.sort(key=lambda lec: power.committee_priority(team, lec))
+                for lec in pool[: team.members]:
+                    willing = ask(lec.id, proposal).kind == "accept"
+                    power.committee_answer(team, lec, willing)
+                    lec.committees[team.name] = t + team.duration_semesters
+                    log(t, "negotiation", "committee_assigned", lec.id, committee=team.name,
+                        outcome="accepted" if willing else "imposed",
+                        until=t + team.duration_semesters)  # fmt: skip
+                if len(pool) < team.members:
+                    log(t, "negotiation", "committee_short", None, committee=team.name,
+                        missing=team.members - len(pool))  # fmt: skip
+                continue
             seated: list[LecturerState] = []
             for lec in pool:  # offered in turn until the team is full
                 if len(seated) == team.members:

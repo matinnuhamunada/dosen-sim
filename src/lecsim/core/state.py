@@ -48,6 +48,9 @@ class LecturerState(BaseModel):
     probation_until: int | None = None  # first semester after probation (new hires only)
     limits: dict[str, float] = Field(default_factory=dict)  # weekly hour ceilings (probation)
     mentor: str | None = None  # co-teaching senior while on probation
+    lab: str | None = None  # laboratory membership (power dynamics)
+    favor: float = 0.0  # standing with leadership and peers (power dynamics)
+    grade: str | None = None  # last supervisor assessment
 
     def on_probation(self, t: int) -> bool:
         return self.probation_until is not None and t < self.probation_until
@@ -58,6 +61,7 @@ class Hire(BaseModel):
     policy: str
     archetype: str | None
     degree: str
+    lab: str | None = None  # the hire takes over the leaver's lab seat
 
 
 class DepartmentState(BaseModel):
@@ -68,6 +72,8 @@ class DepartmentState(BaseModel):
     hires: list[Hire] = Field(default_factory=list)
     # "a>b" -> did b accept the last co-authorship pairing with a (reciprocity memory)
     coauthor_memory: dict[str, bool] = Field(default_factory=dict)
+    # "a|b" (a < b) -> mutual like (+) / dislike (-); committee service and refusals move it
+    affinity: dict[str, float] = Field(default_factory=dict)
 
     def active_ids(self) -> list[str]:
         return sorted(i for i, lec in self.lecturers.items() if lec.active)

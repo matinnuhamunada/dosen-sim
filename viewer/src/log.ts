@@ -52,6 +52,11 @@ export interface AgentSem {
   age: number | null; // end of semester; null when ages are not modelled
   probation: boolean; // on probation during this semester
   mentor: string | null;
+  lab: string | null;
+  favor: number | null; // standing (power dynamics)
+  grade: string | null; // supervisor's assessment this semester
+  creditFactor: number | null; // share of credit counted for the career ladder
+  supervisor: string | null;
 }
 
 export type EventKind =
@@ -164,6 +169,12 @@ export function parseLog(text: string, name = "run"): Run {
         p.commitments = e.commitments ?? {};
         break;
       }
+      case "assessment": {
+        const p = part(e.agent, t);
+        p.creditFactor = e.credit_factor;
+        p.supervisor = e.supervisor ?? null;
+        break;
+      }
       case "pay": {
         const p = part(e.agent, t);
         p.paidRank = e.rank;
@@ -191,6 +202,9 @@ export function parseLog(text: string, name = "run"): Run {
           age: s.age ?? null,
           probation: s.probation_until != null && t < s.probation_until,
           mentor: s.mentor ?? null,
+          lab: s.lab ?? null,
+          favor: e.state.grade != null ? (s.favor ?? 0) : null,
+          grade: s.grade ?? null,
         });
         a.sems.set(t, p as AgentSem);
         break;

@@ -1,0 +1,7 @@
+# Counterfactual for the faculty case: no favoritism. Credit always counts in full, committee
+# seats are offered junior-first and only imposed if refused, and roles go to the
+# least-committed eligible volunteer. Isolates the effect of power dynamics.
+include: [../faculty_case.yaml]
+name: no_power
+department:
+  power: null

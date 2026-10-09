@@ -215,6 +215,7 @@ def logit_choice(utils: np.ndarray, temperature: float, rng: np.random.Generator
 # --- rule-based interaction strategies (PRD: interaction strategies) -----------------
 # ponytail: thresholds are module constants; move to archetype config if they need tuning.
 ROLE_COOPERATION = 0.7  # cooperativeness at which a lecturer accepts a role out of duty
+CONSULTANT_SHARE = 0.2  # external-work share at which committee work is declined
 COAUTHOR_COOPERATION = 0.5  # cooperativeness at which an unknown partner is accepted
 COAUTHOR_RESEARCH_SHARE = 0.25  # research-oriented lecturers accept co-authors anyway
 
@@ -226,7 +227,8 @@ def archetype_respond(arch: Archetype, obs: Observation, proposal: Proposal) -> 
       otherwise counter with r.
     - extra_teaching (volunteering): accept if the extra still fits under r.
     - admin_role / committee: accept if the archetype wants the admin time, or if
-      cooperative and holding no role yet (volunteer's dilemma).
+      cooperative and holding no role yet (volunteer's dilemma); consultants (external
+      share >= CONSULTANT_SHARE) decline committees.
     - coauthor: tit-for-tat on the partner's last answer; otherwise accept if cooperative
       or research-oriented.
     """
@@ -244,6 +246,8 @@ def archetype_respond(arch: Archetype, obs: Observation, proposal: Proposal) -> 
             r = arch.shares.get("teaching", 0.0) * budget * (1 + coop)
             ok = terms["current"] + terms["hours"] <= r + 1e-9
             return Response(kind="accept" if ok else "reject")
+        case "committee" if arch.shares.get("external", 0.0) >= CONSULTANT_SHARE:
+            return Response(kind="reject")  # consultants do not contribute to event teams
         case "admin_role" | "committee":
             wanted = arch.shares.get("admin", 0.0) * budget - obs.me.commitments.get("admin", 0.0)
             ok = wanted >= terms["hours"] / 2 or (coop >= ROLE_COOPERATION and not obs.me.roles)

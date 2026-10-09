@@ -14,6 +14,7 @@ Each tick runs six fixed phases (PRD FR-01):
 from __future__ import annotations
 
 import math
+import statistics
 from collections import Counter
 from collections.abc import Callable
 
@@ -30,9 +31,10 @@ from lecsim.core.rng import RngStreams
 from lecsim.core.state import DepartmentState, Grant, Hire, LecturerState, Submission
 from lecsim.env import grants, journals
 from lecsim.institution.head import HeadOfDepartment
+from lecsim.institution.power import Power
 from lecsim.interactions import coauthorship
 from lecsim.logging.events import EventLog
-from lecsim.rules import burnout, credits, pay, production, promotion, retirement
+from lecsim.rules import assessment, burnout, credits, pay, production, promotion, retirement
 from lecsim.rules.workload import check_commitments, check_limits, check_workload
 
 POLICIES: dict[str, Callable[..., Policy]] = {
@@ -75,6 +77,13 @@ class Engine:
                 lo, hi = years[lec.rank]
                 lec.semesters_service = round(self._draw(lo, hi) * spy)
                 lec.age = self._draw(*scenario.demography.start_age) + lec.semesters_service / spy
+        dept = scenario.department
+        if dept.labs:
+            for lec in self.state.lecturers.values():  # creation order: deterministic
+                lec.lab = self._lab()
+        self.power = None
+        if dept.power is not None:
+            self.power = Power(dept, self.state, self.rng, self.reg.rank_names)
         demand = scenario.department.teaching_demand
         self.state.teaching_demand_base = demand.hours_per_lecturer * len(self.state.lecturers)
         self._log_run_info()
@@ -119,6 +128,10 @@ class Engine:
         )
         return lid
 
+    def _lab(self) -> str:
+        labs = self.sc.department.labs
+        return labs[int(self.rng.get("labs").integers(len(labs)))]
+
     def _draw(self, lo: float, hi: float) -> float:
         return float(self.rng.get("demography").uniform(lo, hi))
 
@@ -130,7 +143,8 @@ class Engine:
         hiring = self.sc.department.hiring
         if hiring.replace_leavers:
             self.state.hires.append(Hire(due=t + hiring.lag_semesters, policy=lec.policy,
-                                         archetype=lec.archetype, degree=lec.degree))  # fmt: skip
+                                         archetype=lec.archetype, degree=lec.degree,
+                                         lab=lec.lab))  # fmt: skip
 
     def _sensitivity(self, lec: LecturerState) -> float:
         if lec.archetype is None:
@@ -178,8 +192,9 @@ class Engine:
         allocations = {i: self._allocate(t, i) for i in ids}
         for i in ids:
             self._resolve(t, i, allocations[i], outputs[i])
+        ladder = self._assess(t, ids, outputs) if self.power else {}
         for i in ids:
-            self._evaluate(t, i, allocations[i], outputs[i])
+            self._evaluate(t, i, allocations[i], outputs[i], ladder.get(i, 1.0))
         self._department_summary(t, ids, demand, uncovered)
         for i in ids:
             self.policies[i].reflect(self.observe(i))
@@ -214,6 +229,8 @@ class Engine:
                 lec.age = self._draw(*self.sc.demography.start_age)
             if prob is not None:
                 lec.probation_until = t + prob.semesters
+            if self.sc.department.labs:
+                lec.lab = h.lab or self._lab()
             self.log.event(t, "events", "hire", lid, policy=h.policy, archetype=h.archetype,
                            rank=rank, degree=degree, age=lec.age,
                            probation_until=lec.probation_until)  # fmt: skip
@@ -244,8 +261,8 @@ class Engine:
         for lec in lecs.values():
             lec.commitments, lec.coauthor, lec.limits = {}, None, {}
         self._mentor(t, lecs)
-        self.head.fill_roles(t, lecs, self.ask, self.log.event)
-        self.head.fill_committees(t, lecs, self.ask, self.log.event)
+        self.head.fill_roles(t, lecs, self.ask, self.log.event, self.power)
+        self.head.fill_committees(t, lecs, self.ask, self.log.event, self.power)
         for lec in lecs.values():
             if lec.roles or lec.committees:
                 lec.commitments["admin"] = self.head.admin_hours(lec)
@@ -367,23 +384,52 @@ class Engine:
 
         out["teaching_hours"] = sem_hours[Activity.TEACHING]
         out["supervision_hours"] = sem_hours[Activity.SUPERVISION]
-        out["admin_hours"] = sem_hours[Activity.ADMIN]
+        # committee hours earn no career credit (they buy standing instead)
+        committee = self.head.committee_hours(lec) * weeks
+        out["admin_hours"] = max(0.0, sem_hours[Activity.ADMIN] - committee)
         out["community_outputs"] = community
         if lec.roles:
             out["admin_role_semesters"] = float(len(lec.roles))
 
-    def _evaluate(self, t: int, lid: str, alloc: Allocation, out: dict[str, float]) -> None:
+    def _earned(self, t: int, lec: LecturerState, out: dict[str, float]) -> dict[str, float]:
+        prob = self.reg.probation if lec.on_probation(t) else None
+        factors = {"teaching_hours": prob.teaching_credit_factor} if prob else None
+        return credits.score_credits(out, self.reg.credit_table, self.reg.credit_categories,
+                                     factors)  # fmt: skip
+
+    def _assess(self, t: int, ids: list[str], outputs: dict[str, dict[str, float]]) -> dict:
+        """Supervisors grade everyone; the grade sets the share of this semester's credit
+        that counts toward the career ladder."""
+        p = self.power.p
+        totals = {i: sum(self._earned(t, self.state.lecturers[i], outputs[i]).values())
+                  for i in ids}  # fmt: skip
+        median = statistics.median(totals.values())
+        holders = self.power.holders()
+        factor = {}
+        for i in ids:
+            lec = self.state.lecturers[i]
+            sup, score = self.power.assess(lec, totals[i], median, holders)
+            g = assessment.grade_for(score, p.grades)
+            lec.grade, factor[i] = g.name, g.credit_factor
+            self.log.event(t, "evaluation", "assessment", i, supervisor=sup, score=score,
+                           grade=g.name, credit_factor=g.credit_factor)  # fmt: skip
+        return factor
+
+    def _evaluate(
+        self, t: int, lid: str, alloc: Allocation, out: dict[str, float], ladder: float = 1.0
+    ) -> None:
         lec = self.state.lecturers[lid]
         reg = self.reg
         prob = reg.probation if lec.on_probation(t) else None
         bonus = self.forecast.bonus_eligible(lec, alloc.hours)
-        factors = {"teaching_hours": prob.teaching_credit_factor} if prob else None
-        earned = credits.score_credits(out, reg.credit_table, reg.credit_categories, factors)
-        lec.credits_total = credits.add_credits(lec.credits_total, earned)
-        lec.credits_in_rank = credits.add_credits(lec.credits_in_rank, earned)
+        earned = self._earned(t, lec, out)
+        counted = {k: v * ladder for k, v in earned.items()}  # supervisor grade (power)
+        lec.credits_total = credits.add_credits(lec.credits_total, counted)
+        lec.credits_in_rank = credits.add_credits(lec.credits_in_rank, counted)
         lec.semesters_in_rank += 1
         lec.semesters_service += 1
-        self.log.event(t, "evaluation", "credits", lid, outputs=out, earned=earned)
+        self.log.event(t, "evaluation", "credits", lid, outputs=out, earned=earned,
+                       **({"counted": counted} if self.power else {}))  # fmt: skip
 
         if not lec.certified and promotion.certification_eligible(lec, reg):
             lec.certified = True
@@ -421,6 +467,9 @@ class Engine:
             lec.credits_in_rank = dict.fromkeys(reg.credit_categories, 0.0)
         if lec.age is not None:
             lec.age += 1 / self.clock.semesters_per_year
+        if self.power is not None:
+            ext = alloc.hours[Activity.EXTERNAL] / reg.time.hours_per_week
+            lec.favor = assessment.update_favor(lec.favor, ext, self.power.p)
         self.log.event(
             t, "evaluation", "snapshot", lid,
             label=self.clock.label(t), blockers=blockers,

@@ -68,25 +68,25 @@ department:
   # department 3, programme heads 2, lab heads 1) and allowances are PLACEHOLDERS (TODO(source)).
   roles:
     - { name: dean, hours_per_week: 20, duration_semesters: 10, allowance_monthly: 10000000, min_rank: Lektor Kepala, bkd_exempt: true } # TODO(source)
-    - { name: vice_dean_academic, hours_per_week: 15, duration_semesters: 10, allowance_monthly: 7500000, min_rank: Lektor, bkd_exempt: true } # TODO(source)
-    - { name: vice_dean_finance, hours_per_week: 15, duration_semesters: 10, allowance_monthly: 7500000, min_rank: Lektor, bkd_exempt: true } # TODO(source)
-    - { name: vice_dean_collaboration, hours_per_week: 15, duration_semesters: 10, allowance_monthly: 7500000, min_rank: Lektor, bkd_exempt: true } # TODO(source)
-    - { name: head_of_department, hours_per_week: 7.5, duration_semesters: 10, allowance_monthly: 4000000, min_rank: Lektor } # TODO(source)
-    - { name: head_of_program_undergraduate, hours_per_week: 5, duration_semesters: 10, allowance_monthly: 3000000, min_rank: Lektor } # TODO(source)
-    - { name: head_of_program_master, hours_per_week: 5, duration_semesters: 10, allowance_monthly: 3000000, min_rank: Lektor } # TODO(source)
-    - { name: head_of_program_doctoral, hours_per_week: 5, duration_semesters: 10, allowance_monthly: 3000000, min_rank: Lektor } # TODO(source)
-    - { name: lab_head_01, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
-    - { name: lab_head_02, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
-    - { name: lab_head_03, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
-    - { name: lab_head_04, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
-    - { name: lab_head_05, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
-    - { name: lab_head_06, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
-    - { name: lab_head_07, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
-    - { name: lab_head_08, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
-    - { name: lab_head_09, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
-    - { name: lab_head_10, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
-    - { name: lab_head_11, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
-    - { name: lab_head_12, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
+    - { name: vice_dean_academic, hours_per_week: 15, duration_semesters: 10, allowance_monthly: 7500000, min_rank: Lektor, bkd_exempt: true, reports_to: dean } # TODO(source)
+    - { name: vice_dean_finance, hours_per_week: 15, duration_semesters: 10, allowance_monthly: 7500000, min_rank: Lektor, bkd_exempt: true, reports_to: dean } # TODO(source)
+    - { name: vice_dean_collaboration, hours_per_week: 15, duration_semesters: 10, allowance_monthly: 7500000, min_rank: Lektor, bkd_exempt: true, reports_to: dean } # TODO(source)
+    - { name: head_of_department, hours_per_week: 7.5, duration_semesters: 10, allowance_monthly: 4000000, min_rank: Lektor, reports_to: vice_dean_academic } # TODO(source)
+    - { name: head_of_program_undergraduate, hours_per_week: 5, duration_semesters: 10, allowance_monthly: 3000000, min_rank: Lektor, reports_to: head_of_department } # TODO(source)
+    - { name: head_of_program_master, hours_per_week: 5, duration_semesters: 10, allowance_monthly: 3000000, min_rank: Lektor, reports_to: head_of_department } # TODO(source)
+    - { name: head_of_program_doctoral, hours_per_week: 5, duration_semesters: 10, allowance_monthly: 3000000, min_rank: Lektor, reports_to: head_of_department } # TODO(source)
+    - { name: lab_head_01, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-01, reports_to: head_of_department } # TODO(source)
+    - { name: lab_head_02, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-02, reports_to: head_of_department } # TODO(source)
+    - { name: lab_head_03, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-03, reports_to: head_of_department } # TODO(source)
+    - { name: lab_head_04, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-04, reports_to: head_of_department } # TODO(source)
+    - { name: lab_head_05, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-05, reports_to: head_of_department } # TODO(source)
+    - { name: lab_head_06, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-06, reports_to: head_of_department } # TODO(source)
+    - { name: lab_head_07, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-07, reports_to: head_of_department } # TODO(source)
+    - { name: lab_head_08, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-08, reports_to: head_of_department } # TODO(source)
+    - { name: lab_head_09, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-09, reports_to: head_of_department } # TODO(source)
+    - { name: lab_head_10, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-10, reports_to: head_of_department } # TODO(source)
+    - { name: lab_head_11, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-11, reports_to: head_of_department } # TODO(source)
+    - { name: lab_head_12, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-12, reports_to: head_of_department } # TODO(source)
 
   # Supporting (non-tridharma) work: event and task teams beyond the structural positions.
   # Hours count as admin (support), the honorarium is paid monthly while serving, and seats go
@@ -94,11 +94,45 @@ department:
   # Every number is a PLACEHOLDER (TODO(source)); hours are 1 SKS (accreditation 2 SKS).
   max_committees_per_lecturer: 2 # TODO(source)
   committees:
-    - { name: accreditation_team, hours_per_week: 5, duration_semesters: 2, members: 6, honorarium_monthly: 500000, every_semesters: 10 } # TODO(source): 5-year accreditation cycle assumed
-    - { name: dies_natalis_committee, hours_per_week: 2.5, duration_semesters: 1, members: 6, honorarium_monthly: 300000, every_semesters: 2, offset: 1 } # TODO(source)
-    - { name: summer_course_team, hours_per_week: 2.5, duration_semesters: 1, members: 4, honorarium_monthly: 500000, every_semesters: 2, offset: 1 } # TODO(source)
-    - { name: international_seminar_committee, hours_per_week: 2.5, duration_semesters: 1, members: 6, honorarium_monthly: 300000, every_semesters: 2 } # TODO(source)
-    - { name: event_committee, hours_per_week: 2.5, duration_semesters: 1, members: 4, honorarium_monthly: 200000, every_semesters: 1 } # TODO(source): other ad-hoc events
+    - { name: accreditation_team, hours_per_week: 5, duration_semesters: 2, members: 6, honorarium_monthly: 500000, every_semesters: 10, assigned_by: vice_dean_academic } # TODO(source): 5-year accreditation cycle assumed
+    - { name: dies_natalis_committee, hours_per_week: 2.5, duration_semesters: 1, members: 6, honorarium_monthly: 300000, every_semesters: 2, offset: 1, assigned_by: vice_dean_finance } # TODO(source)
+    - { name: summer_course_team, hours_per_week: 2.5, duration_semesters: 1, members: 4, honorarium_monthly: 500000, every_semesters: 2, offset: 1, assigned_by: vice_dean_collaboration } # TODO(source)
+    - { name: international_seminar_committee, hours_per_week: 2.5, duration_semesters: 1, members: 6, honorarium_monthly: 300000, every_semesters: 2, assigned_by: vice_dean_collaboration } # TODO(source)
+    - { name: event_committee, hours_per_week: 2.5, duration_semesters: 1, members: 4, honorarium_monthly: 200000, every_semesters: 1, assigned_by: vice_dean_finance } # TODO(source): other ad-hoc events
+
+  # 12 laboratories (sourced count), masked as LAB-01 ... LAB-12; membership is drawn at random, hires take the leaver's lab.
+  labs: [LAB-01, LAB-02, LAB-03, LAB-04, LAB-05, LAB-06, LAB-07, LAB-08, LAB-09, LAB-10, LAB-11, LAB-12]
+
+  # Power dynamics (user-described; every weight is a PLACEHOLDER, TODO(source)).
+  # Each lecturer belongs to a lab and reports up a chain: lecturer -> lab head -> head of
+  # department -> vice dean (academic) -> dean. Supervisors grade every semester on merit,
+  # liking, lab loyalty and standing; the grade sets the share of the semester's credit that
+  # counts for the career ladder. Vice deans assign committees (junior first, favourites
+  # first within a rank); serving willingly raises standing and liking, reluctantly lowers
+  # liking. Consulting lowers standing. Appointments weigh seniority, standing, the
+  # appointer's liking and lab ties; the dean is elected (mean liking, lab size).
+  power:
+    grades: # user-stated: very good -> 100 % credit, good -> 80 %, "and so on"
+      - { name: very_good, min_score: 0.5, credit_factor: 1.0 }
+      - { name: good, min_score: 0.0, credit_factor: 0.8 }
+      - { name: fair, min_score: -0.5, credit_factor: 0.6 }
+      - { name: poor, min_score: -1.0e9, credit_factor: 0.4 }
+    affinity_sigma: 0.5
+    w_performance: 1.0
+    w_affinity: 0.5
+    w_lab: 0.3
+    w_favor: 0.5
+    noise: 0.3
+    favor_decay: 0.2
+    favor_per_committee: 0.2
+    favor_per_external: 1.0
+    affinity_per_service: 0.1
+    affinity_per_refusal: 0.2
+    appoint_w_rank: 0.5 # user-stated: seniority helps (Lektor Kepala, Profesor) above the minimum
+    appoint_w_favor: 0.5
+    appoint_w_affinity: 0.5
+    appoint_w_lab: 0.3
+    appoint_noise: 0.3
 
 # Rank x degree mix: 16 Profesor (from the page); the rest is a PLACEHOLDER split
 # (24 Lektor Kepala, 18 Lektor, 10 Asisten Ahli) chosen to give ~53 doctorates. TODO(source)

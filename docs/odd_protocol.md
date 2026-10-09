@@ -33,7 +33,7 @@ senior lecturers.
 
 | Entity | State variables |
 | --- | --- |
-| **Lecturer** (`LecturerState`) | id; policy; archetype; active / hired_at / left_at; rank; degree; semesters in rank and in service; certification; credit points by category (cumulative and earned in the current rank); publications by journal tier; manuscripts ready and fractional manuscript progress; active grants; burnout ∈ [0, 1]; weekly commitments (teaching, admin); roles and committee seats held (with term end); co-author this semester; monthly pay; cumulative income; age (optional); probation end, hour limits and mentor (new hires) |
+| **Lecturer** (`LecturerState`) | id; policy; archetype; active / hired_at / left_at; rank; degree; semesters in rank and in service; certification; credit points by category (cumulative and earned in the current rank); publications by journal tier; manuscripts ready and fractional manuscript progress; active grants; burnout ∈ [0, 1]; weekly commitments (teaching, admin); roles and committee seats held (with term end); lab, standing (favor) and last grade; co-author this semester; monthly pay; cumulative income; age (optional); probation end, hour limits and mentor (new hires) |
 | **Department** (`DepartmentState`) | semester; lecturers; pending journal submissions (with co-authors and hidden decisions); base teaching demand; hiring queue; co-authorship reciprocity memory |
 | **Head of department** (`institution/head.py`) | Rule parameters only: rank load weights, concession limit, rounds, teaching cap, commitment cap |
 | **Environment** | Journals (acceptance probability and decision lag per tier); grant agency (success probability rising with track record); teaching demand from an aggregate student cohort |
@@ -65,8 +65,9 @@ processed in sorted-id order. Each stochastic process draws from its own named R
 2. **Negotiation.**
    1. Probationers get their hour ceilings (no supervision) and a senior co-teaching mentor.
       The head fills vacant roles (eligible: rank ≥ the role's minimum, not on probation,
-      below the per-lecturer role limit), then staffs committees formed this semester
-      (junior staff first).
+      below the per-lecturer role limit; with power dynamics, by appointment score:
+      seniority, standing, the appointer's liking, lab ties), then staffs committees formed
+      this semester (junior staff first; with power dynamics, assigned by the vice dean).
    2. Teaching demand is drawn, and the head bargains a load with each lecturer, then runs a
       volunteering round for any shortfall.
    3. Lecturers are paired as co-authors.
@@ -174,6 +175,7 @@ tests (`tests/rules/`, 100% line coverage).
 | Promotion | `rules/promotion.py` | Eligible for the next rank when semesters in rank, cumulative credit, in-rank minimum and maximum category shares, publications at or above a tier, and degree are all met. Promotion distance = Σ normalised shortfalls. In-rank credit resets at promotion |
 | Certification | `rules/promotion.py` | Rank ≥ minimum rank and service ≥ minimum semesters; gates the professional allowance |
 | Pay | `rules/pay.py` | Monthly = base by rank + seniority × years + functional allowance + professional allowance (× base, if certified) + honorary allowance (× base) + remuneration base + role allowances. Semester = monthly × 6 + remuneration per credit + external hours × rate. On probation: base salary × factor (0.8) only, no performance pay. With BKD rules, performance pay also needs the SKS minimums (e.g. ≥ 12 SKS teaching + supervision + research and ≥ 1 SKS community service; exempt roles excepted) |
+| Assessment (power) | `rules/assessment.py`, `institution/power.py` | Supervisor along the reporting chain scores performance (credit vs median), liking, same lab, standing and noise; grade cut-offs give the credit factor for the career ladder. Standing decays, rises with willing committee service and falls with consulting. Appointment score = seniority + standing + appointer's liking + lab ties (dean: elected) |
 | Retirement | `rules/retirement.py` | Retire once age ≥ retirement age for the current rank (65; Profesor 70) |
 | Production | `rules/production.py` | Output = scale × multiplier × hours^α × exp(σz − σ²/2), with α < 1 for diminishing returns. Research accumulates into whole manuscripts (a lag). Multipliers: grant, co-authorship, burnout productivity |
 | Burnout | `rules/burnout.py` | b′ = clamp(b + s·k·max(0, work − S)/S − r·rest/budget, 0, 1); productivity = 1 − p·b; attrition hazard q while b ≥ threshold |

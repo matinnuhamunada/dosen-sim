@@ -122,3 +122,14 @@ One entry per milestone gate: what was built, open inputs, and the gate outcome.
 - Structure kept: current Asisten Ahli stay; retirements and leavers are replaced by doctorate holders entering as Lektor. Faculty case only.
 - Experiment (`experiments/sweeps/faculty_case.yaml`, 30 seeds): BKD-conditional bonus vs the same bonus paid unconditionally. The condition raises median duty by 1.35 SKS (16.8 vs 15.5), overload (> 16 SKS) from 45 % to 69 % of lecturer-semesters, mean burnout 0.114 → 0.158, burnout leavers 14.5 → 19 per run, income Gini +0.027, and lowers the common score by 0.065 (all CIs exclude 0). Only 64 % of lecturer-semesters earn the bonus despite the effort. Publications and coverage are unchanged. External earners and admin climbers burn out most (median burnout 0.30 and 0.25).
 - Snakefile: a `--configfile` sweep no longer merges with the default policy sweep. Metrics: `left_at` fixed (assumption 45); new `bonus_share`, `mean_duty_sks`, `overload_share`, `retirements`.
+
+## 2026-10-10 — Faculty case: power dynamics (assessment, standing, like/dislike, labs)
+
+- Labs (LAB-01 … LAB-12) with random membership; hires take the leaver's lab. Reporting chain lecturer → lab head → head of department → vice dean → dean. Supervisors grade each semester (merit, liking, same lab, standing, noise); the grade sets the share of credit counted for the career ladder (100/80/60/40 %).
+- Committees are assigned by the vice dean of their area (junior first, favourites first within a rank); willing service raises standing and liking, reluctant service lowers liking; committee hours earn no career credit; consulting lowers standing. Appointments weigh seniority, standing, liking and lab ties; the dean is elected.
+- Sweep (`experiments/sweeps/faculty_case.yaml`, 30 seeds × 3 conditions): department-level effects of power are small (common score −0.010, burnout −0.009 vs `no_power`). The stereotypes sharpen (`analysis/stereotypes.py`):
+  - External earners become outsiders: assigned committees but always reluctant, mean credit factor 0.57 (others 0.72–0.81), standing −1.13, final rank index 1.82 vs 2.14 without power, income 1408 vs 1553 M IDR, leadership terms 0.017 vs 0.143 per person.
+  - Teaching loyalists become the loyal leaders: most committee seats (6.2), best standing, most leadership terms (0.65), income 2458 vs 2261 M IDR without power, despite lower merit grades than research maximisers.
+  - Research maximisers get the best grades (0.81) and the most lab-head terms but never lead the faculty.
+  - First-time leaders: Lektor Kepala 159 and Profesor 319 appointments (vs 51 and 322 without power): seniority plus standing spreads leadership to more Lektor Kepala.
+- BKD condition effect is unchanged with power on (unconditional bonus: burnout −0.041, leavers −5, overload −24 points).

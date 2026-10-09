@@ -233,6 +233,8 @@ class RoleSpec(_Model):
     duration_semesters: int = Field(ge=1)
     allowance_monthly: float = Field(ge=0)  # side payment, IDR
     min_rank: str | None = None  # lowest rank eligible to hold the role
+    lab: str | None = None  # lab-bound role (lab head): holder must be a member
+    reports_to: str | None = None  # supervising role: assesses the holder and appoints to it
     bkd_exempt: bool = False  # holder needs no minimum SKS for the bonus (dean, vice deans)
 
 
@@ -248,11 +250,55 @@ class CommitteeSpec(_Model):
     honorarium_monthly: float = Field(ge=0)  # IDR, while serving
     every_semesters: int = Field(ge=1)
     offset: int = Field(default=0, ge=0)
+    assigned_by: str | None = None  # role that picks the members (a vice dean)
 
     @model_validator(mode="after")
     def _check(self) -> CommitteeSpec:
         if self.duration_semesters > self.every_semesters:
             raise ValueError(f"committee {self.name}: lasts longer than its cycle")
+        return self
+
+
+class Grade(_Model):
+    name: str
+    min_score: float  # lowest assessment score for this grade (grades in descending order)
+    credit_factor: float = Field(ge=0, le=1)  # share of the semester's credit that counts
+
+
+class PowerParams(_Model):
+    """Favoritism: supervisors' assessments scale career credit; committee service and
+    consulting move a lecturer's standing; appointments weigh seniority, standing, liking
+    and lab ties. All weights are modelling assumptions."""
+
+    grades: list[Grade] = Field(min_length=1)
+    affinity_sigma: float = Field(ge=0)  # pairwise like/dislike, N(0, sigma), symmetric
+    # assessment score = w_performance * performance + w_affinity * affinity(supervisor)
+    #   + w_lab * same lab + w_favor * favor + noise
+    w_performance: float = Field(ge=0)
+    w_affinity: float = Field(ge=0)
+    w_lab: float = Field(ge=0)
+    w_favor: float = Field(ge=0)
+    noise: float = Field(ge=0)
+    # favor (standing): + per_committee per seat accepted willingly; each semester
+    #   favor * (1 - decay) - per_external * external share of the week
+    favor_decay: float = Field(ge=0, le=1)
+    favor_per_committee: float = Field(ge=0)
+    favor_per_external: float = Field(ge=0)
+    affinity_per_service: float = Field(ge=0)  # assigner's liking per seat taken willingly
+    affinity_per_refusal: float = Field(ge=0)  # assigner's liking lost per reluctant seat
+    # appointment score = w_rank * rank index + w_favor * favor + w_affinity * affinity(appointer)
+    #   + w_lab * same lab as appointer (election: lab size share) + noise
+    appoint_w_rank: float = Field(ge=0)
+    appoint_w_favor: float = Field(ge=0)
+    appoint_w_affinity: float = Field(ge=0)
+    appoint_w_lab: float = Field(ge=0)
+    appoint_noise: float = Field(ge=0)
+
+    @model_validator(mode="after")
+    def _check(self) -> PowerParams:
+        scores = [g.min_score for g in self.grades]
+        if scores != sorted(scores, reverse=True):
+            raise ValueError("power.grades must be in descending min_score order")
         return self
 
 
@@ -276,6 +322,8 @@ class Department(_Model):
     max_roles_per_lecturer: int | None = Field(default=None, ge=1)  # None: limited by hours
     committees: list[CommitteeSpec] = []
     max_committees_per_lecturer: int = Field(default=2, ge=1)
+    labs: list[str] = []  # laboratories; each lecturer is a member of one (drawn at random)
+    power: PowerParams | None = None  # None: no assessments or favoritism
     coauthorship: CoauthorshipParams
     hiring: HiringParams
 
@@ -387,9 +435,19 @@ class Scenario(_Model):
             self.demography.initial_service_years
         ):
             raise ValueError("demography.initial_service_years must cover every initial rank")
-        for role in self.department.roles:
+        dept = self.department
+        role_names = {r.name for r in dept.roles}
+        labs = set(dept.labs)
+        for role in dept.roles:
             if role.min_rank is not None and role.min_rank not in reg.rank_names:
                 raise ValueError(f"role {role.name}: unknown min_rank {role.min_rank!r}")
+            if role.reports_to is not None and role.reports_to not in role_names:
+                raise ValueError(f"role {role.name}: unknown reports_to {role.reports_to!r}")
+            if role.lab is not None and role.lab not in labs:
+                raise ValueError(f"role {role.name}: unknown lab {role.lab!r}")
+        for team in dept.committees:
+            if team.assigned_by is not None and team.assigned_by not in role_names:
+                raise ValueError(f"committee {team.name}: unknown assigned_by")
         for name, arch in self.agents.archetypes.items() if self.agents else []:
             if arch.journal_tier not in reg.journal_tiers:
                 raise ValueError(f"archetype {name}: unknown journal tier {arch.journal_tier!r}")

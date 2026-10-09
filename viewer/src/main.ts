@@ -415,6 +415,9 @@ function renderTracker(r: Run): void {
       ${s?.committees?.length ? `<span>Committees</span><span>${s.committees.join(", ").replaceAll("_", " ")}</span>` : ""}
       <span>Co-author</span><span>${s?.coauthor ?? "–"}</span>
       ${s?.mentor ? `<span>Mentor</span><span>${s.mentor} (co-teaching)</span>` : ""}
+      ${s?.lab ? `<span>Lab</span><span>${s.lab}</span>` : ""}
+      ${s?.grade ? `<span>Assessment</span><span>${s.grade.replace("_", " ")} → ${Math.round((s.creditFactor ?? 1) * 100)} % credit${s.supervisor ? ` (by ${s.supervisor})` : ""}</span>
+        <span>Standing</span><span>${(s.favor ?? 0) >= 0 ? "+" : ""}${(s.favor ?? 0).toFixed(2)}</span>` : ""}
       ${r.info.hours_per_sks && s?.hours ? (() => {
         const h = s.hours, k = r.info.hours_per_sks!;
         const core = ((h.teaching ?? 0) + (h.supervision ?? 0) + (h.research ?? 0)) / k;
