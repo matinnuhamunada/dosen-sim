@@ -485,7 +485,7 @@ function renderScoreboard(): void {
   table.querySelectorAll<HTMLElement>("tbody tr").forEach((tr) =>
     tr.addEventListener("click", () => {
       if (!tr.dataset.id) return;
-      $("scoreboard").classList.add("hidden");
+      setBoard(false);
       select(tr.dataset.id);
     }),
   );
@@ -557,7 +557,7 @@ document.addEventListener("keydown", (e) => {
     searchBox.focus();
     searchBox.select();
   } else if (e.key === "Escape") {
-    if (boardOpen()) $("scoreboard").classList.add("hidden");
+    if (boardOpen()) setBoard(false);
     else select(null);
   }
 });
@@ -567,15 +567,14 @@ $<HTMLInputElement>("scrub").addEventListener("input", (e) => {
   setTime(Math.floor(v), v - Math.floor(v));
 });
 $<HTMLInputElement>("trail").addEventListener("change", (e) => (state.trail = (e.target as HTMLInputElement).checked));
-$("open-scoreboard").addEventListener("click", () => {
-  $("scoreboard").classList.remove("hidden");
-  renderScoreboard();
+function setBoard(open: boolean): void {
+  $("scoreboard").classList.toggle("hidden", !open);
+  $("open-scoreboard").classList.toggle("active", open);
+  if (open) renderScoreboard();
   syncUrl();
-});
-$("sb-close").addEventListener("click", () => {
-  $("scoreboard").classList.add("hidden");
-  syncUrl();
-});
+}
+$("open-scoreboard").addEventListener("click", () => setBoard(!boardOpen()));
+$("sb-close").addEventListener("click", () => setBoard(false));
 $("sb-csv").addEventListener("click", exportCsv);
 for (const id of ["sb-arch", "sb-policy", "sb-multi"]) $(id).addEventListener("change", renderScoreboard);
 
@@ -606,7 +605,7 @@ function frame(now: number): void {
       setPlaying(false);
       if (!state.shownEndBoard) {
         state.shownEndBoard = true;
-        $("scoreboard").classList.remove("hidden");
+        setBoard(true);
       }
     }
     setTime(t, tau);
@@ -649,10 +648,7 @@ async function boot(): Promise<void> {
       state.current = Math.min(Number(p.get("run_index") ?? 0), state.runs.length - 1);
       if (state.current) showRun();
       setTime(Number(p.get("t") ?? 0), 0.3);
-      if (p.get("board") === "1") {
-        $("scoreboard").classList.remove("hidden");
-        renderScoreboard();
-      }
+      if (p.get("board") === "1") setBoard(true);
     } catch (err) {
       alert((err as Error).message);
     }

@@ -94,6 +94,9 @@ kbd {
   background: #fff; border: 1px solid var(--line); border-radius: 10px; font-weight: 500; white-space: nowrap;
 }
 .btn:hover { border-color: #c9d5e6; background: #fbfcfe; }
+.btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+.btn.close { background: var(--ink); border-color: var(--ink); color: #fff; }
+.btn.close:hover { background: var(--ink-2); }
 .btn:disabled { opacity: 0.45; cursor: default; }
 .btn.icon { width: 26px; height: 26px; padding: 0; justify-content: center; }
 .btn.round {
