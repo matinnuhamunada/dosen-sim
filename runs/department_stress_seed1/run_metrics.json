@@ -1,0 +1,16 @@
+{
+  "scenario": "department_stress",
+  "seed": 1,
+  "mean_coverage": 0.8886081778882697,
+  "min_coverage": 0.74501652452111,
+  "mean_burnout": 0.15178265780477687,
+  "attrition": 5,
+  "imposed": 152,
+  "publications": 746,
+  "income_gini": 0.4150929608158195,
+  "mean_common_score": 0.20922131247329037,
+  "share_reached_Profesor": 0.5833333333333334,
+  "median_t_Lektor": 9.5,
+  "median_t_Lektor Kepala": 19.5,
+  "median_t_Profesor": 32.0
+}
