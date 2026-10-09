@@ -124,6 +124,27 @@ def fit_to_workload(
     return h
 
 
+# ponytail: one constant; per-archetype margins if calibration needs them
+BKD_FEAR = 0.25  # safety margin above each BKD minimum = BKD_FEAR x risk_aversion
+
+
+def aim_for_bkd(shares: Mapping[str, float], obs: Observation, margin: float) -> dict[str, float]:
+    """Raise each BKD requirement's activities to (1 + margin) x its minimum, taking share
+    from rest and external work (fear of losing the bonus; extra hours are unpaid)."""
+    out = {a: shares.get(a, 0.0) for a in Activity}
+    if obs.bkd is None:
+        return out
+    duty = set(obs.workload.duty_activities)
+    for req in obs.bkd.bonus_requires:
+        acts = [a for a in Activity if a in duty and a not in obs.me.limits
+                and obs.workload.activity_category[a] in req.categories]  # fmt: skip
+        target = req.min_sks * obs.bkd.hours_per_sks * (1 + margin) / obs.hours_per_week
+        need = target - sum(out[a] for a in acts)
+        if acts and need > 0:
+            out = transfer(out, acts, need, keep=[a for a in duty if a not in acts])
+    return out
+
+
 def transfer(
     shares: Mapping[str, float],
     to: Iterable[Activity],

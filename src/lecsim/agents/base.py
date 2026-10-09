@@ -6,7 +6,7 @@ from typing import Any, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from lecsim.config import WorkloadRules
+from lecsim.config import BkdRules, WorkloadRules
 from lecsim.core.actions import Allocation, Proposal, Response
 from lecsim.core.state import LecturerState
 from lecsim.rules.promotion import Gap
@@ -28,6 +28,7 @@ class Observation(BaseModel):
     gaps: list[Gap]
     promotion_distance: float
     forecast: Any = Field(default=None, exclude=True)  # lecsim.core.forecast.Forecaster
+    bkd: BkdRules | None = None  # bonus minimums that apply to me (None: none or exempt)
 
 
 class Policy(Protocol):

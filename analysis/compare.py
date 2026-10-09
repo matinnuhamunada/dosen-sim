@@ -16,7 +16,8 @@ import polars as pl
 BOOTSTRAP = 2000
 KEY_METRICS = [
     "mean_coverage", "min_coverage", "mean_burnout", "attrition", "imposed", "publications",
-    "income_gini", "mean_common_score",
+    "income_gini", "mean_common_score", "retirements", "bonus_share", "mean_duty_sks",
+    "overload_share",
 ]  # fmt: skip
 
 

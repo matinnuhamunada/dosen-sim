@@ -1,0 +1,8 @@
+# Faculty case: BKD-conditional bonus vs the same bonus paid unconditionally.
+#   snakemake -s experiments/Snakefile -j 16 --configfile experiments/sweeps/faculty_case.yaml
+seeds: 30
+out: runs/faculty_case
+baseline: unconditional_bonus
+conditions:
+  faculty_case: configs/scenarios/faculty_case.yaml
+  unconditional_bonus: configs/scenarios/faculty/unconditional_bonus.yaml

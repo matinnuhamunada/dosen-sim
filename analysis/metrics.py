@@ -64,9 +64,12 @@ def agent_table(events_path: str | Path) -> pl.DataFrame:
     reached: dict[str, dict[str, int]] = defaultdict(dict)
     pairs: dict[str, int] = defaultdict(int)
     burn: dict[str, list[float]] = defaultdict(list)
+    left: dict[str, int] = {}
     for e in events:
         a = e.get("agent")
         match e["type"]:
+            case "attrition" | "retirement":  # the last snapshot predates leaving
+                left[a] = e["t"]
             case "snapshot":
                 last[a] = e
                 burn[a].append(e["state"]["burnout"])
@@ -86,7 +89,7 @@ def agent_table(events_path: str | Path) -> pl.DataFrame:
             "policy": s["policy"],
             "archetype": s["archetype"] or "none",
             "hired_at": s["hired_at"],
-            "left_at": s["left_at"],
+            "left_at": left.get(a, s["left_at"]),
             "final_rank": s["rank"],
         }
         for r in info["rank_names"][1:]:  # semesters from hiring to reaching each rank
@@ -128,6 +131,16 @@ def run_metrics(events_path: str | Path) -> dict[str, Any]:
         "income_gini": gini(agents["cumulative_income"].to_list()),
         "mean_common_score": float(agents["common_score"].mean()),
     }
+    if info.get("hours_per_sks"):  # BKD (SKS) rules: bonus and overload
+        k, norm = info["hours_per_sks"], info.get("max_sks")
+        free = {"external", "rest"}
+        duty = [sum(h for a, h in e["hours"].items() if a not in free) / k
+                for e in events if e["type"] == "allocation"]  # fmt: skip
+        pays = [e["bonus_eligible"] for e in events if e["type"] == "pay"]
+        out["bonus_share"] = statistics.fmean(pays)
+        out["mean_duty_sks"] = statistics.fmean(duty)
+        if norm:
+            out["overload_share"] = statistics.fmean(d > norm + 1e-9 for d in duty)
     top = info["rank_names"][-1]
     out[f"share_reached_{top}"] = float(initial[f"t_{top}"].is_not_null().mean())
     for r in info["rank_names"][1:]:

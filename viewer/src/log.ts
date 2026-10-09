@@ -19,6 +19,7 @@ export interface RunInfo {
   hours_per_week: number;
   income_ref: number;
   hours_per_sks?: number | null; // set when the regulation has BKD (SKS) rules
+  max_sks?: number | null; // paid norm; duty above it is unpaid overtime
   semesters_per_year: number;
   roles: string[];
   archetypes: Record<string, Persona>;

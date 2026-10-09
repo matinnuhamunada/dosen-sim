@@ -14,17 +14,29 @@ regulation_overrides:
   recruitment: # Permendiktisaintek 52/2025 (via juknis Kepmendiktisaintek 39/M/KEP/2026)
     min_degree: doctorate # user-stated: new lecturers need a doctorate
     entry_rank: Lektor # doctorate holders are appointed straight to Lektor
-  # Workload in SKS (user-stated): 16 SKS = 40 h/week, so 1 SKS = 2.5 h/week. At most 16 SKS of
-  # duty. The bonus (performance remuneration) needs >= 12 SKS of teaching + supervision +
-  # research and at least one community service (read as >= 1 SKS); roles and committees
-  # count as supporting SKS. Dean and vice deans are exempt (bkd_exempt on the role).
+  # Workload in SKS (user-stated): 16 SKS = 40 h/week, so 1 SKS = 2.5 h/week. 16 SKS is the
+  # paid norm, not a cap: duty above it is unpaid overtime (and strains, see burnout below).
+  # The bonus needs >= 12 SKS of teaching + supervision + research and at least one community
+  # service (read as >= 1 SKS); roles and committees count as supporting SKS. Dean and vice
+  # deans are exempt (bkd_exempt on the role).
+  time:
+    hours_per_week: 56 # assumption: weekly time budget = 40 h norm + room for overtime/rest
   workload:
-    max_duty_hours_per_week: 40 # user-stated: 16 SKS
+    max_duty_hours_per_week: 56 # no hard cap beyond the time budget (overload is possible)
   bkd:
     hours_per_sks: 2.5 # user-stated: 16 SKS = 40 h/week
+    max_sks: 16 # user-stated: paid norm; above it is unpaid overtime
     bonus_requires:
       - { categories: [education, research], min_sks: 12 } # user-stated
       - { categories: [community_service], min_sks: 1 } # user-stated "one community service"; 1 SKS assumed
+  pay:
+    remuneration:
+      per_credit_point: 0 # replaced by the fixed BKD bonus below
+      bkd_bonus_by_rank: # user-stated: 10-20 M IDR; per semester assumed
+        Asisten Ahli: 10000000
+        Lektor: 20000000
+        Lektor Kepala: 20000000
+        Profesor: 20000000
   probation: # first year of a new hire
     semesters: 2 # PP 11/2017: one-year CPNS probation
     salary_factor: 0.8 # PP 7/1977 art. 5(1), Perka BKN 1/2024 art. 10: CPNS get 80 % of base salary
@@ -41,6 +53,10 @@ demography:
     Lektor: [2, 16]
     Lektor Kepala: [8, 30]
     Profesor: [15, 38]
+
+environment:
+  burnout:
+    sustainable_hours: 40 # 16 SKS norm: only work beyond it (overtime) strains
 
 department:
   hiring:

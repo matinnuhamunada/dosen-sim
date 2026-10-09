@@ -57,8 +57,9 @@ Status: open unless marked. Add new items under the right heading as they come u
 - Whether to apply the 2025 recruitment and probation rules nationally (move from `regulation_overrides` to `national.yaml`) and rerun the M4 sweep.
 - Professor promotion is fast under placeholder rules (about half the faculty is Profesor after 20 years).
 - Faculty-level teaching demand (currently 8 h/week per lecturer, as in the department scenario).
-- BKD: only ~10 % of lecturer-semesters meet 12 SKS core + 1 SKS community under the current archetype shares (median core ≈ 8 SKS); the placeholder bonus (10 000 IDR per credit point) is too small for utility agents to chase. Need the real bonus size, and decide whether rule-based agents should target the BKD minimum. Also: is the minimum checked on reported SKS or actual hours; does "one community service" mean 1 SKS or one activity/output?
-- Apply the SKS limits (16 SKS max = 40 h, 1 SKS = 2.5 h) nationally and rerun the M4 sweep?
+- BKD: is the minimum checked on reported SKS or actual hours; does "one community service" mean 1 SKS or one activity/output? Is the 10–20 M IDR bonus per semester (assumed) or per month?
+- The 56 h time budget scales archetype shares (calibrated on 40 h) up by 40 %, so even with an unconditional bonus 45 % of lecturer-semesters exceed 16 SKS; recalibrate archetype shares for a 56 h week.
+- Apply the SKS rules nationally and rerun the M4 sweep? (Decided 2026-10-09: no, faculty case only.)
 - Committees: real list of teams, sizes, hours, honoraria and cycles; whether committee membership earns its own BKD/KUM support credit (now only admin hours count); how seats are really chosen (seniority vs. age vs. head's choice).
 
 ## Engineering to-dos

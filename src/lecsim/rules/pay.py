@@ -43,11 +43,13 @@ def semester_income(
     external_hours: float,
     rules: PayRules,
     performance_pay: bool = True,
+    rank: str | None = None,
 ) -> dict[str, float]:
     """Semester income per component plus ``total``.
 
     ``credits_earned`` is this semester's credit points (drives performance remuneration,
-    unless ``performance_pay`` is off, as on probation); ``external_hours`` is total
+    unless ``performance_pay`` is off, as on probation or when the BKD minimum is missed);
+    the same flag gates the fixed BKD bonus for ``rank``. ``external_hours`` is total
     external work hours over the semester.
     """
     if credits_earned < 0 or external_hours < 0:
@@ -57,6 +59,9 @@ def semester_income(
     out["remuneration_performance"] = (
         remun.per_credit_point * credits_earned if remun.enabled and performance_pay else 0.0
     )
+    if remun.bkd_bonus_by_rank:
+        paid = remun.enabled and performance_pay and rank is not None
+        out["bkd_bonus"] = remun.bkd_bonus_by_rank.get(rank, 0.0) if paid else 0.0
     out["external"] = rules.external_rate_per_hour * external_hours
     out["total"] = sum(out.values())
     return out

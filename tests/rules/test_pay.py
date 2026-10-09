@@ -78,3 +78,14 @@ def test_probation_pays_scaled_base_salary_only(reg):
                         performance_pay=False)  # fmt: skip
     assert s["remuneration_performance"] == 0
     assert s["total"] == pytest.approx(3240 * 6)
+
+
+def test_bkd_bonus_by_rank_only_when_performance_pay(reg):
+    rules = PayRules.model_validate(reg.pay.model_dump() | {"remuneration": {
+        "enabled": True, "bkd_bonus_by_rank": {"Asisten Ahli": 1000, "Lektor": 2000}}})  # fmt: skip
+    m = monthly_pay(rank="Lektor", years_of_service=0, certified=False, rules=rules)
+    kw = dict(monthly=m, months=6, credits_earned=0, external_hours=0, rules=rules)
+    assert semester_income(**kw, rank="Lektor")["bkd_bonus"] == 2000
+    assert semester_income(**kw, rank="Asisten Ahli")["bkd_bonus"] == 1000
+    assert semester_income(**kw, rank="Lektor", performance_pay=False)["bkd_bonus"] == 0
+    assert "bkd_bonus" not in semester_income(**(kw | {"rules": reg.pay}), rank="Lektor")

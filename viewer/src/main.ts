@@ -419,7 +419,8 @@ function renderTracker(r: Run): void {
         const h = s.hours, k = r.info.hours_per_sks!;
         const core = ((h.teaching ?? 0) + (h.supervision ?? 0) + (h.research ?? 0)) / k;
         const duty = (r.info.activities.filter((x) => x !== "external" && x !== "rest").reduce((p, x) => p + (h[x] ?? 0), 0)) / k;
-        return `<span>Load (SKS)</span><span>${duty.toFixed(1)} duty · ${core.toFixed(1)} teaching+research · ${((h.community_service ?? 0) / k).toFixed(1)} community</span>
+        const over = r.info.max_sks ? duty - r.info.max_sks : 0;
+        return `<span>Load (SKS)</span><span>${duty.toFixed(1)} duty · ${core.toFixed(1)} teaching+research · ${((h.community_service ?? 0) / k).toFixed(1)} community${over > 0.05 ? ` · <b style="color:var(--red)">${over.toFixed(1)} unpaid overtime</b>` : ""}</span>
           <span>Bonus</span><span>${s.bonus ? "✓ BKD met" : '<b style="color:var(--red)">✗ withheld</b>'}</span>`;
       })() : ""}
       <span>Commitments</span><span>${Object.entries(s?.commitments ?? {}).map(([k, v]) => `${k} ${v.toFixed(1)} h`).join(", ") || "–"}</span>

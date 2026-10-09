@@ -1,0 +1,8 @@
+# Counterfactual for the faculty case: the same bonus, paid whatever the BKD load (no
+# minimum SKS), so lecturers have no reason to fear missing it. Isolates the effect of
+# the BKD condition.
+include: [../faculty_case.yaml]
+name: unconditional_bonus
+regulation_overrides:
+  bkd:
+    bonus_requires: [] # no minimums: the bonus is always paid

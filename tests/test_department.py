@@ -85,6 +85,7 @@ def test_bonus_needs_bkd_minimum_unless_exempt():
     assert f.bonus_eligible(lec, core)  # 12 SKS core + 1 SKS community
     short = core | {"research": 7.5, "rest": 10}  # 11 SKS core
     assert not f.bonus_eligible(lec, short)
-    assert f.variable_income(100, 0, bonus=False) == 0 < f.variable_income(100, 0)
+    bonus = f.variable_income(0, 0, rank="Lektor")
+    assert f.variable_income(0, 0, bonus=False, rank="Lektor") == 0 < bonus
     assert f.bonus_eligible(lec.model_copy(update={"roles": {"dean": 10}}), short)
     assert not f.bonus_eligible(lec.model_copy(update={"roles": {"lab_head_01": 10}}), short)

@@ -129,23 +129,31 @@ class Forecaster:
         )
         return sum(monthly.values()) * self.reg.time.months_per_semester
 
+    def bkd_exempt(self, me: LecturerState) -> bool:
+        """Holding a role exempt from the BKD minimum (dean, vice deans)."""
+        return any(r.bkd_exempt and r.name in me.roles for r in self.sc.department.roles)
+
     def bonus_eligible(self, me: LecturerState, hours: Mapping[str, float]) -> bool:
         """Performance bonus condition: BKD minimums met, or holding an exempt role."""
         bkd = self.reg.bkd
-        if bkd is None:
+        if bkd is None or self.bkd_exempt(me):
             return True
-        exempt = {r.name for r in self.sc.department.roles if r.bkd_exempt}
-        return bool(exempt & set(me.roles)) or workload.bkd_met(hours, self.reg.workload, bkd)
+        return workload.bkd_met(hours, self.reg.workload, bkd)
 
     def variable_income(
-        self, credits_earned: float, external_hours_per_week: float, bonus: bool = True
+        self,
+        credits_earned: float,
+        external_hours_per_week: float,
+        bonus: bool = True,
+        rank: str | None = None,
     ) -> float:
+        """Pay that depends on the allocation: performance remuneration and the BKD bonus
+        (both only if ``bonus``), and external work."""
         rules = self.reg.pay
-        remun = (
-            rules.remuneration.per_credit_point * credits_earned
-            if rules.remuneration.enabled and bonus
-            else 0
-        )
+        r = rules.remuneration
+        paid = r.enabled and bonus
+        remun = r.per_credit_point * credits_earned if paid else 0.0
+        remun += r.bkd_bonus_by_rank.get(rank, 0.0) if paid and rank else 0.0
         ext = (
             rules.external_rate_per_hour
             * external_hours_per_week
@@ -206,7 +214,7 @@ class Forecaster:
             me.rank, me.semesters_service, me.certified, self.role_allowance(me)
         )
         income += self.variable_income(
-            total, hours[Activity.EXTERNAL], self.bonus_eligible(me, hours)
+            total, hours[Activity.EXTERNAL], self.bonus_eligible(me, hours), me.rank
         )
         before = promotion.promotion_distance(promotion.lecturer_gaps(me, self.reg))
         pubs_after = dict(me.publications)

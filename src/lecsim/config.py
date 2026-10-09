@@ -61,6 +61,7 @@ class RemunerationRules(_Model):
     enabled: bool = False
     base_by_rank: dict[str, float] = {}
     per_credit_point: float = 0
+    bkd_bonus_by_rank: dict[str, float] = {}  # IDR per semester, if the BKD condition is met
 
 
 class PayRules(_Model):
@@ -88,6 +89,7 @@ class BkdRules(_Model):
 
     hours_per_sks: float = Field(gt=0)  # weekly hours per SKS
     bonus_requires: list[SksRequirement]
+    max_sks: float | None = None  # paid norm; duty above it is unpaid overtime (not a cap)
 
 
 class RetirementRules(_Model):

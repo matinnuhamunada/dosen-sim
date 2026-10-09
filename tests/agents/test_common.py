@@ -150,3 +150,28 @@ def test_ceiling_respected_when_education_must_grow():
     h = fit_to_workload({"research": 0.3, "rest": 0.7}, RULES, 40, None, {"supervision": 0})
     assert not check_workload(h, RULES, 40)
     assert h[A.SUPERVISION] == 0 and h[A.TEACHING] > 0
+
+
+def test_aim_for_bkd_takes_from_rest_and_external():
+    from types import SimpleNamespace
+
+    from lecsim.agents.common import aim_for_bkd
+    from lecsim.config import BkdRules
+
+    bkd = BkdRules(hours_per_sks=2.5, bonus_requires=[
+        {"categories": ["education", "research"], "min_sks": 12},
+        {"categories": ["community_service"], "min_sks": 1},
+    ])  # fmt: skip
+    obs = SimpleNamespace(bkd=bkd, workload=RULES, hours_per_week=40,
+                          me=SimpleNamespace(limits={"supervision": 0.0}))  # fmt: skip
+    shares = {"teaching": 0.2, "research": 0.2, "admin": 0.1, "external": 0.2, "rest": 0.3}
+    out = aim_for_bkd(shares, obs, margin=0.1)
+    # core target 12 * 2.5 * 1.1 = 33 h = 0.825 of 40 h; supervision barred, admin kept
+    assert out[A.TEACHING] + out[A.RESEARCH] == pytest.approx(0.825)
+    assert out[A.SUPERVISION] == 0 and out[A.ADMIN] == pytest.approx(0.1)
+    # community target 1 * 2.5 * 1.1 = 2.75 h, from the 0.075 left in external/rest
+    assert out[A.COMMUNITY_SERVICE] == pytest.approx(0.06875)
+    assert out[A.EXTERNAL] + out[A.REST] == pytest.approx(0.075 - 0.06875)
+    assert sum(out.values()) == pytest.approx(1)
+    assert aim_for_bkd(shares, SimpleNamespace(bkd=None), 0.1) == {A(k): shares.get(k, 0.0)
+                                                                 for k in A}  # fmt: skip

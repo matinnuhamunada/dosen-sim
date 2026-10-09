@@ -3,7 +3,11 @@
 #   snakemake -s experiments/Snakefile -j 16
 #   snakemake -s experiments/Snakefile -j 16 --configfile experiments/sweeps/<other>.yaml
 
-configfile: "experiments/sweeps/policy_experiments.yaml"
+# Default sweep only when none is given: Snakemake would otherwise merge both files' conditions.
+if "conditions" not in config:
+
+    configfile: "experiments/sweeps/policy_experiments.yaml"
+
 
 OUT = config["out"]
 CONDS = config["conditions"]

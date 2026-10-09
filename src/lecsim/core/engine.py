@@ -90,6 +90,7 @@ class Engine:
             credit_categories=self.reg.credit_categories, journal_tiers=self.reg.journal_tiers,
             hours_per_week=self.reg.time.hours_per_week, income_ref=self.forecast.income_ref,
             hours_per_sks=self.reg.bkd.hours_per_sks if self.reg.bkd else None,
+            max_sks=self.reg.bkd.max_sks if self.reg.bkd else None,
             semesters_per_year=self.clock.semesters_per_year,
             roles=[r.name for r in self.sc.department.roles],
             archetypes={n: a.persona.model_dump() for n, a in archetypes.items()},
@@ -150,6 +151,7 @@ class Engine:
             gaps=gaps,
             promotion_distance=promotion.promotion_distance(gaps),
             forecast=self.forecast,
+            bkd=None if self.forecast.bkd_exempt(lec) else self.reg.bkd,
         )
 
     def ask(self, lid: str, proposal: Proposal) -> Response:
@@ -397,7 +399,7 @@ class Engine:
             monthly=monthly, months=reg.time.months_per_semester,
             credits_earned=sum(earned.values()),
             external_hours=alloc.hours[Activity.EXTERNAL] * reg.time.weeks_per_semester,
-            rules=reg.pay, performance_pay=prob is None and bonus,
+            rules=reg.pay, performance_pay=prob is None and bonus, rank=lec.rank,
         )  # fmt: skip
         lec.monthly_pay = sum(monthly.values())
         lec.cumulative_income += income["total"]

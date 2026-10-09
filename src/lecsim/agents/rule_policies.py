@@ -5,7 +5,14 @@ from __future__ import annotations
 import numpy as np
 
 from lecsim.agents.base import Observation
-from lecsim.agents.common import ArchetypeResponder, fit_to_workload, preferred_tier, transfer
+from lecsim.agents.common import (
+    BKD_FEAR,
+    ArchetypeResponder,
+    aim_for_bkd,
+    fit_to_workload,
+    preferred_tier,
+    transfer,
+)
 from lecsim.config import Archetype, StageRules
 from lecsim.core.actions import Activity, Allocation
 
@@ -28,6 +35,7 @@ class FixedSharePolicy(ArchetypeResponder):
 
     def decide_allocation(self, obs: Observation) -> Allocation:
         shares, info = self.target_shares(obs)
+        shares = aim_for_bkd(shares, obs, BKD_FEAR * self.arch.persona.risk_aversion)
         return Allocation(
             hours=fit_to_workload(
                 shares, obs.workload, obs.hours_per_week, obs.me.commitments, obs.me.limits
