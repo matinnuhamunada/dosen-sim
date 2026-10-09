@@ -1,11 +1,13 @@
 // lecsim replay viewer: loading, playback, HUD, agent tracker, score dashboard, URL state.
 import { lineChart, type Series, stackedBars } from "./charts";
 import { type Agent, isPresent, parseLog, type Run, semAt, tierOf } from "./log";
-import { ARCHETYPE_COLORS, CampusScene, PIN_COLORS, ZONES } from "./scene";
-import { aggregateRows, fmt, quantile, type ScoreRow, scoreRows, toCsv } from "./scores";
+import { ARCHETYPE_COLORS, type CameraCommand, CampusScene, PIN_COLORS, SELECT_COLOR, ZONES, zoneColor } from "./scene";
+import { aggregateRows, fmt, gini, quantile, type ScoreRow, scoreRows, toCsv } from "./scores";
 
 const SEMESTER_SECONDS = 4; // playback duration of one semester at 1x
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+
+type Tab = "lecturers" | "events" | "dept";
 
 interface State {
   runs: Run[];
@@ -17,6 +19,7 @@ interface State {
   selected: string | null;
   pinned: string[];
   trail: boolean;
+  tab: Tab;
   runUrls: string[] | null;
   sort: { key: string; dir: 1 | -1 };
   shownEndBoard: boolean;
@@ -32,6 +35,7 @@ const state: State = {
   selected: null,
   pinned: [],
   trail: true,
+  tab: "lecturers",
   runUrls: null,
   sort: { key: "own score", dir: -1 },
   shownEndBoard: false,
@@ -39,6 +43,7 @@ const state: State = {
 
 const scene = new CampusScene($("scene"), (id) => select(id));
 const run = (): Run | undefined => state.runs[state.current];
+const boardOpen = () => !$("scoreboard").classList.contains("hidden");
 
 // --- loading -------------------------------------------------------------------------
 
@@ -89,27 +94,26 @@ function showRun(): void {
   state.t = Math.min(state.t, r.semesters - 1);
   const scrub = $<HTMLInputElement>("scrub");
   scrub.max = String(Math.max(r.semesters - 0.01, 0));
-  const tiers = [...new Set([...r.agents.values()].map((a) => tierOf(a.policy)))].join(", ");
-  const policies = [...new Set([...r.agents.values()].map((a) => a.policy))].join(", ");
-  $("run-labels").innerHTML = [
-    ["scenario", r.header.scenario],
-    ["seed", r.header.seed],
-    ["tier", tiers],
-    ["policies", policies],
-    ["regulation", r.info.regulation_version],
-    ["commit", r.header.git_commit.slice(0, 8)],
-  ]
-    .map(([k, v]) => `<span class="tag">${k} <b>${v}</b></span>`)
+  const agents = [...r.agents.values()];
+  const policies = [...new Set(agents.map((a) => a.policy))].join(", ");
+  const tiers = [...new Set(agents.map((a) => tierOf(a.policy)))].join(", ");
+  $("run-chip").textContent = `S${r.header.seed}`;
+  $("run-title").textContent = r.header.scenario;
+  $("run-sub").textContent = `seed ${r.header.seed} · ${agents.length} lecturers · ${policies}`;
+  $("run-sub").title = `tier ${tiers} · regulation ${r.info.regulation_version} · commit ${r.header.git_commit.slice(0, 8)}`;
+  $("search-list").innerHTML = agents
+    .map((a) => `<option value="${a.id}">${a.archetype ?? "no archetype"} · ${a.policy}</option>`)
     .join("");
   fillFilters();
-  refreshHud(true);
+  refreshHud();
+  setTime(state.t, state.tau);
 }
 
 // --- time and URL --------------------------------------------------------------------
 
 function label(r: Run, t: number): string {
   const spy = r.info.semesters_per_year;
-  return `Y${Math.floor(t / spy) + 1}S${(t % spy) + 1} · semester ${t + 1}/${r.semesters}`;
+  return `Y${Math.floor(t / spy) + 1}S${(t % spy) + 1}`;
 }
 
 let urlTimer = 0;
@@ -119,7 +123,7 @@ function syncUrl(): void {
     const p = new URLSearchParams();
     for (const u of state.runUrls ?? []) p.append("run", u);
     if (state.current) p.set("run_index", String(state.current));
-    if (!$("scoreboard").classList.contains("hidden")) p.set("board", "1");
+    if (boardOpen()) p.set("board", "1");
     p.set("t", String(state.t));
     if (state.selected) p.set("agent", state.selected);
     if (state.pinned.length) p.set("pins", state.pinned.join(","));
@@ -134,9 +138,9 @@ function setTime(t: number, tau: number): void {
   state.t = Math.max(0, Math.min(t, r.semesters - 1));
   state.tau = tau;
   $<HTMLInputElement>("scrub").value = String(state.t + state.tau);
-  $("time-label").textContent = label(r, state.t);
+  $("time-label").textContent = `Semester ${state.t + 1}/${r.semesters} · ${label(r, state.t)}`;
   if (changed) {
-    refreshHud(false);
+    refreshHud();
     syncUrl();
   }
 }
@@ -145,94 +149,184 @@ function setTime(t: number, tau: number): void {
 
 function select(id: string | null): void {
   state.selected = id;
-  refreshHud(false);
+  refreshHud();
   syncUrl();
 }
 
 function togglePin(id: string): void {
   if (state.pinned.includes(id)) state.pinned = state.pinned.filter((p) => p !== id);
   else if (state.pinned.length < 3) state.pinned = [...state.pinned, id];
-  refreshHud(false);
+  refreshHud();
   syncUrl();
+}
+
+function search(q: string): void {
+  const r = run();
+  const s = q.trim().toLowerCase();
+  if (!r || !s) return;
+  const agents = [...r.agents.values()];
+  const hit =
+    agents.find((a) => a.id.toLowerCase() === s) ??
+    agents.find((a) => a.id.toLowerCase().startsWith(s)) ??
+    agents.find((a) => `${a.id} ${a.archetype ?? ""} ${a.policy}`.toLowerCase().includes(s));
+  if (hit) {
+    select(hit.id);
+    $<HTMLInputElement>("search").blur();
+  }
 }
 
 // --- HUD -----------------------------------------------------------------------------
 
 function color(a: Agent): string {
-  return ARCHETYPE_COLORS[a.archetype ?? "none"] ?? "#e8590c";
+  return ARCHETYPE_COLORS[a.archetype ?? "none"] ?? ARCHETYPE_COLORS.none;
 }
 
-function refreshHud(full: boolean): void {
+function refreshHud(): void {
   const r = run();
   if (!r) return;
-  renderAgentList(r);
-  if (full || state.t % 1 === 0) renderDept(r);
+  renderKpis(r);
+  renderOps(r);
+  renderCareer(r);
   renderTracker(r);
-  if (!$("scoreboard").classList.contains("hidden")) renderScoreboard();
+  if (boardOpen()) renderScoreboard();
 }
 
-function renderAgentList(r: Run): void {
+/** Department figures at semester t, derived from the log only. */
+function deptAt(r: Run, t: number) {
+  const d = r.dept[t];
+  const hired = [...r.agents.values()].filter((a) => a.hiredAt <= t);
+  return {
+    coverage: d?.coverage ?? NaN,
+    burnout: d?.meanBurnout ?? NaN,
+    active: d?.active ?? NaN,
+    gini: gini(hired.map((a) => semAt(a, t)?.cumIncome ?? 0)),
+    leavers: hired.filter((a) => a.leftAt !== null && a.leftAt <= t).length,
+  };
+}
+
+function renderKpis(r: Run): void {
+  const now = deptAt(r, state.t);
+  const prev = state.t > 0 ? deptAt(r, state.t - 1) : null;
+  const card = (icon: string, tint: string, lbl: string, val: string, d: number | null,
+    goodUp: boolean, dFmt: (x: number) => string, cap: string) => {
+    let delta = "";
+    if (d !== null && Number.isFinite(d)) {
+      const cls = Math.abs(d) < 1e-9 ? "flat" : (d > 0) === goodUp ? "up" : "down";
+      delta = `<span class="delta ${cls}">${d > 0 ? "↑" : d < 0 ? "↓" : "→"} ${dFmt(Math.abs(d))}</span>`;
+    }
+    return `<div class="float kpi"><span class="ic" style="background:${tint}">${icon}</span>
+      <div><div class="lbl">${lbl}</div><div class="val">${val}${delta}</div><small>${cap}</small></div></div>`;
+  };
+  const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
+  const diff = (k: keyof typeof now) => (prev ? now[k] - prev[k] : null);
+  $("kpis").innerHTML = [
+    card("🎓", "#eaf1ff", "Teaching coverage", pct(now.coverage), diff("coverage"), true, pct, "of department demand"),
+    card("🔥", "#fdecec", "Mean burnout", now.burnout.toFixed(2), diff("burnout"), false, (x) => x.toFixed(2), "0 = fresh · 1 = exhausted"),
+    card("👥", "#e7f8ee", "Active lecturers", String(now.active), diff("active"), true, (x) => x.toFixed(0), `${now.leavers} left so far`),
+    card("⚖️", "#fff4e2", "Pay inequality", now.gini.toFixed(3), diff("gini"), false, (x) => x.toFixed(3), "Gini of cumulative pay"),
+  ].join("");
+}
+
+function renderOps(r: Run): void {
+  document.querySelectorAll<HTMLElement>("#ops .tabs button").forEach((b) =>
+    b.classList.toggle("on", b.dataset.tab === state.tab));
+  const present = [...r.agents.values()].filter((a) => a.hiredAt <= state.t);
+  const evs = (r.events.get(state.t) ?? []).filter((e) => !(e.kind === "teaching" && e.outcome === "accepted"));
+  $("n-lecturers").textContent = String(present.filter((a) => isPresent(a, state.t)).length);
+  $("n-events").textContent = String(evs.length);
+  const body = $("ops-body");
+  body.innerHTML = "";
+  if (state.tab === "lecturers") {
+    const ranks = r.info.rank_names;
+    body.innerHTML = present
+      .map((a) => {
+        const s = semAt(a, state.t);
+        const gone = !isPresent(a, state.t);
+        const pin = state.pinned.indexOf(a.id);
+        const rankIdx = ranks.indexOf(s?.rank ?? ranks[0]);
+        const burn = s?.burnout ?? 0;
+        const status = gone
+          ? `<span class="pill">Left</span>`
+          : burn > 0.6 ? `<span class="pill red">Burnt out</span>`
+          : burn > 0.35 ? `<span class="pill amber">Strained</span>`
+          : `<span class="pill ${rankIdx === ranks.length - 1 ? "green" : "blue"}">${s?.rank ?? ranks[0]}</span>`;
+        return `<div class="row${a.id === state.selected ? " sel" : ""}${gone ? " gone" : ""}" data-id="${a.id}">
+          <span class="dot" style="background:${color(a)}"></span>
+          <span class="name"><b>${a.id}${pin >= 0 ? ` <span style="color:${PIN_COLORS[pin]}">●</span>` : ""}</b>
+            <small>${a.archetype ?? "no archetype"} · ${a.policy}</small></span>
+          <span class="num">${((s?.cumIncome ?? 0) / 1e6).toFixed(0)} M<br>${s?.publications ?? 0} papers</span>
+          ${status}
+        </div>`;
+      })
+      .join("");
+  } else if (state.tab === "events") {
+    const icon: Record<string, string> = { paper: "📄", promotion: "⭐", grant: "💰", role: "🏷️", teaching: "💬",
+      coauthor: "🤝", attrition: "🚪", hire: "👋", certified: "📜" };
+    body.innerHTML = evs.length
+      ? evs.map((e) => `<div class="ev-row" data-id="${e.agent}"><span>${icon[e.kind] ?? "•"}</span><b>${e.agent}</b>
+          <span${e.outcome === "imposed" ? ' style="color:var(--red)"' : ""}>${e.text}</span></div>`).join("")
+      : `<div class="empty-note">Nothing notable this semester.</div>`;
+  } else {
+    const opts = { width: 372, height: 62, marker: state.t };
+    body.append(
+      lineChart([{ name: "coverage", color: "#2f6bff", values: r.dept.map((d) => d.coverage) }],
+        { ...opts, title: "Teaching coverage" }),
+      lineChart([{ name: "burnout", color: "#dc2626", values: r.dept.map((d) => d.meanBurnout) }],
+        { ...opts, title: "Mean burnout" }),
+      lineChart([{ name: "active", color: "#16a34a", values: r.dept.map((d) => d.active) }],
+        { ...opts, title: "Active lecturers", yFmt: (v) => v.toFixed(0) }),
+    );
+  }
+  body.querySelectorAll<HTMLElement>("[data-id]").forEach((el) =>
+    el.addEventListener("click", () => select(el.dataset.id === state.selected ? null : el.dataset.id!)));
+}
+
+function renderCareer(r: Run): void {
   const ranks = r.info.rank_names;
-  const rows = [...r.agents.values()]
-    .filter((a) => a.hiredAt <= state.t)
-    .map((a) => {
-      const s = semAt(a, state.t);
-      const gone = !isPresent(a, state.t);
-      const sel = a.id === state.selected ? " sel" : "";
-      const pin = state.pinned.indexOf(a.id);
-      const pinMark = pin >= 0 ? `<span style="color:${PIN_COLORS[pin]}">●</span>` : "";
-      return `<div class="card${sel}${gone ? " gone" : ""}" data-id="${a.id}">
-        <span class="dot" style="background:${color(a)}"></span>
-        <span><b>${a.id}</b> ${pinMark} <small>${a.archetype ?? a.policy}</small></span>
-        <span>${s ? s.rank : ranks[0]}</span>
-        <span class="sub"><span>${a.policy}</span><span>${s ? (s.cumIncome / 1e6).toFixed(0) : 0} M</span>
-          <span>${s?.publications ?? 0} papers</span>${gone ? "<span>left</span>" : ""}</span>
-        <span class="bar" title="burnout ${(s?.burnout ?? 0).toFixed(2)}"><i style="width:${(s?.burnout ?? 0) * 100}%"></i></span>
-      </div>`;
-    });
-  const list = $("agent-list");
-  list.innerHTML = rows.join("");
-  list.querySelectorAll<HTMLElement>(".card").forEach((c) =>
-    c.addEventListener("click", () => select(c.dataset.id === state.selected ? null : c.dataset.id!)),
-  );
-}
-
-function renderDept(r: Run): void {
-  const box = $("dept-charts");
-  box.innerHTML = "";
-  const opts = { width: 266, height: 70, marker: state.t };
-  box.append(
-    lineChart([{ name: "coverage", color: "#74c0fc", values: r.dept.map((d) => d.coverage) }],
-      { ...opts, title: "Teaching coverage" }),
-    lineChart([{ name: "burnout", color: "#ff6b6b", values: r.dept.map((d) => d.meanBurnout) }],
-      { ...opts, title: "Mean burnout" }),
-    lineChart([{ name: "active", color: "#69db7c", values: r.dept.map((d) => d.active) }],
-      { ...opts, title: "Active lecturers", yFmt: (v) => v.toFixed(0) }),
-  );
+  const box = $("career-body");
+  const a = state.selected ? r.agents.get(state.selected) : undefined;
+  const steps = (cells: { cls: string; sub: string }[]) =>
+    `<div class="steps">${ranks.map((name, i) => `<div class="step ${cells[i].cls}">
+      <span class="node">${cells[i].cls === "done" ? "✓" : cells[i].cls === "now" ? "★" : i + 1}</span>
+      <span>${name}</span><small>${cells[i].sub}</small></div>`).join("")}</div>`;
+  if (!a) {
+    const counts = ranks.map((name) => [...r.agents.values()]
+      .filter((x) => isPresent(x, state.t) && semAt(x, state.t)?.rank === name).length);
+    box.innerHTML = `<div class="career-head">Rank mix · all lecturers<small>select a lecturer for their career path</small></div>` +
+      steps(counts.map((n) => ({ cls: n ? "done" : "", sub: `${n} lecturer${n === 1 ? "" : "s"}` })));
+    return;
+  }
+  const s = semAt(a, state.t);
+  const cur = ranks.indexOf(s?.rank ?? ranks[0]);
+  const start = ranks.indexOf(semAt(a, a.hiredAt)?.paidRank ?? ranks[0]);
+  const reached = new Map<string, number>();
+  for (const e of a.events) {
+    if (e.kind === "promotion" && e.t <= state.t) reached.set(e.text.replace("promoted to ", ""), e.t);
+  }
+  const cells = ranks.map((name, i) => {
+    const t = reached.get(name);
+    const sub = t !== undefined ? `${label(r, t)} · ${t + 1 - a.hiredAt} sem`
+      : i <= start ? (i === start ? "start rank" : "–") : i < cur ? "–" : "not yet";
+    return { cls: i < cur ? "done" : i === cur ? "now" : "", sub };
+  });
+  box.innerHTML = `<div class="career-head"><span class="dot" style="background:${color(a)}"></span>
+    Career · ${a.id}<small>${a.leftAt !== null && a.leftAt <= state.t ? `left ${label(r, a.leftAt)}` : `hired ${label(r, a.hiredAt)}`}</small></div>` +
+    steps(cells);
 }
 
 /** Per-semester median and IQR of a metric across agents present that semester. */
-function deptBand(r: Run, f: (a: Agent, t: number) => number | null): Series["band"] & object {
-  const out: [number, number][] = [];
+function deptStats(r: Run, f: (a: Agent, t: number) => number | null): { med: number[]; band: [number, number][] } {
+  const med: number[] = [];
+  const band: [number, number][] = [];
   for (let t = 0; t < r.semesters; t++) {
     const vals = [...r.agents.values()]
       .filter((a) => isPresent(a, t))
       .map((a) => f(a, t))
       .filter((v): v is number => v !== null);
-    out.push([quantile(vals, 0.25), quantile(vals, 0.75)]);
+    med.push(quantile(vals, 0.5));
+    band.push([quantile(vals, 0.25), quantile(vals, 0.75)]);
   }
-  return out;
-}
-function deptMedian(r: Run, f: (a: Agent, t: number) => number | null): number[] {
-  const out: number[] = [];
-  for (let t = 0; t < r.semesters; t++) {
-    const vals = [...r.agents.values()]
-      .filter((a) => isPresent(a, t))
-      .map((a) => f(a, t))
-      .filter((v): v is number => v !== null);
-    out.push(quantile(vals, 0.5));
-  }
-  return out;
+  return { med, band };
 }
 
 function renderTracker(r: Run): void {
@@ -242,32 +336,40 @@ function renderTracker(r: Run): void {
   if (!a) return;
   const ranks = r.info.rank_names;
   const s = semAt(a, state.t);
-  const zone = isPresent(a, state.t) ? scene.zoneAt(a, state.t, state.tau) : "left";
+  const present = isPresent(a, state.t);
+  const zone = present ? scene.zoneAt(a, state.t, state.tau) : "left";
   const persona = a.archetype ? r.info.archetypes[a.archetype] : undefined;
   const pinned = state.pinned.includes(a.id);
+  const burn = s?.burnout ?? 0;
+  const burnColor = burn > 0.6 ? "var(--red)" : burn > 0.35 ? "var(--amber)" : "var(--green)";
+  const grants = a.events.filter((e) => e.kind === "grant" && e.t <= state.t).length;
   panel.innerHTML = `
-    <div class="tracker-head">
-      <span class="dot" style="background:${color(a)}"></span>
-      <h2>${a.id}</h2><span class="tag">${a.archetype ?? "no archetype"}</span>
-      <span class="tag">${a.policy} · ${tierOf(a.policy)}</span>
-      <button class="btn" id="pin-btn" ${!pinned && state.pinned.length >= 3 ? "disabled" : ""}>
-        ${pinned ? "Unpin" : "Pin"}</button>
-      <button class="btn" id="close-tracker">✕</button>
+    <div class="tr-head">
+      <span class="avatar" style="background:${color(a)}">${a.id.slice(0, 3)}</span>
+      <div class="tr-title"><div class="eyebrow">Lecturer · ${a.archetype ?? "no archetype"}</div>
+        <h2>${a.id}</h2><small>${a.policy} policy · ${tierOf(a.policy)}</small></div>
+      <button class="btn icon" id="pin-btn" title="${pinned ? "Unpin" : "Pin to compare (max 3)"}"
+        ${!pinned && state.pinned.length >= 3 ? "disabled" : ""}>${pinned ? "📌" : "📍"}</button>
+      <button class="btn icon" id="close-tracker" title="Close">✕</button>
     </div>
+    <div class="tr-status">
+      <span class="pill ${present ? "green" : ""}" id="zone-now">${present ? `${ZONES[zone]?.icon ?? ""} ${ZONES[zone]?.label ?? zone}` : "Left the department"}</span>
+      <span class="pill blue">${s?.rank ?? ranks[0]}</span>
+    </div>
+    <div class="meter"><span>Burnout</span><span class="track"><i style="width:${Math.min(100, burn * 100)}%;background:${burnColor}"></i></span><b>${burn.toFixed(2)}</b></div>
     <div class="kv">
-      <span>Rank</span><span>${s?.rank ?? ranks[0]}</span>
-      <span>Doing now</span><span id="zone-now">${ZONES[zone]?.icon ?? ""} ${ZONES[zone]?.label ?? zone}</span>
-      <span>Burnout</span><span>${(s?.burnout ?? 0).toFixed(2)}</span>
       <span>Cumulative pay</span><span>${((s?.cumIncome ?? 0) / 1e6).toFixed(1)} M IDR</span>
-      <span>Credits</span><span>${Object.entries(s?.credits ?? {}).map(([k, v]) => `${k} ${v.toFixed(0)}`).join(" · ")}</span>
-      <span>Papers / grants</span><span>${s?.publications ?? 0} / ${a.events.filter((e) => e.kind === "grant" && e.t <= state.t).length}</span>
+      <span>Credits</span><span>${Object.entries(s?.credits ?? {}).map(([k, v]) => `${k} ${v.toFixed(0)}`).join(" · ") || "–"}</span>
+      <span>Papers / grants</span><span>${s?.publications ?? 0} / ${grants}</span>
       <span>Roles</span><span>${s?.roles.join(", ") || "–"}</span>
       <span>Co-author</span><span>${s?.coauthor ?? "–"}</span>
       <span>Commitments</span><span>${Object.entries(s?.commitments ?? {}).map(([k, v]) => `${k} ${v.toFixed(1)} h`).join(", ") || "–"}</span>
       ${persona ? `<span>Weights</span><span>rank ${persona.w_rank} · pay ${persona.w_pay} · wellbeing ${persona.w_wellbeing}</span>` : ""}
     </div>
+    <h3>Weekly hours</h3>
     <div id="tr-alloc"></div>
     <div class="legend" id="tr-legend"></div>
+    <h3>Trajectory vs department</h3>
     <div id="tr-charts"></div>
     <h3>Key events</h3>
     <ul class="timeline-list" id="tr-events"></ul>`;
@@ -277,36 +379,40 @@ function renderTracker(r: Run): void {
   const acts = r.info.activities;
   const alloc: Record<string, number>[] = [];
   for (let t = 0; t < r.semesters; t++) alloc.push(a.sems.get(t)?.hours ?? {});
-  const colors = Object.fromEntries(acts.map((k) => [k, `#${(ZONES[k]?.color ?? 0x888888).toString(16).padStart(6, "0")}`]));
+  const colors = Object.fromEntries(acts.map((k) => [k, zoneColor(k)]));
   $("tr-alloc").append(stackedBars(alloc, acts, colors, {
-    width: 316, height: 80, marker: state.t, title: "Weekly hours per semester", total: r.info.hours_per_week,
+    width: 306, height: 70, marker: state.t, title: "", total: r.info.hours_per_week,
   }));
   $("tr-legend").innerHTML = acts.map((k) => `<span><i style="background:${colors[k]}"></i>${ZONES[k]?.label ?? k}</span>`).join("");
 
   const tracked = [a, ...state.pinned.filter((p) => p !== a.id).map((p) => r.agents.get(p)!).filter(Boolean)];
-  const series = (f: (x: Agent, t: number) => number | null, name: string): Series[] => [
-    { name: "dept median", color: "#adb5bd", dashed: true, values: deptMedian(r, f), band: deptBand(r, f) },
-    ...tracked.map((x, i) => ({
-      name: x.id,
-      color: i === 0 ? "#ffffff" : PIN_COLORS[state.pinned.indexOf(x.id)] ?? "#fff",
-      values: Array.from({ length: r.semesters }, (_, t) => (t >= x.hiredAt && t <= state.t ? f(x, t) : null)),
-    })),
-  ].map((s) => ({ ...s, name: `${name}: ${s.name}` }));
+  const lineColor = (x: Agent, i: number) => (i === 0 ? SELECT_COLOR : PIN_COLORS[state.pinned.indexOf(x.id)] ?? SELECT_COLOR);
+  const series = (f: (x: Agent, t: number) => number | null): Series[] => {
+    const { med, band } = deptStats(r, f);
+    return [
+      { name: "dept median", color: "#9aa7b8", dashed: true, values: med, band },
+      ...tracked.map((x, i) => ({
+        name: x.id,
+        color: lineColor(x, i),
+        values: Array.from({ length: r.semesters }, (_, t) => (t >= x.hiredAt && t <= state.t ? f(x, t) : null)),
+      })),
+    ];
+  };
   const rankIdx = (x: Agent, t: number) => (x.sems.get(t) ? ranks.indexOf(x.sems.get(t)!.rank) : null);
   const pay = (x: Agent, t: number) => (x.sems.get(t) ? x.sems.get(t)!.cumIncome / 1e6 : null);
   const cred = (x: Agent, t: number) =>
     x.sems.get(t) ? Object.values(x.sems.get(t)!.credits).reduce((p, q) => p + q, 0) : null;
-  const opts = { width: 316, height: 92, marker: state.t };
+  const opts = { width: 306, height: 84, marker: state.t };
   const box = $("tr-charts");
   box.append(
-    lineChart(series(rankIdx, "rank"), { ...opts, title: `Rank (0 = ${ranks[0]}) vs department median`, yFmt: (v) => v.toFixed(0) }),
-    lineChart(series(pay, "pay"), { ...opts, title: "Cumulative pay (M IDR) vs median" }),
-    lineChart(series(cred, "credits"), { ...opts, title: "Cumulative credits vs median" }),
+    lineChart(series(rankIdx), { ...opts, title: `Rank (0 = ${ranks[0]})`, yFmt: (v) => v.toFixed(0) }),
+    lineChart(series(pay), { ...opts, title: "Cumulative pay (M IDR)" }),
+    lineChart(series(cred), { ...opts, title: "Cumulative credits" }),
   );
   const legend = document.createElement("div");
   legend.className = "legend";
-  legend.innerHTML = `<span><i style="background:#adb5bd"></i>dept median (band: IQR)</span>` +
-    tracked.map((x, i) => `<span><i style="background:${i === 0 ? "#fff" : PIN_COLORS[state.pinned.indexOf(x.id)]}"></i>${x.id}</span>`).join("");
+  legend.innerHTML = `<span><i style="background:#9aa7b8"></i>dept median (band: IQR)</span>` +
+    tracked.map((x, i) => `<span><i style="background:${lineColor(x, i)}"></i>${x.id}</span>`).join("");
   box.append(legend);
 
   const evs = a.events
@@ -315,7 +421,7 @@ function renderTracker(r: Run): void {
     .reverse()
     .slice(0, 60);
   $("tr-events").innerHTML = evs
-    .map((e) => `<li class="${e.outcome === "imposed" ? "imposed" : ""}"><span class="t">${label(r, e.t).split(" ")[0]}</span>${e.text}</li>`)
+    .map((e) => `<li class="${e.outcome === "imposed" ? "imposed" : ""}"><span class="t">${label(r, e.t)}</span>${e.text}</li>`)
     .join("") || "<li>No key events yet.</li>";
 }
 
@@ -358,14 +464,14 @@ function renderScoreboard(): void {
   const multi = $<HTMLInputElement>("sb-multi").checked && state.runs.length > 1;
   $("sb-at").textContent = multi
     ? `median (IQR) over ${state.runs.length} runs, final semester`
-    : `${r.header.scenario} · seed ${r.header.seed} · at ${label(r, state.t)}`;
+    : `${r.header.scenario} · seed ${r.header.seed} · semester ${state.t + 1} (${label(r, state.t)})`;
   const { rows, cols } = boardRows();
   const table = $("sb-table");
   table.innerHTML =
     `<thead><tr>${cols.map((c) => `<th data-k="${c}" class="${c === state.sort.key ? "sorted" : ""}">${c}${c === state.sort.key ? (state.sort.dir > 0 ? " ▲" : " ▼") : ""}</th>`).join("")}</tr></thead>` +
     `<tbody>${rows.map((row) => `<tr data-id="${multi ? "" : row.agent}">${cols.map((c) => {
       const v = row[c];
-      const dot = c === "archetype" ? `<span class="dot" style="display:inline-block;background:${ARCHETYPE_COLORS[String(v)] ?? "#e8590c"}"></span> ` : "";
+      const dot = c === "archetype" ? `<span class="dot" style="background:${ARCHETYPE_COLORS[String(v)] ?? ARCHETYPE_COLORS.none}"></span> ` : "";
       return `<td>${dot}${fmt(v)}</td>`;
     }).join("")}</tr>`).join("")}</tbody>`;
   table.querySelectorAll<HTMLElement>("th").forEach((th) =>
@@ -424,11 +530,34 @@ $<HTMLSelectElement>("run-select").addEventListener("change", (e) => {
   showRun();
   syncUrl();
 });
+const searchBox = $<HTMLInputElement>("search");
+searchBox.addEventListener("change", () => search(searchBox.value));
+searchBox.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") search(searchBox.value);
+  if (e.key === "Escape") searchBox.blur();
+});
+document.querySelectorAll<HTMLElement>("#cam button").forEach((b) =>
+  b.addEventListener("click", () => scene.command(b.dataset.cam as CameraCommand)));
+document.querySelectorAll<HTMLElement>("#ops .tabs button").forEach((b) =>
+  b.addEventListener("click", () => {
+    state.tab = b.dataset.tab as Tab;
+    const r = run();
+    if (r) renderOps(r);
+  }));
 $("play").addEventListener("click", () => setPlaying(!state.playing));
 document.addEventListener("keydown", (e) => {
-  if (e.code === "Space" && (e.target as HTMLElement).tagName !== "INPUT") {
+  const typing = ["INPUT", "SELECT", "TEXTAREA"].includes((e.target as HTMLElement).tagName);
+  if (typing) return;
+  if (e.code === "Space") {
     e.preventDefault();
     setPlaying(!state.playing);
+  } else if (e.key === "/") {
+    e.preventDefault();
+    searchBox.focus();
+    searchBox.select();
+  } else if (e.key === "Escape") {
+    if (boardOpen()) $("scoreboard").classList.add("hidden");
+    else select(null);
   }
 });
 $<HTMLSelectElement>("speed").addEventListener("change", (e) => (state.speed = Number((e.target as HTMLSelectElement).value)));
@@ -453,10 +582,12 @@ function setPlaying(p: boolean): void {
   const r = run();
   if (p && r && state.t >= r.semesters - 1 && state.tau > 0.98) setTime(0, 0);
   state.playing = p && !!r;
-  $("play").textContent = state.playing ? "⏸" : "▶";
+  $("play").textContent = state.playing ? "❚❚" : "▶";
+  $("time-badge").classList.toggle("paused", !state.playing);
 }
 
 let last = performance.now();
+let lastZone = "";
 function frame(now: number): void {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
@@ -478,16 +609,19 @@ function frame(now: number): void {
       }
     }
     setTime(t, tau);
-    if (!$("scoreboard").classList.contains("hidden") && t === r.semesters - 1) renderScoreboard();
+    if (boardOpen() && t === r.semesters - 1) renderScoreboard();
   }
   if (r) {
     scene.update(state.t, state.tau, { selected: state.selected, pinned: state.pinned, trail: state.trail });
-    const z = $("zone-now");
+    const z = document.getElementById("zone-now");
     if (z && state.selected) {
       const a = r.agents.get(state.selected);
       if (a && isPresent(a, state.t)) {
         const k = scene.zoneAt(a, state.t, state.tau);
-        z.textContent = `${ZONES[k]?.icon ?? ""} ${ZONES[k]?.label ?? k}`;
+        if (k !== lastZone) {
+          z.textContent = `${ZONES[k]?.icon ?? ""} ${ZONES[k]?.label ?? k}`;
+          lastZone = k;
+        }
       }
     }
   }
@@ -500,6 +634,7 @@ async function boot(): Promise<void> {
   state.selected = p.get("agent");
   state.pinned = (p.get("pins") ?? "").split(",").filter(Boolean).slice(0, 3);
   const urls = p.getAll("run");
+  setPlaying(false);
   if (urls.length) {
     try {
       await loadUrls(urls);

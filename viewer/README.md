@@ -19,14 +19,26 @@ repository's `runs/` folder at `/runs`):
 ?run=/runs/.../seed1/events.jsonl&run=/runs/.../seed2/events.jsonl&board=1   # multi-seed board
 ```
 
-- **Campus:** one zone per activity; each lecturer walks between zones in proportion to
-  that semester's logged hours. Colour = archetype, gold discs = rank, grey = burnout.
+Layout follows a light "strategy game" dashboard (inspired by Dilum Sanjaya's WareTrack
+demo): white floating cards over an isometric campus.
+
+- **Campus:** one building per activity; each lecturer walks between them in proportion to
+  that semester's logged hours. Colour = archetype, gold coins = rank, grey = burnout.
   Cues: 📄 paper, ⭐ promotion, 💰 grant, 🏷️ role, 💬 teaching negotiation (red = imposed),
   🚪 left, 👋 hired.
-- **Timeline:** play/pause (space), speed, scrubber; the URL keeps run, semester and selection.
-- **Agent tracker:** click a lecturer (scene, list or scoreboard) to follow it: live card,
+- **Camera:** left-drag pans, right-drag rotates, wheel zooms (to cursor); buttons on the
+  right zoom, rotate 45° and reset. Selecting a lecturer glides the camera to follow them;
+  panning stops following.
+- **Top bar:** search lecturers (`/`), run card, semester badge, scoreboard, open logs.
+- **KPI cards:** teaching coverage, mean burnout, active lecturers, pay Gini, each with the
+  change since last semester.
+- **Bottom left:** play/pause (space), speed, scrubber, and the career path (rank steps with
+  the semester each was reached); with nothing selected, the department's rank mix.
+- **Bottom right:** tabs for lecturers (status pills), this semester's events, and
+  department charts.
+- **Agent tracker:** click a lecturer (scene, list, events or scoreboard): live card,
   weekly hours per semester, rank/pay/credit trajectories vs the department median (IQR band),
-  key events. Pin up to three lecturers to compare.
+  key events. Pin up to three lecturers to compare. `Esc` closes.
 - **Score dashboard:** per-agent scorecards at any semester; own-goal score (archetype
   weights) and common score (equal weights); sortable, filterable, CSV export; with several
   runs loaded, median and IQR per archetype × policy.

@@ -132,3 +132,12 @@ export function toCsv(rows: ScoreRow[], columns: string[]): string {
   };
   return [columns.join(","), ...rows.map((r) => columns.map((c) => esc(r[c])).join(","))].join("\n");
 }
+
+/** Gini coefficient of non-negative values (0 = equal); mirrors analysis/metrics.py gini. */
+export function gini(values: number[]): number {
+  const xs = [...values].sort((a, b) => a - b);
+  const n = xs.length;
+  const total = xs.reduce((a, b) => a + b, 0);
+  if (n === 0 || total === 0) return 0;
+  return xs.reduce((acc, x, i) => acc + (2 * i - n + 1) * x, 0) / (n * total);
+}

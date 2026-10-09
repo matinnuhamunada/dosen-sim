@@ -4,59 +4,91 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>lecsim replay</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
     <link rel="stylesheet" href="./src/style.css" />
   </head>
   <body>
-    <header id="topbar">
-      <strong class="brand">lecsim replay</strong>
-      <select id="run-select" title="Loaded runs"></select>
-      <span id="run-labels"></span>
-      <span class="caveat">One simulated run with placeholder rules: illustrative, not a prediction.</span>
+    <div id="scene"></div>
+
+    <header id="topbar" class="float">
+      <div class="brand"><span class="logo">◆</span>lecsim</div>
+      <label class="search">
+        <span class="search-icon">⌕</span>
+        <input id="search" type="search" placeholder="Search lecturers, archetypes, policies…" autocomplete="off" list="search-list" />
+        <kbd>/</kbd>
+        <datalist id="search-list"></datalist>
+      </label>
+      <div class="run-card" title="Loaded run">
+        <span class="run-chip" id="run-chip">–</span>
+        <div class="run-text"><b id="run-title">No run loaded</b><small id="run-sub"></small></div>
+        <select id="run-select" title="Switch run"></select>
+      </div>
+      <span class="live" id="time-badge"><i></i><span id="time-label">–</span></span>
+      <span class="caveat" title="One simulated run with placeholder regulation values: illustrative, not a prediction.">Illustrative · placeholder rules</span>
+      <button id="open-scoreboard" class="btn">Scoreboard</button>
       <label class="btn" title="Open one or more events.jsonl files">
         Open logs<input id="file-input" type="file" accept=".jsonl,.json,.txt" multiple hidden />
       </label>
     </header>
-    <main id="stage">
-      <div id="scene"></div>
-      <aside id="left" class="panel">
-        <h3>Lecturers</h3>
-        <div id="agent-list"></div>
-        <h3>Department</h3>
-        <div id="dept-charts"></div>
-      </aside>
-      <aside id="tracker" class="panel hidden"></aside>
-      <section id="empty" class="hidden">
+
+    <section id="kpis"></section>
+
+    <nav id="cam" class="float" aria-label="Camera">
+      <button data-cam="in" title="Zoom in">+</button>
+      <button data-cam="out" title="Zoom out">−</button>
+      <button data-cam="left" title="Rotate left">↺</button>
+      <button data-cam="right" title="Rotate right">↻</button>
+      <button data-cam="home" title="Reset view">⌂</button>
+    </nav>
+
+    <aside id="tracker" class="float hidden"></aside>
+
+    <section id="career" class="float">
+      <div class="playback">
+        <button id="play" class="btn round" title="Play / pause (space)">▶</button>
+        <select id="speed" title="Playback speed">
+          <option value="0.5">0.5×</option><option value="1" selected>1×</option>
+          <option value="2">2×</option><option value="4">4×</option><option value="8">8×</option>
+        </select>
+        <input id="scrub" type="range" min="0" max="0" step="0.01" value="0" />
+        <label title="Show the selected lecturer's path this semester"><input type="checkbox" id="trail" checked /> Trail</label>
+      </div>
+      <div id="career-body"></div>
+    </section>
+
+    <section id="ops" class="float">
+      <div class="tabs" role="tablist">
+        <button data-tab="lecturers" class="on">Lecturers <span id="n-lecturers"></span></button>
+        <button data-tab="events">Events <span id="n-events"></span></button>
+        <button data-tab="dept">Department</button>
+      </div>
+      <div id="ops-body"></div>
+    </section>
+
+    <section id="empty" class="hidden">
+      <div class="float empty-card">
         <h2>Load a lecsim run</h2>
         <p>Drop one or more <code>events.jsonl</code> files here, use <em>Open logs</em>, or add
           <code>?run=/runs/&lt;run&gt;/events.jsonl</code> to the URL (dev server).</p>
         <p>Several runs of the same scenario give a multi-seed scoreboard.</p>
-      </section>
-      <section id="scoreboard" class="hidden">
-        <div class="sb-head">
-          <h2>Final score dashboard <small id="sb-at"></small></h2>
-          <label>Archetype <select id="sb-arch"></select></label>
-          <label>Policy <select id="sb-policy"></select></label>
-          <label title="Median and IQR per archetype and policy across all loaded runs">
-            <input type="checkbox" id="sb-multi" /> Multi-seed</label>
-          <button id="sb-csv" class="btn">Export CSV</button>
-          <button id="sb-close" class="btn">Close</button>
-        </div>
-        <p class="sb-note">Own score: mean per-semester utility under the agent's archetype weights
-          (pay, rank, rest − burnout). Common score: equal weights. Click a header to sort, a row to track.</p>
-        <div class="sb-table-wrap"><table id="sb-table"></table></div>
-      </section>
-    </main>
-    <footer id="timeline">
-      <button id="play" class="btn" title="Play / pause (space)">▶</button>
-      <select id="speed" title="Playback speed">
-        <option value="0.5">0.5×</option><option value="1" selected>1×</option>
-        <option value="2">2×</option><option value="4">4×</option><option value="8">8×</option>
-      </select>
-      <input id="scrub" type="range" min="0" max="0" step="0.01" value="0" />
-      <span id="time-label">–</span>
-      <label title="Show the selected agent's path this semester"><input type="checkbox" id="trail" checked /> Trail</label>
-      <button id="open-scoreboard" class="btn">Scoreboard</button>
-    </footer>
+      </div>
+    </section>
+
+    <section id="scoreboard" class="float hidden">
+      <div class="sb-head">
+        <h2>Score dashboard <small id="sb-at"></small></h2>
+        <label>Archetype <select id="sb-arch"></select></label>
+        <label>Policy <select id="sb-policy"></select></label>
+        <label title="Median and IQR per archetype and policy across all loaded runs">
+          <input type="checkbox" id="sb-multi" /> Multi-seed</label>
+        <button id="sb-csv" class="btn">Export CSV</button>
+        <button id="sb-close" class="btn icon" title="Close">✕</button>
+      </div>
+      <p class="sb-note">Own score: mean per-semester utility under the lecturer's archetype weights
+        (pay, rank, rest − burnout). Common score: equal weights. Click a header to sort, a row to track.</p>
+      <div class="sb-table-wrap"><table id="sb-table"></table></div>
+    </section>
     <script type="module" src="./src/main.ts"></script>
   </body>
 </html>

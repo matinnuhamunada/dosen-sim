@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { isPresent, parseLog, semAt } from "../src/log";
-import { aggregateRows, COMMON, ownWeights, quantile, score, scoreRows, toCsv } from "../src/scores";
+import { aggregateRows, COMMON, gini, ownWeights, quantile, score, scoreRows, toCsv } from "../src/scores";
 
 const dir = resolve(__dirname, "fixtures");
 const run = parseLog(readFileSync(resolve(dir, "run.jsonl"), "utf8"), "fixture");
@@ -43,6 +43,11 @@ describe("scores (parity with analysis/metrics.py)", () => {
     expect(csv.split("\n")).toHaveLength(rows.length + 1);
     const agg = aggregateRows(rows, ["own score"]);
     expect(agg.length).toBe(new Set(rows.map((r) => `${r.archetype}|${r.policy}`)).size);
+  });
+  it("gini matches the Python formula", () => {
+    expect(gini([1, 1, 1])).toBe(0);
+    expect(gini([0, 0, 1])).toBeCloseTo(2 / 3, 12);
+    expect(gini([])).toBe(0);
   });
   it("quantile interpolates", () => {
     expect(quantile([1, 2, 3, 4], 0.5)).toBe(2.5);
