@@ -203,11 +203,28 @@ class BurnoutParams(_Model):
     attrition_prob: float = Field(ge=0, le=1)  # per semester while above the threshold
 
 
+class PatentParams(_Model):
+    """Lab research lines mature in TRL; a line files a patent at ``filing_trl`` and may be
+    licensed with a per-semester probability that rises with TRL; a licensed patent pays
+    royalties to its active inventors, and the lab starts a new line at TRL 1."""
+
+    trl_rate: float = Field(ge=0)  # TRL gain = rate x lab research output / current TRL
+    filing_trl: float = Field(ge=1, le=9)
+    license_prob_by_trl: dict[int, float]  # per semester, by whole TRL (missing: 0)
+    royalty_per_semester: float = Field(ge=0)  # IDR earned by a licensed patent
+    inventor_share: float = Field(ge=0, le=1)  # share of royalties paid to the inventors
+    royalty_semesters: int = Field(ge=1)
+
+
 class Environment(_Model):
     production: dict[str, ProductionParams]
     journals: dict[str, JournalParams]
     grants: GrantParams
     burnout: BurnoutParams
+    patents: PatentParams | None = None  # None: no patents
+    # Research resources by rank (students, lab, network) as an output multiplier; grants
+    # and co-authorship multiply on top. Missing rank: 1.
+    research_productivity_by_rank: dict[str, float] = {}
 
 
 # --- department -------------------------------------------------------------
@@ -235,6 +252,8 @@ class RoleSpec(_Model):
     min_rank: str | None = None  # lowest rank eligible to hold the role
     lab: str | None = None  # lab-bound role (lab head): holder must be a member
     reports_to: str | None = None  # supervising role: assesses the holder and appoints to it
+    grant_prob_bonus: float = Field(default=0.0, ge=0, le=1)  # leadership access to grants
+    network_boost: float = Field(default=0.0, ge=0)  # research output x (1 + boost) (network)
     bkd_exempt: bool = False  # holder needs no minimum SKS for the bonus (dean, vice deans)
 
 
@@ -445,6 +464,10 @@ class Scenario(_Model):
                 raise ValueError(f"role {role.name}: unknown reports_to {role.reports_to!r}")
             if role.lab is not None and role.lab not in labs:
                 raise ValueError(f"role {role.name}: unknown lab {role.lab!r}")
+        if self.environment.patents and not dept.labs:
+            raise ValueError("environment.patents needs department.labs")
+        if self.environment.patents and "patent_filed" not in reg.credit_table:
+            raise ValueError("environment.patents needs a patent_filed credit rule")
         for team in dept.committees:
             if team.assigned_by is not None and team.assigned_by not in role_names:
                 raise ValueError(f"committee {team.name}: unknown assigned_by")

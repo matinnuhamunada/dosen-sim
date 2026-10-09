@@ -34,6 +34,10 @@ def lecturer_power_table(events_path: Path) -> pl.DataFrame:
                 last[a] = e["state"]
             case "allocation":
                 ext[a].append(e["hours"]["external"] / sum(e["hours"].values()))
+            case "grant_application":
+                d[a]["grants"] += e["awarded"]
+            case "pay":
+                d[a]["royalty_M"] += e["semester"].get("royalty", 0.0) / 1e6
             case "assessment":
                 factors[a].append(e["credit_factor"])
             case "committee_assigned":
@@ -62,9 +66,10 @@ def lecturer_power_table(events_path: Path) -> pl.DataFrame:
             "final_favor": s.get("favor", 0.0),
             "external_share": statistics.fmean(ext[a]) if ext[a] else 0.0,
             "income_M": s["cumulative_income"] / 1e6,
+            "pubs_per_semester": sum(s["publications"].values()) / max(1, s["semesters_service"]),
             **{k: d[a].get(k, 0.0) for k in ("committee_seats", "reluctant_seats",
                                               "lab_head_terms", "leader_terms",
-                                              "programme_head_terms")},
+                                              "programme_head_terms", "royalty_M", "grants")},
             "rank_at_first_leadership": snap_rank.get(first_role_rank.get(a, ("", -1))),
         })  # fmt: skip
     return pl.DataFrame(rows)
@@ -84,9 +89,17 @@ def report(run_dirs: list[Path]) -> str:
             pl.col("leader_terms").mean().round(3),
             pl.col("lab_head_terms").mean().round(3),
             pl.col("income_M").median().round(0),
+            pl.col("royalty_M").mean().round(1),
+            pl.col("grants").mean().round(2),
             pl.col("final_rank_i").mean().round(2),
         ).sort("archetype")
     )  # fmt: skip
+    led = df.with_columns((pl.col("leader_terms") > 0).alias("led_faculty"))
+    leadership = led.group_by("led_faculty").agg(
+        pl.len().alias("n"), pl.col("grants").mean().round(2),
+        pl.col("income_M").median().round(0), pl.col("royalty_M").mean().round(1),
+        pl.col("final_rank_i").mean().round(2),
+    ).sort("led_faculty")  # fmt: skip
     leaders = (
         df.filter(pl.col("rank_at_first_leadership").is_not_null())
         .group_by("rank_at_first_leadership")
@@ -98,7 +111,8 @@ def report(run_dirs: list[Path]) -> str:
     with pl.Config(**cfg):
         return (f"## By archetype (pooled lecturers, {len(run_dirs)} runs)\n\n{by_arch}\n\n"
                 f"## Rank when first appointed dean / vice dean / head of department\n\n"
-                f"{leaders}\n")  # fmt: skip
+                f"{leaders}\n\n## Led the faculty (dean, vice dean, head of department) or not\n\n"
+                f"{leadership}\n")  # fmt: skip
 
 
 if __name__ == "__main__":

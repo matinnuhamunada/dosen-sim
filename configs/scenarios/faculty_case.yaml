@@ -29,6 +29,8 @@ regulation_overrides:
     bonus_requires:
       - { categories: [education, research], min_sks: 12 } # user-stated
       - { categories: [community_service], min_sks: 1 } # user-stated "one community service"; 1 SKS assumed
+  credit_table:
+    patent_filed: { category: research, points_per_unit: 40.0 } # TODO(source): KUM for a granted patent; shared by inventors
   pay:
     remuneration:
       per_credit_point: 0 # replaced by the fixed BKD bonus below
@@ -57,6 +59,21 @@ demography:
 environment:
   burnout:
     sustainable_hours: 40 # 16 SKS norm: only work beyond it (overtime) strains
+  # Research resources by rank (students, lab, network); grants x1.5 on top. Calibrated so an
+  # early-career lecturer publishes ~1 paper a semester and a professor 4-8 (user-stated).
+  research_productivity_by_rank: { Asisten Ahli: 0.7, Lektor: 0.9, Lektor Kepala: 1.2, Profesor: 1.7 }
+  # Patents from lab research (PLACEHOLDERS, TODO(source)). Calibration targets: under 5 % of
+  # Indonesian patents are ever commercialised (DJKI, via news reports) vs 30-40 % in
+  # developed countries; ~30 % of top-US-university patents were licensed (2002-2010
+  # study); higher TRL at transfer raises commercial success; TRL 3-6 is the "valley of
+  # death". Grants raise research output, so they speed up papers and TRL alike.
+  patents:
+    trl_rate: 0.04 # median lab: TRL 1 -> 4 (filing) in ~5 years; TRL 9 rarely within 20 years
+    filing_trl: 4
+    license_prob_by_trl: { 4: 0.001, 5: 0.002, 6: 0.004, 7: 0.008, 8: 0.012, 9: 0.02 } # per semester; ~10 % of filed patents licensed within 20 years (between the Indonesian <5 % and the US ~30 %)
+    royalty_per_semester: 43000000 # ~430 M IDR per commercialised patent over 10 semesters (top national university: 35 patents, 15 bn IDR royalty)
+    inventor_share: 0.4 # TODO(source): PMK 136/2021 inventor reward tariff / university IP policy
+    royalty_semesters: 10
 
 department:
   hiring:
@@ -64,29 +81,31 @@ department:
     probation_coverage: 0.5 # assumption: a co-taught hour covers half a class-hour of demand
   max_roles_per_lecturer: 1 # assumption: one structural position each
   # Structural positions (supporting SKS): 5-year terms and minimum ranks are user-stated;
-  # programme heads' minimum rank is assumed. Hours (SKS x 2.5: dean 8, vice deans 6, head of
+  # programme heads' minimum rank is assumed. Leadership perks (user-stated: better access to
+  # grants and networks): grant_prob_bonus adds to the grant success chance, network_boost
+  # multiplies research output; values are PLACEHOLDERS (TODO(source)). Hours (SKS x 2.5: dean 8, vice deans 6, head of
   # department 3, programme heads 2, lab heads 1) and allowances are PLACEHOLDERS (TODO(source)).
   roles:
-    - { name: dean, hours_per_week: 20, duration_semesters: 10, allowance_monthly: 10000000, min_rank: Lektor Kepala, bkd_exempt: true } # TODO(source)
-    - { name: vice_dean_academic, hours_per_week: 15, duration_semesters: 10, allowance_monthly: 7500000, min_rank: Lektor, bkd_exempt: true, reports_to: dean } # TODO(source)
-    - { name: vice_dean_finance, hours_per_week: 15, duration_semesters: 10, allowance_monthly: 7500000, min_rank: Lektor, bkd_exempt: true, reports_to: dean } # TODO(source)
-    - { name: vice_dean_collaboration, hours_per_week: 15, duration_semesters: 10, allowance_monthly: 7500000, min_rank: Lektor, bkd_exempt: true, reports_to: dean } # TODO(source)
-    - { name: head_of_department, hours_per_week: 7.5, duration_semesters: 10, allowance_monthly: 4000000, min_rank: Lektor, reports_to: vice_dean_academic } # TODO(source)
-    - { name: head_of_program_undergraduate, hours_per_week: 5, duration_semesters: 10, allowance_monthly: 3000000, min_rank: Lektor, reports_to: head_of_department } # TODO(source)
-    - { name: head_of_program_master, hours_per_week: 5, duration_semesters: 10, allowance_monthly: 3000000, min_rank: Lektor, reports_to: head_of_department } # TODO(source)
-    - { name: head_of_program_doctoral, hours_per_week: 5, duration_semesters: 10, allowance_monthly: 3000000, min_rank: Lektor, reports_to: head_of_department } # TODO(source)
-    - { name: lab_head_01, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-01, reports_to: head_of_department } # TODO(source)
-    - { name: lab_head_02, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-02, reports_to: head_of_department } # TODO(source)
-    - { name: lab_head_03, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-03, reports_to: head_of_department } # TODO(source)
-    - { name: lab_head_04, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-04, reports_to: head_of_department } # TODO(source)
-    - { name: lab_head_05, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-05, reports_to: head_of_department } # TODO(source)
-    - { name: lab_head_06, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-06, reports_to: head_of_department } # TODO(source)
-    - { name: lab_head_07, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-07, reports_to: head_of_department } # TODO(source)
-    - { name: lab_head_08, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-08, reports_to: head_of_department } # TODO(source)
-    - { name: lab_head_09, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-09, reports_to: head_of_department } # TODO(source)
-    - { name: lab_head_10, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-10, reports_to: head_of_department } # TODO(source)
-    - { name: lab_head_11, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-11, reports_to: head_of_department } # TODO(source)
-    - { name: lab_head_12, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-12, reports_to: head_of_department } # TODO(source)
+    - { name: dean, hours_per_week: 20, duration_semesters: 10, allowance_monthly: 10000000, min_rank: Lektor Kepala, bkd_exempt: true, grant_prob_bonus: 0.15, network_boost: 0.3 } # TODO(source)
+    - { name: vice_dean_academic, hours_per_week: 15, duration_semesters: 10, allowance_monthly: 7500000, min_rank: Lektor, bkd_exempt: true, reports_to: dean, grant_prob_bonus: 0.1, network_boost: 0.2 } # TODO(source)
+    - { name: vice_dean_finance, hours_per_week: 15, duration_semesters: 10, allowance_monthly: 7500000, min_rank: Lektor, bkd_exempt: true, reports_to: dean, grant_prob_bonus: 0.1, network_boost: 0.2 } # TODO(source)
+    - { name: vice_dean_collaboration, hours_per_week: 15, duration_semesters: 10, allowance_monthly: 7500000, min_rank: Lektor, bkd_exempt: true, reports_to: dean, grant_prob_bonus: 0.1, network_boost: 0.2 } # TODO(source)
+    - { name: head_of_department, hours_per_week: 7.5, duration_semesters: 10, allowance_monthly: 4000000, min_rank: Lektor, reports_to: vice_dean_academic, grant_prob_bonus: 0.1, network_boost: 0.15 } # TODO(source)
+    - { name: head_of_program_undergraduate, hours_per_week: 5, duration_semesters: 10, allowance_monthly: 3000000, min_rank: Lektor, reports_to: head_of_department, grant_prob_bonus: 0.05, network_boost: 0.1 } # TODO(source)
+    - { name: head_of_program_master, hours_per_week: 5, duration_semesters: 10, allowance_monthly: 3000000, min_rank: Lektor, reports_to: head_of_department, grant_prob_bonus: 0.05, network_boost: 0.1 } # TODO(source)
+    - { name: head_of_program_doctoral, hours_per_week: 5, duration_semesters: 10, allowance_monthly: 3000000, min_rank: Lektor, reports_to: head_of_department, grant_prob_bonus: 0.05, network_boost: 0.1 } # TODO(source)
+    - { name: lab_head_01, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-01, reports_to: head_of_department, grant_prob_bonus: 0.05, network_boost: 0.1 } # TODO(source)
+    - { name: lab_head_02, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-02, reports_to: head_of_department, grant_prob_bonus: 0.05, network_boost: 0.1 } # TODO(source)
+    - { name: lab_head_03, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-03, reports_to: head_of_department, grant_prob_bonus: 0.05, network_boost: 0.1 } # TODO(source)
+    - { name: lab_head_04, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-04, reports_to: head_of_department, grant_prob_bonus: 0.05, network_boost: 0.1 } # TODO(source)
+    - { name: lab_head_05, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-05, reports_to: head_of_department, grant_prob_bonus: 0.05, network_boost: 0.1 } # TODO(source)
+    - { name: lab_head_06, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-06, reports_to: head_of_department, grant_prob_bonus: 0.05, network_boost: 0.1 } # TODO(source)
+    - { name: lab_head_07, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-07, reports_to: head_of_department, grant_prob_bonus: 0.05, network_boost: 0.1 } # TODO(source)
+    - { name: lab_head_08, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-08, reports_to: head_of_department, grant_prob_bonus: 0.05, network_boost: 0.1 } # TODO(source)
+    - { name: lab_head_09, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-09, reports_to: head_of_department, grant_prob_bonus: 0.05, network_boost: 0.1 } # TODO(source)
+    - { name: lab_head_10, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-10, reports_to: head_of_department, grant_prob_bonus: 0.05, network_boost: 0.1 } # TODO(source)
+    - { name: lab_head_11, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-11, reports_to: head_of_department, grant_prob_bonus: 0.05, network_boost: 0.1 } # TODO(source)
+    - { name: lab_head_12, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor, lab: LAB-12, reports_to: head_of_department, grant_prob_bonus: 0.05, network_boost: 0.1 } # TODO(source)
 
   # Supporting (non-tridharma) work: event and task teams beyond the structural positions.
   # Hours count as admin (support), the honorarium is paid monthly while serving, and seats go

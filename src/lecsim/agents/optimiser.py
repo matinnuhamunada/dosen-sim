@@ -83,7 +83,13 @@ def solve(obs: Observation, persona: Persona, apply_grants: bool) -> tuple[dict,
         var = np.zeros(len(cands))
         for b, h in enumerate(cands):
             out, manuscripts = f.expected_outputs(
-                h, tier, apply_grants, pubs_total, False, productivity=prod_mult[b]
+                h,
+                tier,
+                apply_grants,
+                pubs_total,
+                False,
+                productivity=prod_mult[b],
+                research_boost=f.resources(ranks[r]),
             )
             cr = f.score(out)
             flow[b] = [cr[c] for c in cats]

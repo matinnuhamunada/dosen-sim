@@ -44,6 +44,7 @@ def semester_income(
     rules: PayRules,
     performance_pay: bool = True,
     rank: str | None = None,
+    royalty: float | None = None,
 ) -> dict[str, float]:
     """Semester income per component plus ``total``.
 
@@ -62,6 +63,8 @@ def semester_income(
     if remun.bkd_bonus_by_rank:
         paid = remun.enabled and performance_pay and rank is not None
         out["bkd_bonus"] = remun.bkd_bonus_by_rank.get(rank, 0.0) if paid else 0.0
+    if royalty is not None:  # patent royalties (inventor share), when patents are modelled
+        out["royalty"] = royalty
     out["external"] = rules.external_rate_per_hour * external_hours
     out["total"] = sum(out.values())
     return out

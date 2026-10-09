@@ -141,6 +141,11 @@ def run_metrics(events_path: str | Path) -> dict[str, Any]:
         out["mean_duty_sks"] = statistics.fmean(duty)
         if norm:
             out["overload_share"] = statistics.fmean(d > norm + 1e-9 for d in duty)
+    if any(e["type"] == "pay" and "royalty" in e["semester"] for e in events):
+        out["patents_filed"] = sum(e["type"] == "patent_filed" for e in events)
+        out["patents_licensed"] = sum(e["type"] == "patent_licensed" for e in events)
+        out["royalty_M"] = sum(e["semester"].get("royalty", 0.0) for e in events
+                               if e["type"] == "pay") / 1e6  # fmt: skip
     top = info["rank_names"][-1]
     out[f"share_reached_{top}"] = float(initial[f"t_{top}"].is_not_null().mean())
     for r in info["rank_names"][1:]:

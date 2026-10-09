@@ -65,6 +65,7 @@ export type EventKind =
   | "grant"
   | "role"
   | "committee"
+  | "patent"
   | "teaching"
   | "coauthor"
   | "attrition"
@@ -227,6 +228,12 @@ export function parseLog(text: string, name = "run"): Run {
         break;
       case "role_assigned":
         push({ t, kind: "role", agent: e.agent, text: `${e.role} (${e.outcome})`, outcome: e.outcome });
+        break;
+      case "patent_filed":
+        for (const i of e.inventors) push({ t, kind: "patent", agent: i, text: `patent filed (${e.lab}, TRL ${e.trl.toFixed(1)})` });
+        break;
+      case "patent_licensed":
+        for (const i of e.inventors) push({ t, kind: "patent", agent: i, text: `patent licensed at TRL ${e.trl.toFixed(1)}: royalties` });
         break;
       case "committee_assigned":
         push({ t, kind: "committee", agent: e.agent, text: `${e.committee.replaceAll("_", " ")} (${e.outcome})`, outcome: e.outcome });

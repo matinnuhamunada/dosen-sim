@@ -61,6 +61,7 @@ Status: open unless marked. Add new items under the right heading as they come u
 - The 56 h time budget scales archetype shares (calibrated on 40 h) up by 40 %, so even with an unconditional bonus 45 % of lecturer-semesters exceed 16 SKS; recalibrate archetype shares for a 56 h week.
 - Apply the SKS rules nationally and rerun the M4 sweep? (Decided 2026-10-09: no, faculty case only.)
 - Power dynamics: every weight is a placeholder (grade cut-offs, liking spread, standing gains and losses, appointment weights); real lab sizes; who assesses the head of department and programme heads in practice; whether grades also affect pay or the bonus.
+- Patents: real licensing rates and royalty sizes for Indonesian faculties; inventor share (PMK 136/2021 tariff, university IP policy); patent KUM; grant/filing delays and fees; whether several lines per lab run in parallel.
 - Committees: real list of teams, sizes, hours, honoraria and cycles; whether committee membership earns its own BKD/KUM support credit (now only admin hours count); how seats are really chosen (seniority vs. age vs. head's choice).
 
 ## Engineering to-dos

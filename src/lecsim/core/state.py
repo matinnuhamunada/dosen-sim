@@ -56,6 +56,18 @@ class LecturerState(BaseModel):
         return self.probation_until is not None and t < self.probation_until
 
 
+class Patent(BaseModel):
+    filed: int
+    inventors: list[str]
+    licensed_at: int | None = None
+    royalty_until: int | None = None  # exclusive
+
+
+class LabState(BaseModel):
+    trl: float = 1.0  # technology readiness of the lab's current applied research line
+    patents: list[Patent] = Field(default_factory=list)
+
+
 class Hire(BaseModel):
     due: int
     policy: str
@@ -74,6 +86,7 @@ class DepartmentState(BaseModel):
     coauthor_memory: dict[str, bool] = Field(default_factory=dict)
     # "a|b" (a < b) -> mutual like (+) / dislike (-); committee service and refusals move it
     affinity: dict[str, float] = Field(default_factory=dict)
+    labs: dict[str, LabState] = Field(default_factory=dict)
 
     def active_ids(self) -> list[str]:
         return sorted(i for i, lec in self.lecturers.items() if lec.active)

@@ -133,3 +133,10 @@ One entry per milestone gate: what was built, open inputs, and the gate outcome.
   - Research maximisers get the best grades (0.81) and the most lab-head terms but never lead the faculty.
   - First-time leaders: Lektor Kepala 159 and Profesor 319 appointments (vs 51 and 322 without power): seniority plus standing spreads leadership to more Lektor Kepala.
 - BKD condition effect is unchanged with power on (unconditional bonus: burnout −0.041, leavers −5, overload −24 points).
+
+## 2026-10-10 — Faculty case: research output by rank, leadership perks, patents
+
+- Research output × rank resources (students, lab, network): Asisten Ahli 0.7, Lektor 0.9, Lektor Kepala 1.2, Profesor 1.7 (grants × 1.5 on top). Measured publications per semester: Asisten Ahli 1.1, Lektor 1.9, Lektor Kepala 2.9, Profesor 5.2 (p10–p90 2–9); user target ~1 early career, 4–8 professor.
+- Leadership perks while in post: grant chance + 0.05 to + 0.15 and research × 1.1 to × 1.3 (dean highest); role hours still cut research and teaching time.
+- Patents: each lab's applied line matures in TRL with its research output (slower at higher TRL; grants speed it up), files at TRL 4, is licensed with a per-semester chance rising with TRL, and pays royalties (40 % to active inventors) for 10 semesters. Calibrated to ~12 % of filings licensed within 20 years (Indonesia < 5 % commercialised, US ~30 %): ~13 filings and ~1 licence per run, first filing after ~6 years, ~170 M IDR royalties per run.
+- Final 30-seed sweep: power vs no power changes little at department level (common score −0.017) but sharpens stereotypes: external earners end at rank index 1.70 vs 2.18 and 1335 vs 1493 M IDR; teaching loyalists 2377 vs 2181 M IDR and the most leadership; faculty leaders earn 3207 M IDR (median) vs 1799 for others; first-time leaders are more often Lektor Kepala (151 vs 45) and Lektor (30 vs 8). The BKD condition still drives burnout (unconditional bonus: −0.037 burnout, −5.5 leavers).

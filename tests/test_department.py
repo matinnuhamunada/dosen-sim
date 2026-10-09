@@ -89,3 +89,55 @@ def test_bonus_needs_bkd_minimum_unless_exempt():
     assert f.variable_income(0, 0, bonus=False, rank="Lektor") == 0 < bonus
     assert f.bonus_eligible(lec.model_copy(update={"roles": {"dean": 10}}), short)
     assert not f.bonus_eligible(lec.model_copy(update={"roles": {"lab_head_01": 10}}), short)
+
+
+def test_patent_filed_licensed_and_royalty_paid(tmp_path):
+    sc = load_scenario(ROOT / "configs/scenarios/faculty_case.yaml")
+    sure = sc.environment.patents.model_copy(update={
+        "filing_trl": 1.0, "license_prob_by_trl": dict.fromkeys(range(1, 10), 1.0)})  # fmt: skip
+    env = sc.environment.model_copy(update={"patents": sure})
+    sc = sc.model_copy(update={"environment": env, "semesters": 3})
+    path = tmp_path / "ev.jsonl"
+    with EventLog(path) as log:
+        Engine(sc, 1, log).run()
+    _, ev = read_events(path)
+    filed = [e for e in ev if e["type"] == "patent_filed" and e["t"] == 0]
+    licensed = [e for e in ev if e["type"] == "patent_licensed" and e["t"] == 1]
+    assert len(filed) == len(sc.department.labs) == len(licensed)
+    inventors = {i for e in filed for i in e["inventors"]}
+    paid = {e["agent"] for e in ev if e["type"] == "pay" and e["semester"]["royalty"] > 0}
+    assert paid and paid <= inventors
+    credited = {e["agent"] for e in ev if e["type"] == "credits" and e["t"] == 0
+                and "patent_filed" in e["outputs"]}  # fmt: skip
+    assert credited == inventors
+
+
+def test_research_resources_scale_output_by_rank():
+    from lecsim.core.actions import Activity
+
+    sc = load_scenario(ROOT / "configs/scenarios/faculty_case.yaml")
+    f = Engine(sc, 1, EventLog(os.devnull)).forecast
+    h = dict.fromkeys(Activity, 0.0) | {Activity.RESEARCH: 10.0}
+    base = f.expected_outputs(h, "national", False, 0, False)[1]
+    boost = f.resources("Profesor")
+    prof = f.expected_outputs(h, "national", False, 0, False, research_boost=boost)[1]
+    assert boost == 1.7 and prof == pytest.approx(base * 1.7)
+    baseline = load_scenario(ROOT / "configs/scenarios/baseline.yaml")
+    assert Engine(baseline, 1, EventLog(os.devnull)).forecast.resources("Profesor") == 1.0
+
+
+def test_leadership_perks_raise_grant_chance_and_research():
+    from lecsim.config import GrantParams
+    from lecsim.env.grants import success_prob
+
+    g = GrantParams(base_prob=0.1, prob_per_publication=0.02, max_prob=0.5,
+                    duration_semesters=4, research_multiplier=1.5)  # fmt: skip
+    assert success_prob(5, g) == pytest.approx(0.2)
+    assert success_prob(5, g, 0.15) == pytest.approx(0.35)
+    assert success_prob(100, g, 0.15) == pytest.approx(0.65)  # above the normal cap
+    assert success_prob(100, g, 0.9) == 1.0
+    sc = load_scenario(ROOT / "configs/scenarios/faculty_case.yaml")
+    eng = Engine(sc, 1, EventLog(os.devnull))
+    lec = next(iter(eng.state.lecturers.values()))
+    assert eng.forecast.perks(lec.model_copy(update={"roles": {}})) == (0.0, 1.0)
+    assert eng.forecast.perks(lec.model_copy(update={"roles": {"dean": 10}})) == (0.15, 1.3)

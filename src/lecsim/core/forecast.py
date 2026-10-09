@@ -68,6 +68,16 @@ class Forecaster:
         j = self.env.journals[tier]
         return j.lag_semesters / j.accept_prob if j.accept_prob > 0 else math.inf
 
+    def perks(self, me: LecturerState) -> tuple[float, float]:
+        """Leadership perks of the roles held: (grant chance bonus, research multiplier)."""
+        held = [r for r in self.sc.department.roles if r.name in me.roles]
+        bonus = max((r.grant_prob_bonus for r in held), default=0.0)
+        return bonus, 1 + max((r.network_boost for r in held), default=0.0)
+
+    def resources(self, rank: str) -> float:
+        """Research output multiplier for a rank's resources (students, lab, network)."""
+        return self.env.research_productivity_by_rank.get(rank, 1.0)
+
     def expected_outputs(
         self,
         hours: dict[Activity, float],
@@ -78,6 +88,7 @@ class Forecaster:
         pub_weight: float = 1.0,
         productivity: float = 1.0,
         research_boost: float = 1.0,
+        grant_bonus: float = 0.0,
     ) -> tuple[dict[str, float], float]:
         """Expected semester outputs and expected manuscripts; pubs weighted by ``pub_weight``.
 
@@ -108,7 +119,9 @@ class Forecaster:
         if tier is not None and manuscripts > 0:
             out[f"publication_{tier}"] = manuscripts * pub_weight
         if apply_grant:
-            out["grant_awarded"] = grants.success_prob(round(publications_total), self.env.grants)
+            out["grant_awarded"] = grants.success_prob(
+                round(publications_total), self.env.grants, grant_bonus
+            )
         return out, manuscripts
 
     def score(self, outputs: dict[str, float]) -> dict[str, float]:
@@ -197,14 +210,15 @@ class Forecaster:
     ) -> Outlook:
         grant_active = any(g.start <= t < g.end for g in me.grants)
         pub_weight = persona.discount ** self.expected_delay(tier) if tier is not None else 0.0
-        boost = 1.0
+        grant_bonus, network = self.perks(me)
+        boost = self.resources(me.rank) * network
         if me.coauthor is not None:
-            boost = 1 + self.sc.department.coauthorship.productivity_boost
+            boost *= 1 + self.sc.department.coauthorship.productivity_boost
             pub_weight *= self.reg.coauthor_credit.first_author_share
         pubs_total = sum(me.publications.values())
         outputs, manuscripts = self.expected_outputs(
             hours, tier, apply_grant, pubs_total, grant_active, pub_weight,
-            productivity_multiplier(me.burnout, self.env.burnout), boost,
+            productivity_multiplier(me.burnout, self.env.burnout), boost, grant_bonus,
         )  # fmt: skip
         if me.roles:
             outputs["admin_role_semesters"] = len(me.roles)

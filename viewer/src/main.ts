@@ -301,7 +301,7 @@ function renderOps(r: Run): void {
       })
       .join("");
   } else if (state.tab === "events") {
-    const icon: Record<string, string> = { paper: "📄", promotion: "⭐", grant: "💰", role: "🏷️", committee: "📋", teaching: "💬",
+    const icon: Record<string, string> = { paper: "📄", promotion: "⭐", grant: "💰", role: "🏷️", committee: "📋", patent: "💡", teaching: "💬",
       coauthor: "🤝", attrition: "🚪", retirement: "🎓", mentor: "🧑‍🏫", hire: "👋", certified: "📜" };
     body.innerHTML = evs.length
       ? evs.map((e) => `<div class="ev-row" data-id="${e.agent}"><span>${icon[e.kind] ?? "•"}</span><b>${e.agent}</b>

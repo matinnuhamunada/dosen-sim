@@ -28,13 +28,30 @@ from lecsim.core.actions import Activity, Allocation, Proposal, Response
 from lecsim.core.clock import Clock
 from lecsim.core.forecast import Forecaster
 from lecsim.core.rng import RngStreams
-from lecsim.core.state import DepartmentState, Grant, Hire, LecturerState, Submission
+from lecsim.core.state import (
+    DepartmentState,
+    Grant,
+    Hire,
+    LabState,
+    LecturerState,
+    Patent,
+    Submission,
+)
 from lecsim.env import grants, journals
 from lecsim.institution.head import HeadOfDepartment
 from lecsim.institution.power import Power
 from lecsim.interactions import coauthorship
 from lecsim.logging.events import EventLog
-from lecsim.rules import assessment, burnout, credits, pay, production, promotion, retirement
+from lecsim.rules import (
+    assessment,
+    burnout,
+    credits,
+    patents,
+    pay,
+    production,
+    promotion,
+    retirement,
+)
 from lecsim.rules.workload import check_commitments, check_limits, check_workload
 
 POLICIES: dict[str, Callable[..., Policy]] = {
@@ -81,6 +98,9 @@ class Engine:
         if dept.labs:
             for lec in self.state.lecturers.values():  # creation order: deterministic
                 lec.lab = self._lab()
+            if scenario.environment.patents is not None:
+                self.state.labs = {lab: LabState() for lab in dept.labs}
+        self._made: dict[str, float] = {}  # research output this semester (patents)
         self.power = None
         if dept.power is not None:
             self.power = Power(dept, self.state, self.rng, self.reg.rank_names)
@@ -192,9 +212,11 @@ class Engine:
         allocations = {i: self._allocate(t, i) for i in ids}
         for i in ids:
             self._resolve(t, i, allocations[i], outputs[i])
+        royalty = self._patents(t, ids, outputs) if self.state.labs else None
         ladder = self._assess(t, ids, outputs) if self.power else {}
         for i in ids:
-            self._evaluate(t, i, allocations[i], outputs[i], ladder.get(i, 1.0))
+            self._evaluate(t, i, allocations[i], outputs[i], ladder.get(i, 1.0),
+                           None if royalty is None else royalty.get(i, 0.0))  # fmt: skip
         self._department_summary(t, ids, demand, uncovered)
         for i in ids:
             self.policies[i].reflect(self.observe(i))
@@ -330,12 +352,15 @@ class Engine:
         active_grant = any(g.start <= t < g.end for g in lec.grants)
         productivity = burnout.productivity_multiplier(lec.burnout, env.burnout)
         mult = (env.grants.research_multiplier if active_grant else 1.0) * productivity
+        grant_bonus, network = self.forecast.perks(lec)  # leadership: grants, network
+        mult *= self.forecast.resources(lec.rank) * network  # students, lab, network
         if lec.coauthor is not None:
             mult *= 1 + self.sc.department.coauthorship.productivity_boost
         made = production.produce(
             sem_hours[Activity.RESEARCH], env.production["research"],
             float(prod_rng.standard_normal()), mult,
         )  # fmt: skip
+        self._made[lid] = made
         whole, lec.manuscript_progress = production.accumulate(lec.manuscript_progress, made)
         community = production.produce(
             sem_hours[Activity.COMMUNITY_SERVICE], env.production["community_service"],
@@ -373,13 +398,13 @@ class Engine:
 
         if alloc.apply_grant:
             pubs = sum(lec.publications.values())
-            won = grants.apply(pubs, env.grants, self.rng.get("grants"))
+            won = grants.apply(pubs, env.grants, self.rng.get("grants"), grant_bonus)
             if won:
                 lec.grants.append(Grant(start=t + 1, end=t + 1 + env.grants.duration_semesters))
                 out["grant_awarded"] = 1.0
             self.log.event(
                 t, "resolution", "grant_application", lid,
-                success_prob=grants.success_prob(pubs, env.grants), awarded=won,
+                success_prob=grants.success_prob(pubs, env.grants, grant_bonus), awarded=won,
             )  # fmt: skip
 
         out["teaching_hours"] = sem_hours[Activity.TEACHING]
@@ -390,6 +415,38 @@ class Engine:
         out["community_outputs"] = community
         if lec.roles:
             out["admin_role_semesters"] = float(len(lec.roles))
+
+    def _patents(self, t: int, ids: list[str], outputs: dict[str, dict[str, float]]) -> dict:
+        """Lab research lines mature (grants speed this up via research output), file a
+        patent at the filing TRL, may be licensed (chance rising with TRL), and licensed
+        patents pay royalties to their active inventors. Returns royalty per lecturer."""
+        p = self.sc.environment.patents
+        royalty: dict[str, float] = {}
+        for name, lab in self.state.labs.items():
+            members = [i for i in ids if self.state.lecturers[i].lab == name]
+            lab.trl = patents.advance_trl(lab.trl, sum(self._made[i] for i in members), p)
+            open_ = [x for x in lab.patents if x.licensed_at is None]
+            if not open_ and lab.trl >= p.filing_trl:
+                inventors = [i for i in members if self._made[i] > 0]
+                if inventors:
+                    lab.patents.append(Patent(filed=t, inventors=inventors))
+                    for i in inventors:  # credit shared like a co-authored paper
+                        outputs[i]["patent_filed"] = 1 / len(inventors)
+                    self.log.event(t, "resolution", "patent_filed", None, lab=name,
+                                   trl=lab.trl, inventors=inventors)  # fmt: skip
+            for x in open_:
+                prob = patents.license_prob(lab.trl, p)
+                if prob > 0 and self.rng.get("patents", name).random() < prob:
+                    x.licensed_at, x.royalty_until = t, t + p.royalty_semesters
+                    self.log.event(t, "resolution", "patent_licensed", None, lab=name,
+                                   trl=lab.trl, filed=x.filed, inventors=x.inventors)  # fmt: skip
+                    lab.trl = 1.0  # the lab starts a new applied line
+            for x in lab.patents:
+                if x.licensed_at is not None and t < x.royalty_until:
+                    paid = [i for i in x.inventors if self.state.lecturers[i].active]
+                    for i in paid:
+                        royalty[i] = royalty.get(i, 0.0) + patents.royalty_shares(len(paid), p)
+        return royalty
 
     def _earned(self, t: int, lec: LecturerState, out: dict[str, float]) -> dict[str, float]:
         prob = self.reg.probation if lec.on_probation(t) else None
@@ -416,8 +473,9 @@ class Engine:
         return factor
 
     def _evaluate(
-        self, t: int, lid: str, alloc: Allocation, out: dict[str, float], ladder: float = 1.0
-    ) -> None:
+        self, t: int, lid: str, alloc: Allocation, out: dict[str, float], ladder: float = 1.0,
+        royalty: float | None = None,
+    ) -> None:  # fmt: skip
         lec = self.state.lecturers[lid]
         reg = self.reg
         prob = reg.probation if lec.on_probation(t) else None
@@ -446,6 +504,7 @@ class Engine:
             credits_earned=sum(earned.values()),
             external_hours=alloc.hours[Activity.EXTERNAL] * reg.time.weeks_per_semester,
             rules=reg.pay, performance_pay=prob is None and bonus, rank=lec.rank,
+            royalty=royalty,
         )  # fmt: skip
         lec.monthly_pay = sum(monthly.values())
         lec.cumulative_income += income["total"]
