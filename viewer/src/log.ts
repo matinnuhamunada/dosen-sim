@@ -18,6 +18,7 @@ export interface RunInfo {
   journal_tiers: string[];
   hours_per_week: number;
   income_ref: number;
+  hours_per_sks?: number | null; // set when the regulation has BKD (SKS) rules
   semesters_per_year: number;
   roles: string[];
   archetypes: Record<string, Persona>;
@@ -39,6 +40,7 @@ export interface AgentSem {
   paidRank: string; // rank held during the semester
   rank: string; // rank at the end of the semester (after any promotion)
   income: number;
+  bonus: boolean | null; // performance bonus condition (BKD) met; null if not modelled
   cumIncome: number;
   burnout: number;
   credits: Record<string, number>;
@@ -165,6 +167,7 @@ export function parseLog(text: string, name = "run"): Run {
         const p = part(e.agent, t);
         p.paidRank = e.rank;
         p.income = e.semester.total;
+        p.bonus = e.bonus_eligible ?? null;
         break;
       }
       case "snapshot": {

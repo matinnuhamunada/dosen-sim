@@ -173,17 +173,21 @@ The case is anonymised: neither the institution nor the faculty is named in the 
 | Profesor | 16 | sourced | Initial rank |
 | Lektor Kepala / Lektor / Asisten Ahli | 24 / 18 / 10 | TODO | Non-professor split; the directory gives none |
 | Degrees | 53 doctorate, 15 master | sourced (approx.) | From displayed titles |
+| SKS ↔ hours | 1 SKS = 2.5 h/week (16 SKS = 40 h) | user-stated | `bkd.hours_per_sks` |
+| Maximum duty load | 16 SKS = 40 h/week (hard limit) | user-stated | Overrides `max_duty_hours_per_week` (36 placeholder nationally) |
+| Bonus condition (BKD) | ≥ 12 SKS teaching + supervision + research, and ≥ 1 SKS community service | user-stated ("one community service" read as 1 SKS) | Otherwise the performance remuneration is withheld; not a hard constraint |
+| BKD exemption | dean and the three vice deans | user-stated | `bkd_exempt` on the role |
 | Dean | 20 h/week, 10 semesters (5-year term), 10 M IDR/month, min rank Lektor Kepala | rank, term: user; rest TODO | Structural role |
-| 3 vice deans (academic, finance, collaboration) | 16 h/week, 10 semesters, 7.5 M IDR/month, min rank Lektor | rank, term: user; rest TODO | |
-| Head of department | 12 h/week, 10 semesters, 4 M IDR/month, min rank Lektor | rank, term: user; rest TODO | |
-| Heads of study programme (S1, S2, S3) | 8 h/week, 10 semesters, 3 M IDR/month, min rank Lektor | term: user; rank assumed; rest TODO | |
-| 12 laboratory heads | 4 h/week, 10 semesters, 1 M IDR/month, min rank Lektor | rank, term: user; rest TODO | One per laboratory |
+| 3 vice deans (academic, finance, collaboration) | 15 h/week, 10 semesters, 7.5 M IDR/month, min rank Lektor | rank, term: user; rest TODO | |
+| Head of department | 7.5 h/week, 10 semesters, 4 M IDR/month, min rank Lektor | rank, term: user; rest TODO | |
+| Heads of study programme (S1, S2, S3) | 5 h/week, 10 semesters, 3 M IDR/month, min rank Lektor | term: user; rank assumed; rest TODO | |
+| 12 laboratory heads | 2.5 h/week, 10 semesters, 1 M IDR/month, min rank Lektor | rank, term: user; rest TODO | One per laboratory |
 | Roles per lecturer | at most 1 | assumption | `max_roles_per_lecturer` |
-| Accreditation team | 6 seats, 4 h/week, 2 semesters, every 10 semesters, 0.5 M IDR/month | TODO | 5-year accreditation cycle assumed |
-| Dies natalis committee | 6 seats, 3 h/week, 1 semester, yearly, 0.3 M IDR/month | TODO | Supporting (non-tridharma) work |
-| Summer course team | 4 seats, 4 h/week, 1 semester, yearly, 0.5 M IDR/month | TODO | |
-| International seminar committee | 6 seats, 3 h/week, 1 semester, yearly, 0.3 M IDR/month | TODO | |
-| Other event committees | 4 seats, 2 h/week, 1 semester, every semester, 0.2 M IDR/month | TODO | Ad-hoc events |
+| Accreditation team | 6 seats, 5 h/week, 2 semesters, every 10 semesters, 0.5 M IDR/month | TODO | 5-year accreditation cycle assumed |
+| Dies natalis committee | 6 seats, 2.5 h/week, 1 semester, yearly, 0.3 M IDR/month | TODO | Supporting (non-tridharma) work |
+| Summer course team | 4 seats, 2.5 h/week, 1 semester, yearly, 0.5 M IDR/month | TODO | |
+| International seminar committee | 6 seats, 2.5 h/week, 1 semester, yearly, 0.3 M IDR/month | TODO | |
+| Other event committees | 4 seats, 2.5 h/week, 1 semester, every semester, 0.2 M IDR/month | TODO | Ad-hoc events |
 | Committees per lecturer | at most 2 at a time | TODO | `max_committees_per_lecturer` |
 | Regulation | `ptnbh.yaml` (institutional remuneration on) | struct | PTNBH university |
 | Start age | uniform 29–31 years | user estimate | Founders and hires |
@@ -207,3 +211,4 @@ The case is anonymised: neither the institution nor the faculty is named in the 
 41. **Probation mechanics:** probation applies only to new hires. The engine sets the barred activities' weekly ceiling to 0 (validated like commitments), halves teaching credit, pays only the scaled base salary (seniority included) and no performance remuneration; external work is still paid at the market rate. Probationers cannot hold roles. Agents' forecasts ignore probation pay and credit (they plan as if confirmed).
 42. **Founders' seniority:** drawn years of service also set `semesters_service` (seniority pay, certification); founders still start with 0 semesters in rank.
 43. **Committees (supporting work):** recurring event and task teams (accreditation, dies natalis, summer course, international seminar, other events) are formed on a fixed cycle. Seats are offered in turn to the most junior lecturers (lowest rank, then youngest) with room under the commitment cap and below the committee limit; they accept on the same rule as roles, and seats nobody takes are imposed in the same order. Hours become an admin commitment and earn ordinary admin-hour (support) credit; there is no per-committee credit. The honorarium is paid monthly while serving (not on probation, where only base salary is paid). Probationers can be seated.
+44. **BKD and the bonus:** "bonus" is the PTNBH performance remuneration (per credit point); base remuneration and allowances are unaffected. The condition is checked on the semester's weekly allocation (hours ÷ 2.5 = SKS), not on outputs. Structural roles and committees are supporting SKS: they count toward the 16 SKS maximum but not toward the 12 SKS minimum. Role hours were restated in whole SKS (dean 8, vice deans 6, head of department 3, programme heads 2, lab heads 1; committees 1, accreditation 2), so every non-exempt role leaves room for the minimum. The SKS rules apply to the faculty case only (`regulation_overrides`); the national placeholder limits (20–36 h) still drive the M4 scenarios. Utility agents and the optimiser see the bonus condition through the forecaster; rule-based agents ignore it.

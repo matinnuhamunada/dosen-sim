@@ -109,3 +109,9 @@ One entry per milestone gate: what was built, open inputs, and the gate outcome.
 - The head offers seats to the most junior staff first (lowest rank, then youngest), imposing unfilled seats in the same order; at most 2 committees per lecturer. Hours become admin commitments; honoraria join the role-allowance pay component.
 - Seed 1 (40 semesters): 504 committee seats, all filled; 95 % went to Asisten Ahli and Lektor, median member age 34 against a faculty median of 45 at t = 0. Coverage stays 1.0, mean burnout 0.06.
 - Viewer: committee events (📋) and a Committees row on the lecturer card.
+
+## 2026-10-09 — Faculty case: workload in SKS and the BKD bonus condition
+
+- 1 SKS = 2.5 h/week; duty capped at 16 SKS (40 h). The performance bonus needs ≥ 12 SKS of teaching + supervision + research and ≥ 1 SKS community service; dean and vice deans are exempt. Structural roles and committees are supporting SKS (role hours restated in whole SKS). Faculty case only (`regulation_overrides`); M4 scenarios unchanged.
+- Engine checks the condition on each allocation and logs `bonus_eligible` on the pay event; utility agents and the optimiser see it through the forecaster. Viewer shows load in SKS and bonus status.
+- 4 seeds × 40 semesters: only 9–10 % of lecturer-semesters meet the condition (median duty 12 SKS, median teaching + research ≈ 8 SKS); burnout leavers rise to 5–8 per run with the higher duty cap. The placeholder bonus is too small to change behaviour; see todo.

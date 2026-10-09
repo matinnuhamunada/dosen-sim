@@ -88,7 +88,9 @@ def solve(obs: Observation, persona: Persona, apply_grants: bool) -> tuple[dict,
             cr = f.score(out)
             flow[b] = [cr[c] for c in cats]
             rate[b] = manuscripts
-            var[b] = f.variable_income(sum(cr.values()), h[Activity.EXTERNAL])
+            var[b] = f.variable_income(
+                sum(cr.values()), h[Activity.EXTERNAL], f.bonus_eligible(me, h)
+            )
         fixed = np.array(
             [f.fixed_income(ranks[r], me.semesters_service + k, me.certified) for k in range(n)]
         )

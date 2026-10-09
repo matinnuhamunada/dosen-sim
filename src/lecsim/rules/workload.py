@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from lecsim.config import WorkloadRules
+from lecsim.config import BkdRules, WorkloadRules
 
 TOLERANCE = 1e-6
 
@@ -57,3 +57,13 @@ def check_limits(hours: Mapping[str, float], ceilings: Mapping[str, float]) -> l
         for act, cap in ceilings.items()
         if hours.get(act, 0.0) > cap + TOLERANCE
     ]
+
+
+def bkd_met(hours: Mapping[str, float], rules: WorkloadRules, bkd: BkdRules) -> bool:
+    """Whether a weekly allocation meets every BKD minimum (in SKS) for the bonus."""
+    by_cat = duty_hours_by_category(hours, rules)
+    return all(
+        sum(by_cat.get(c, 0.0) for c in req.categories)
+        >= req.min_sks * bkd.hours_per_sks - TOLERANCE
+        for req in bkd.bonus_requires
+    )

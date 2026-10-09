@@ -73,3 +73,18 @@ def test_faculty_case_retirement_recruitment_probation(tmp_path):
             assert e["agent"] not in probation or e["t"] >= probation[e["agent"]]
             if e["role"] == "dean":
                 assert rank[(e["agent"], e["t"])] in ("Lektor Kepala", "Profesor")
+
+
+def test_bonus_needs_bkd_minimum_unless_exempt():
+    sc = load_scenario(ROOT / "configs/scenarios/faculty_case.yaml")
+    eng = Engine(sc, 1, EventLog(os.devnull))
+    f = eng.forecast
+    lec = next(iter(eng.state.lecturers.values()))
+    core = {"teaching": 15, "supervision": 5, "research": 10, "community_service": 2.5,
+            "admin": 0, "external": 0, "rest": 7.5}  # fmt: skip
+    assert f.bonus_eligible(lec, core)  # 12 SKS core + 1 SKS community
+    short = core | {"research": 7.5, "rest": 10}  # 11 SKS core
+    assert not f.bonus_eligible(lec, short)
+    assert f.variable_income(100, 0, bonus=False) == 0 < f.variable_income(100, 0)
+    assert f.bonus_eligible(lec.model_copy(update={"roles": {"dean": 10}}), short)
+    assert not f.bonus_eligible(lec.model_copy(update={"roles": {"lab_head_01": 10}}), short)

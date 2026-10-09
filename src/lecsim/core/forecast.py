@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import itertools
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass
 from functools import cache
 
@@ -20,7 +21,7 @@ from lecsim.core.actions import Activity
 from lecsim.core.clock import Clock
 from lecsim.core.state import LecturerState
 from lecsim.env import grants
-from lecsim.rules import credits, pay, production, promotion
+from lecsim.rules import credits, pay, production, promotion, workload
 from lecsim.rules.burnout import productivity_multiplier, update_burnout
 from lecsim.rules.workload import check_workload
 
@@ -128,11 +129,21 @@ class Forecaster:
         )
         return sum(monthly.values()) * self.reg.time.months_per_semester
 
-    def variable_income(self, credits_earned: float, external_hours_per_week: float) -> float:
+    def bonus_eligible(self, me: LecturerState, hours: Mapping[str, float]) -> bool:
+        """Performance bonus condition: BKD minimums met, or holding an exempt role."""
+        bkd = self.reg.bkd
+        if bkd is None:
+            return True
+        exempt = {r.name for r in self.sc.department.roles if r.bkd_exempt}
+        return bool(exempt & set(me.roles)) or workload.bkd_met(hours, self.reg.workload, bkd)
+
+    def variable_income(
+        self, credits_earned: float, external_hours_per_week: float, bonus: bool = True
+    ) -> float:
         rules = self.reg.pay
         remun = (
             rules.remuneration.per_credit_point * credits_earned
-            if rules.remuneration.enabled
+            if rules.remuneration.enabled and bonus
             else 0
         )
         ext = (
@@ -194,7 +205,9 @@ class Forecaster:
         income = self.fixed_income(
             me.rank, me.semesters_service, me.certified, self.role_allowance(me)
         )
-        income += self.variable_income(total, hours[Activity.EXTERNAL])
+        income += self.variable_income(
+            total, hours[Activity.EXTERNAL], self.bonus_eligible(me, hours)
+        )
         before = promotion.promotion_distance(promotion.lecturer_gaps(me, self.reg))
         pubs_after = dict(me.publications)
         if tier is not None:

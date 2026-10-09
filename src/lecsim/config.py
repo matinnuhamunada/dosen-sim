@@ -77,6 +77,19 @@ class CoauthorRules(_Model):
     first_author_share: float = Field(ge=0, le=1)  # rest split equally among co-authors
 
 
+class SksRequirement(_Model):
+    categories: list[str]  # SKS summed over these tridharma categories ...
+    min_sks: float = Field(ge=0)  # ... must reach this
+
+
+class BkdRules(_Model):
+    """Workload report (BKD) in SKS. Meeting every requirement is needed for the
+    performance bonus (remuneration per credit point); it is not a hard constraint."""
+
+    hours_per_sks: float = Field(gt=0)  # weekly hours per SKS
+    bonus_requires: list[SksRequirement]
+
+
 class RetirementRules(_Model):
     age: float = Field(gt=0)  # mandatory retirement age
     age_by_rank: dict[str, float] = {}  # rank-specific overrides (Profesor)
@@ -112,6 +125,7 @@ class Regulation(_Model):
     retirement: RetirementRules | None = None  # None: nobody retires
     recruitment: RecruitmentRules | None = None  # None: hire at the first rank, leaver's degree
     probation: ProbationRules | None = None  # None: no probation
+    bkd: BkdRules | None = None  # None: the bonus has no workload condition
 
     @property
     def rank_names(self) -> list[str]:
@@ -147,6 +161,9 @@ class Regulation(_Model):
                 raise ValueError("probation.mentor_ranks: unknown rank")
             if not set(self.probation.barred_activities) <= set(self.workload.activity_category):
                 raise ValueError("probation.barred_activities: unknown activity")
+        for req in self.bkd.bonus_requires if self.bkd else []:
+            if not set(req.categories) <= set(self.credit_categories):
+                raise ValueError(f"bkd.bonus_requires: unknown category in {req.categories}")
         missing = ranks - set(self.pay.base_salary_by_rank)
         if missing:
             raise ValueError(f"pay.base_salary_by_rank missing ranks: {sorted(missing)}")
@@ -214,6 +231,7 @@ class RoleSpec(_Model):
     duration_semesters: int = Field(ge=1)
     allowance_monthly: float = Field(ge=0)  # side payment, IDR
     min_rank: str | None = None  # lowest rank eligible to hold the role
+    bkd_exempt: bool = False  # holder needs no minimum SKS for the bonus (dean, vice deans)
 
 
 class CommitteeSpec(_Model):

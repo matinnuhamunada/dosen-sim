@@ -14,6 +14,17 @@ regulation_overrides:
   recruitment: # Permendiktisaintek 52/2025 (via juknis Kepmendiktisaintek 39/M/KEP/2026)
     min_degree: doctorate # user-stated: new lecturers need a doctorate
     entry_rank: Lektor # doctorate holders are appointed straight to Lektor
+  # Workload in SKS (user-stated): 16 SKS = 40 h/week, so 1 SKS = 2.5 h/week. At most 16 SKS of
+  # duty. The bonus (performance remuneration) needs >= 12 SKS of teaching + supervision +
+  # research and at least one community service (read as >= 1 SKS); roles and committees
+  # count as supporting SKS. Dean and vice deans are exempt (bkd_exempt on the role).
+  workload:
+    max_duty_hours_per_week: 40 # user-stated: 16 SKS
+  bkd:
+    hours_per_sks: 2.5 # user-stated: 16 SKS = 40 h/week
+    bonus_requires:
+      - { categories: [education, research], min_sks: 12 } # user-stated
+      - { categories: [community_service], min_sks: 1 } # user-stated "one community service"; 1 SKS assumed
   probation: # first year of a new hire
     semesters: 2 # PP 11/2017: one-year CPNS probation
     salary_factor: 0.8 # PP 7/1977 art. 5(1), Perka BKN 1/2024 art. 10: CPNS get 80 % of base salary
@@ -36,41 +47,42 @@ department:
     lag_semesters: 2 # TODO(source): retirements and leavers are replaced after this lag
     probation_coverage: 0.5 # assumption: a co-taught hour covers half a class-hour of demand
   max_roles_per_lecturer: 1 # assumption: one structural position each
-  # Structural positions: 5-year terms (user-stated). Minimum ranks are user-stated; hours, terms and allowances are
-  # PLACEHOLDERS (TODO(source)). Programme heads' minimum rank is assumed (not stated).
+  # Structural positions (supporting SKS): 5-year terms and minimum ranks are user-stated;
+  # programme heads' minimum rank is assumed. Hours (SKS x 2.5: dean 8, vice deans 6, head of
+  # department 3, programme heads 2, lab heads 1) and allowances are PLACEHOLDERS (TODO(source)).
   roles:
-    - { name: dean, hours_per_week: 20, duration_semesters: 10, allowance_monthly: 10000000, min_rank: Lektor Kepala } # TODO(source)
-    - { name: vice_dean_academic, hours_per_week: 16, duration_semesters: 10, allowance_monthly: 7500000, min_rank: Lektor } # TODO(source)
-    - { name: vice_dean_finance, hours_per_week: 16, duration_semesters: 10, allowance_monthly: 7500000, min_rank: Lektor } # TODO(source)
-    - { name: vice_dean_collaboration, hours_per_week: 16, duration_semesters: 10, allowance_monthly: 7500000, min_rank: Lektor } # TODO(source)
-    - { name: head_of_department, hours_per_week: 12, duration_semesters: 10, allowance_monthly: 4000000, min_rank: Lektor } # TODO(source)
-    - { name: head_of_program_undergraduate, hours_per_week: 8, duration_semesters: 10, allowance_monthly: 3000000, min_rank: Lektor } # TODO(source)
-    - { name: head_of_program_master, hours_per_week: 8, duration_semesters: 10, allowance_monthly: 3000000, min_rank: Lektor } # TODO(source)
-    - { name: head_of_program_doctoral, hours_per_week: 8, duration_semesters: 10, allowance_monthly: 3000000, min_rank: Lektor } # TODO(source)
-    - { name: lab_head_01, hours_per_week: 4, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
-    - { name: lab_head_02, hours_per_week: 4, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
-    - { name: lab_head_03, hours_per_week: 4, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
-    - { name: lab_head_04, hours_per_week: 4, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
-    - { name: lab_head_05, hours_per_week: 4, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
-    - { name: lab_head_06, hours_per_week: 4, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
-    - { name: lab_head_07, hours_per_week: 4, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
-    - { name: lab_head_08, hours_per_week: 4, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
-    - { name: lab_head_09, hours_per_week: 4, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
-    - { name: lab_head_10, hours_per_week: 4, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
-    - { name: lab_head_11, hours_per_week: 4, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
-    - { name: lab_head_12, hours_per_week: 4, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
+    - { name: dean, hours_per_week: 20, duration_semesters: 10, allowance_monthly: 10000000, min_rank: Lektor Kepala, bkd_exempt: true } # TODO(source)
+    - { name: vice_dean_academic, hours_per_week: 15, duration_semesters: 10, allowance_monthly: 7500000, min_rank: Lektor, bkd_exempt: true } # TODO(source)
+    - { name: vice_dean_finance, hours_per_week: 15, duration_semesters: 10, allowance_monthly: 7500000, min_rank: Lektor, bkd_exempt: true } # TODO(source)
+    - { name: vice_dean_collaboration, hours_per_week: 15, duration_semesters: 10, allowance_monthly: 7500000, min_rank: Lektor, bkd_exempt: true } # TODO(source)
+    - { name: head_of_department, hours_per_week: 7.5, duration_semesters: 10, allowance_monthly: 4000000, min_rank: Lektor } # TODO(source)
+    - { name: head_of_program_undergraduate, hours_per_week: 5, duration_semesters: 10, allowance_monthly: 3000000, min_rank: Lektor } # TODO(source)
+    - { name: head_of_program_master, hours_per_week: 5, duration_semesters: 10, allowance_monthly: 3000000, min_rank: Lektor } # TODO(source)
+    - { name: head_of_program_doctoral, hours_per_week: 5, duration_semesters: 10, allowance_monthly: 3000000, min_rank: Lektor } # TODO(source)
+    - { name: lab_head_01, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
+    - { name: lab_head_02, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
+    - { name: lab_head_03, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
+    - { name: lab_head_04, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
+    - { name: lab_head_05, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
+    - { name: lab_head_06, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
+    - { name: lab_head_07, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
+    - { name: lab_head_08, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
+    - { name: lab_head_09, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
+    - { name: lab_head_10, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
+    - { name: lab_head_11, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
+    - { name: lab_head_12, hours_per_week: 2.5, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
 
   # Supporting (non-tridharma) work: event and task teams beyond the structural positions.
   # Hours count as admin (support), the honorarium is paid monthly while serving, and seats go
   # to the most junior staff first (lowest rank, then youngest; user-stated practice).
-  # Every number is a PLACEHOLDER (TODO(source)).
+  # Every number is a PLACEHOLDER (TODO(source)); hours are 1 SKS (accreditation 2 SKS).
   max_committees_per_lecturer: 2 # TODO(source)
   committees:
-    - { name: accreditation_team, hours_per_week: 4, duration_semesters: 2, members: 6, honorarium_monthly: 500000, every_semesters: 10 } # TODO(source): 5-year accreditation cycle assumed
-    - { name: dies_natalis_committee, hours_per_week: 3, duration_semesters: 1, members: 6, honorarium_monthly: 300000, every_semesters: 2, offset: 1 } # TODO(source)
-    - { name: summer_course_team, hours_per_week: 4, duration_semesters: 1, members: 4, honorarium_monthly: 500000, every_semesters: 2, offset: 1 } # TODO(source)
-    - { name: international_seminar_committee, hours_per_week: 3, duration_semesters: 1, members: 6, honorarium_monthly: 300000, every_semesters: 2 } # TODO(source)
-    - { name: event_committee, hours_per_week: 2, duration_semesters: 1, members: 4, honorarium_monthly: 200000, every_semesters: 1 } # TODO(source): other ad-hoc events
+    - { name: accreditation_team, hours_per_week: 5, duration_semesters: 2, members: 6, honorarium_monthly: 500000, every_semesters: 10 } # TODO(source): 5-year accreditation cycle assumed
+    - { name: dies_natalis_committee, hours_per_week: 2.5, duration_semesters: 1, members: 6, honorarium_monthly: 300000, every_semesters: 2, offset: 1 } # TODO(source)
+    - { name: summer_course_team, hours_per_week: 2.5, duration_semesters: 1, members: 4, honorarium_monthly: 500000, every_semesters: 2, offset: 1 } # TODO(source)
+    - { name: international_seminar_committee, hours_per_week: 2.5, duration_semesters: 1, members: 6, honorarium_monthly: 300000, every_semesters: 2 } # TODO(source)
+    - { name: event_committee, hours_per_week: 2.5, duration_semesters: 1, members: 4, honorarium_monthly: 200000, every_semesters: 1 } # TODO(source): other ad-hoc events
 
 # Rank x degree mix: 16 Profesor (from the page); the rest is a PLACEHOLDER split
 # (24 Lektor Kepala, 18 Lektor, 10 Asisten Ahli) chosen to give ~53 doctorates. TODO(source)

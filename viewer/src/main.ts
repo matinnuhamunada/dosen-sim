@@ -415,6 +415,13 @@ function renderTracker(r: Run): void {
       ${s?.committees?.length ? `<span>Committees</span><span>${s.committees.join(", ").replaceAll("_", " ")}</span>` : ""}
       <span>Co-author</span><span>${s?.coauthor ?? "–"}</span>
       ${s?.mentor ? `<span>Mentor</span><span>${s.mentor} (co-teaching)</span>` : ""}
+      ${r.info.hours_per_sks && s?.hours ? (() => {
+        const h = s.hours, k = r.info.hours_per_sks!;
+        const core = ((h.teaching ?? 0) + (h.supervision ?? 0) + (h.research ?? 0)) / k;
+        const duty = (r.info.activities.filter((x) => x !== "external" && x !== "rest").reduce((p, x) => p + (h[x] ?? 0), 0)) / k;
+        return `<span>Load (SKS)</span><span>${duty.toFixed(1)} duty · ${core.toFixed(1)} teaching+research · ${((h.community_service ?? 0) / k).toFixed(1)} community</span>
+          <span>Bonus</span><span>${s.bonus ? "✓ BKD met" : '<b style="color:var(--red)">✗ withheld</b>'}</span>`;
+      })() : ""}
       <span>Commitments</span><span>${Object.entries(s?.commitments ?? {}).map(([k, v]) => `${k} ${v.toFixed(1)} h`).join(", ") || "–"}</span>
       ${persona ? `<span>Weights</span><span>rank ${persona.w_rank} · pay ${persona.w_pay} · wellbeing ${persona.w_wellbeing}</span>` : ""}
     </div>

@@ -89,6 +89,7 @@ class Engine:
             rank_names=self.reg.rank_names, activities=[str(a) for a in Activity],
             credit_categories=self.reg.credit_categories, journal_tiers=self.reg.journal_tiers,
             hours_per_week=self.reg.time.hours_per_week, income_ref=self.forecast.income_ref,
+            hours_per_sks=self.reg.bkd.hours_per_sks if self.reg.bkd else None,
             semesters_per_year=self.clock.semesters_per_year,
             roles=[r.name for r in self.sc.department.roles],
             archetypes={n: a.persona.model_dump() for n, a in archetypes.items()},
@@ -373,6 +374,7 @@ class Engine:
         lec = self.state.lecturers[lid]
         reg = self.reg
         prob = reg.probation if lec.on_probation(t) else None
+        bonus = self.forecast.bonus_eligible(lec, alloc.hours)
         factors = {"teaching_hours": prob.teaching_credit_factor} if prob else None
         earned = credits.score_credits(out, reg.credit_table, reg.credit_categories, factors)
         lec.credits_total = credits.add_credits(lec.credits_total, earned)
@@ -395,11 +397,12 @@ class Engine:
             monthly=monthly, months=reg.time.months_per_semester,
             credits_earned=sum(earned.values()),
             external_hours=alloc.hours[Activity.EXTERNAL] * reg.time.weeks_per_semester,
-            rules=reg.pay, performance_pay=prob is None,
+            rules=reg.pay, performance_pay=prob is None and bonus,
         )  # fmt: skip
         lec.monthly_pay = sum(monthly.values())
         lec.cumulative_income += income["total"]
-        self.log.event(t, "evaluation", "pay", lid, rank=lec.rank, monthly=monthly, semester=income)
+        self.log.event(t, "evaluation", "pay", lid, rank=lec.rank, monthly=monthly, semester=income,
+                       **({"bonus_eligible": bonus} if reg.bkd else {}))  # fmt: skip
 
         rest = alloc.hours[Activity.REST]
         lec.burnout = burnout.update_burnout(

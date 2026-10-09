@@ -1,4 +1,5 @@
 from lecsim.rules.workload import (
+    bkd_met,
     check_commitments,
     check_limits,
     check_workload,
@@ -78,3 +79,17 @@ def test_commitments():
 def test_check_limits():
     assert check_limits(VALID, {"supervision": 2}) == []
     assert check_limits(VALID, {"supervision": 0}) == ["supervision 2 > limit 0"]
+
+
+def test_bkd_met_sums_categories_in_sks(reg):
+    from lecsim.config import BkdRules
+
+    bkd = BkdRules(hours_per_sks=2.5, bonus_requires=[
+        {"categories": ["education", "research"], "min_sks": 6},
+        {"categories": ["community_service"], "min_sks": 1},
+    ])  # fmt: skip
+    # VALID: education 10 + research 8 = 18 h = 7.2 SKS; community 2 h = 0.8 SKS < 1
+    assert not bkd_met(VALID, reg.workload, bkd)
+    assert bkd_met(VALID | {"community_service": 2.5, "rest": 9.5}, reg.workload, bkd)
+    low = VALID | {"research": 4, "rest": 14, "community_service": 2.5, "external": 3.5}
+    assert not bkd_met(low, reg.workload, bkd)  # 14 h = 5.6 SKS < 6
