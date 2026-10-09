@@ -1,0 +1,39 @@
+# Deferred to-do list and open questions
+
+Collected at milestone gates and parked while the MVP (M1–M4) is built.
+Status: open unless marked. Add new items under the right heading as they come up.
+
+## Real values needed (calibration)
+
+- [ ] Time and workload: weeks per semester, weekly hour budget, min/max workload, minimum tridharma shares; an SKS ↔ hours conversion (rules are in SKS, the model uses hours).
+- [ ] Credit table (KUM) for teaching, supervision, community service, admin/support, grants, each journal tier; per-semester caps.
+- [ ] Promotion requirements per rank: minimum semesters, cumulative credit, research share, community-service cap, publications by tier, degree.
+- [ ] Certification (serdos) rule: minimum rank and service.
+- [ ] Pay: base salary (really by civil-service grade/golongan, not rank — model grade separately?), seniority step, functional, professional and honorary allowances; PTNBH remuneration scheme.
+- [ ] External work hourly rate. Currently 100k IDR/h, which dominates salary and drives the pay results.
+- [ ] Production functions: manuscripts and community outputs per hour. Current placeholders give about 90 papers in 20 years for research maximisers.
+- [ ] Journal acceptance rates and decision lags per tier; grant success rates, duration, productivity effect.
+- [ ] Archetype persona parameters, shares and stage thresholds (expert elicitation).
+- [ ] Every new M3 placeholder (burnout, teaching demand, roles, co-authorship credit split, hiring) — see `assumptions.md`.
+
+## Modelling choices to confirm
+
+- [ ] Supervision counts toward the education category.
+- [ ] Credit earned in the current rank resets at promotion (cumulative total kept).
+- [ ] A higher-tier paper counts toward a lower-tier publication requirement.
+- [ ] Classic cumulative-KUM scheme vs newer regulations.
+- [ ] Archetype scenario starts everyone with a doctorate (degree requirement never binds); model doctoral study?
+- [ ] "Wellbeing" = rest share (M2); with burnout from M3.
+
+## M2 gate questions (rank–pay frontier)
+
+- [ ] Frontier is nearly degenerate under placeholders: rank and pay are aligned, promotion timing is bound by minimum semesters and publication lag, so the real trade-off is pay vs rest. Re-check once real salary tables and the external rate are in.
+- [ ] Face validity of promotion timing: research-heavy archetypes reach Profesor in about 9–10 years; fixed-share teaching/external/admin archetypes never do in 20 years.
+- [ ] Optimiser plans ignore publication lag (planned rank starts about 2 semesters early per rank). Add expected lag to planning if the gap matters.
+
+## Engineering to-dos
+
+- [ ] Invalid allocations abort the run; add a fallback-to-rule-policy path (needed for Phase 2 LLM agents).
+- [ ] Utility policy evaluates about 400 candidates in Python per decision (9.5 s for 20 × 60); vectorise if sweeps get slow.
+- [ ] Event log is JSONL only; add Parquet export.
+- [ ] Branches `m1-rules-core` and `m2-rule-agents` are local and unmerged; decide the merge/push flow (GitHub remote exists).
