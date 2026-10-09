@@ -24,6 +24,7 @@
   --track-w: 300px;
   --bar-h: 44px;
   --ops-h: 200px;
+  --play-h: 46px;
   --cam-w: 28px;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 12px;
@@ -281,3 +282,9 @@ code { background: var(--grey-soft); border-radius: 5px; padding: 1px 5px; font-
   #career { right: var(--gap); bottom: calc(var(--ops-h) + 2 * var(--gap)); }
   #scoreboard { inset: 80px 8px 8px; }
 }
+
+/* full-screen panels (scoreboard, expanded lecturer) leave the playback row usable */
+body.overlay #career { z-index: 7; }
+body.overlay #career-body { display: none; }
+body.overlay #scoreboard, body.overlay #tracker.wide { bottom: calc(var(--play-h) + 2 * var(--gap)); }
+body.overlay #ops { display: none; }

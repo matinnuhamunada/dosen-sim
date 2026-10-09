@@ -338,6 +338,7 @@ function renderTracker(r: Run): void {
   const a = state.selected ? r.agents.get(state.selected) : undefined;
   panel.classList.toggle("hidden", !a);
   panel.classList.toggle("wide", !!a && state.trackerWide);
+  updateOverlay();
   if (!a) return;
   const wide = state.trackerWide;
   // chart width follows the panel: right column of the expanded view, or the compact card
@@ -587,8 +588,14 @@ $<HTMLInputElement>("scrub").addEventListener("input", (e) => {
   setTime(Math.floor(v), v - Math.floor(v));
 });
 $<HTMLInputElement>("trail").addEventListener("change", (e) => (state.trail = (e.target as HTMLInputElement).checked));
+/** While a full-screen panel is open, keep only the playback row visible beneath it. */
+function updateOverlay(): void {
+  document.body.classList.toggle("overlay", boardOpen() || !$("tracker").classList.contains("hidden") && state.trackerWide);
+}
+
 function setBoard(open: boolean): void {
   $("scoreboard").classList.toggle("hidden", !open);
+  updateOverlay();
   $("open-scoreboard").classList.toggle("active", open);
   if (open) renderScoreboard();
   syncUrl();
