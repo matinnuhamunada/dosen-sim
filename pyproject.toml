@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "pytest-cov>=5", "ruff>=0.5"]
+dev = ["pytest>=8", "pytest-cov>=5", "ruff>=0.5", "snakemake>=8"]
 
 [project.scripts]
 lecsim = "lecsim.cli:app"

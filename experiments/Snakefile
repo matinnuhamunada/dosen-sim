@@ -1,0 +1,41 @@
+# Policy sweeps: scenario condition x seed, then a cross-condition comparison.
+# Run from the repository root:
+#   snakemake -s experiments/Snakefile -j 16
+#   snakemake -s experiments/Snakefile -j 16 --configfile experiments/sweeps/<other>.yaml
+
+configfile: "experiments/sweeps/policy_experiments.yaml"
+
+OUT = config["out"]
+CONDS = config["conditions"]
+SEEDS = range(1, int(config["seeds"]) + 1)
+
+
+rule all:
+    input:
+        f"{OUT}/comparison/report.md",
+
+
+rule run:
+    input:
+        lambda w: CONDS[w.cond],
+    output:
+        events=f"{OUT}/{{cond}}_seed{{seed}}/events.jsonl",
+        metrics=f"{OUT}/{{cond}}_seed{{seed}}/run_metrics.json",
+        agents=f"{OUT}/{{cond}}_seed{{seed}}/agents.csv",
+    wildcard_constraints:
+        seed=r"\d+",
+    shell:
+        "lecsim run {input} --seed {wildcards.seed} --out {OUT} > /dev/null"
+
+
+rule compare:
+    input:
+        expand(f"{OUT}/{{cond}}_seed{{seed}}/run_metrics.json", cond=CONDS, seed=SEEDS),
+    output:
+        f"{OUT}/comparison/report.md",
+        f"{OUT}/comparison/effects.csv",
+        f"{OUT}/comparison/archetypes.csv",
+    params:
+        dirs=lambda w, input: " ".join(str(p).rsplit("/", 1)[0] for p in input),
+    shell:
+        "lecsim compare {params.dirs} --out {OUT}/comparison --baseline {config[baseline]} > /dev/null"

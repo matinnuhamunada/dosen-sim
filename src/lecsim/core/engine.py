@@ -68,6 +68,26 @@ class Engine:
                 self._add_lecturer(spec.policy, spec.archetype, spec.rank, spec.degree, 0)
         demand = scenario.department.teaching_demand
         self.state.teaching_demand_base = demand.hours_per_lecturer * len(self.state.lecturers)
+        self._log_run_info()
+
+    def _log_run_info(self) -> None:
+        """Static facts the viewer and metrics need, so they can work from the log alone."""
+        archetypes = self.sc.agents.archetypes if self.sc.agents else {}
+        self.log.event(
+            0, "setup", "run_info", None,
+            scenario=self.sc.name, horizon=self.sc.semesters,
+            regulation_version=self.reg.version,
+            rank_names=self.reg.rank_names, activities=[str(a) for a in Activity],
+            credit_categories=self.reg.credit_categories, journal_tiers=self.reg.journal_tiers,
+            hours_per_week=self.reg.time.hours_per_week, income_ref=self.forecast.income_ref,
+            semesters_per_year=self.clock.semesters_per_year,
+            roles=[r.name for r in self.sc.department.roles],
+            archetypes={n: a.persona.model_dump() for n, a in archetypes.items()},
+            lecturers={
+                lid: {"policy": lec.policy, "archetype": lec.archetype}
+                for lid, lec in self.state.lecturers.items()
+            },
+        )  # fmt: skip
 
     def _add_lecturer(
         self, policy: str, archetype: str | None, rank: str, degree: str, t: int
@@ -320,7 +340,7 @@ class Engine:
         )  # fmt: skip
         lec.monthly_pay = sum(monthly.values())
         lec.cumulative_income += income["total"]
-        self.log.event(t, "evaluation", "pay", lid, monthly=monthly, semester=income)
+        self.log.event(t, "evaluation", "pay", lid, rank=lec.rank, monthly=monthly, semester=income)
 
         rest = alloc.hours[Activity.REST]
         lec.burnout = burnout.update_burnout(

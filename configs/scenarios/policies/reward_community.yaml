@@ -1,0 +1,6 @@
+# Policy: double the credit for community-service outputs (placeholder baseline 1.0).
+name: reward_community
+include: [baseline.yaml]
+regulation_overrides:
+  credit_table:
+    community_outputs: { points_per_unit: 2.0 }

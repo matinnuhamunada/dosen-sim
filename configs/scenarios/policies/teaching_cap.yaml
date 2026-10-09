@@ -1,0 +1,6 @@
+# Policy: cap each lecturer's teaching load. Experimental manipulation relative to the
+# placeholder baseline (16 h/week), not a real regulation value.
+name: teaching_cap
+include: [baseline.yaml]
+department:
+  head: { max_teaching_hours: 10 }

@@ -1,0 +1,6 @@
+# Policy: triple the credit for supervision (relative to the placeholder baseline 0.01/h).
+name: reward_supervision
+include: [baseline.yaml]
+regulation_overrides:
+  credit_table:
+    supervision_hours: { points_per_unit: 0.03 }

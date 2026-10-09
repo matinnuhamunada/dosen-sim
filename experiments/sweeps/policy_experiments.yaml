@@ -1,0 +1,9 @@
+# Policy sweep: condition name -> scenario file (its `name:` must equal the key).
+seeds: 30
+out: runs/policy_experiments
+baseline: baseline
+conditions:
+  baseline: configs/scenarios/policies/baseline.yaml
+  teaching_cap: configs/scenarios/policies/teaching_cap.yaml
+  reward_supervision: configs/scenarios/policies/reward_supervision.yaml
+  reward_community: configs/scenarios/policies/reward_community.yaml

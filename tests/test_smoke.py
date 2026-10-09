@@ -29,7 +29,7 @@ def test_run_shape(tmp_path):
     snaps = [e for e in events if e["type"] == "snapshot"]
     assert len(allocs) == len(snaps) == 5 * 10
     assert all(e["violations"] == [] for e in allocs)
-    assert (run_dir / "summary.csv").exists()
+    assert (run_dir / "agents.csv").exists() and (run_dir / "run_metrics.json").exists()
 
 
 def test_rng_streams_independent_of_creation_order():

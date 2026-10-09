@@ -1,0 +1,4 @@
+# Policy experiments (PRD research question 4): the reference condition.
+# The department scenario with its own name, so results group by condition.
+name: baseline
+include: [../department.yaml]

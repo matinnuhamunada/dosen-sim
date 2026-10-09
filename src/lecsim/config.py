@@ -343,8 +343,11 @@ def _load_with_includes(path: Path) -> dict[str, Any]:
 
 
 def load_scenario(path: str | Path) -> Scenario:
+    """Load a scenario. ``regulation_overrides`` (e.g. a policy experiment's reweighted
+    credit table) are deep-merged over the referenced regulation."""
     data = _load_with_includes(Path(path))
-    data["regulation"] = _load_regulation_dict(Path(data["regulation"]))
+    reg = _load_regulation_dict(Path(data["regulation"]))
+    data["regulation"] = deep_merge(reg, data.pop("regulation_overrides", {}))
     if "agents" in data:
         data["agents"] = yaml.safe_load(Path(data["agents"]).read_text())
     return Scenario.model_validate(data)
