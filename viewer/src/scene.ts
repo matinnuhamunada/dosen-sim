@@ -121,7 +121,7 @@ function textSprite(text: string, opts: PillStyle = {}): THREE.Sprite {
 }
 
 function sizeSprite(sprite: THREE.Sprite, canvas: HTMLCanvasElement): void {
-  const scale = 0.02;
+  const scale = 0.016;
   sprite.scale.set(canvas.width * scale, canvas.height * scale, 1);
 }
 

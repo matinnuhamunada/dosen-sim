@@ -214,7 +214,7 @@ function renderKpis(r: Run): void {
       const cls = Math.abs(d) < 1e-9 ? "flat" : (d > 0) === goodUp ? "up" : "down";
       delta = `<span class="delta ${cls}">${d > 0 ? "↑" : d < 0 ? "↓" : "→"} ${dFmt(Math.abs(d))}</span>`;
     }
-    return `<div class="float kpi"><span class="ic" style="background:${tint}">${icon}</span>
+    return `<div class="float kpi" title="${cap}"><span class="ic" style="background:${tint}">${icon}</span>
       <div><div class="lbl">${lbl}</div><div class="val">${val}${delta}</div><small>${cap}</small></div></div>`;
   };
   const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
@@ -267,7 +267,7 @@ function renderOps(r: Run): void {
           <span${e.outcome === "imposed" ? ' style="color:var(--red)"' : ""}>${e.text}</span></div>`).join("")
       : `<div class="empty-note">Nothing notable this semester.</div>`;
   } else {
-    const opts = { width: 372, height: 62, marker: state.t };
+    const opts = { width: 296, height: 52, marker: state.t };
     body.append(
       lineChart([{ name: "coverage", color: "#2f6bff", values: r.dept.map((d) => d.coverage) }],
         { ...opts, title: "Teaching coverage" }),
@@ -381,7 +381,7 @@ function renderTracker(r: Run): void {
   for (let t = 0; t < r.semesters; t++) alloc.push(a.sems.get(t)?.hours ?? {});
   const colors = Object.fromEntries(acts.map((k) => [k, zoneColor(k)]));
   $("tr-alloc").append(stackedBars(alloc, acts, colors, {
-    width: 306, height: 70, marker: state.t, title: "", total: r.info.hours_per_week,
+    width: 254, height: 56, marker: state.t, title: "", total: r.info.hours_per_week,
   }));
   $("tr-legend").innerHTML = acts.map((k) => `<span><i style="background:${colors[k]}"></i>${ZONES[k]?.label ?? k}</span>`).join("");
 
@@ -402,7 +402,7 @@ function renderTracker(r: Run): void {
   const pay = (x: Agent, t: number) => (x.sems.get(t) ? x.sems.get(t)!.cumIncome / 1e6 : null);
   const cred = (x: Agent, t: number) =>
     x.sems.get(t) ? Object.values(x.sems.get(t)!.credits).reduce((p, q) => p + q, 0) : null;
-  const opts = { width: 306, height: 84, marker: state.t };
+  const opts = { width: 254, height: 70, marker: state.t };
   const box = $("tr-charts");
   box.append(
     lineChart(series(rankIdx), { ...opts, title: `Rank (0 = ${ranks[0]})`, yFmt: (v) => v.toFixed(0) }),
