@@ -1,0 +1,16 @@
+{
+  "scenario": "faculty_case",
+  "seed": 1,
+  "mean_coverage": 1.0,
+  "min_coverage": 0.9999999999999999,
+  "mean_burnout": 0.06035145413004465,
+  "attrition": 4,
+  "imposed": 4,
+  "publications": 6031,
+  "income_gini": 0.2153259352978964,
+  "mean_common_score": 0.5593624551479407,
+  "share_reached_Profesor": 0.4852941176470588,
+  "median_t_Lektor": 9.0,
+  "median_t_Lektor Kepala": 13.0,
+  "median_t_Profesor": 19.0
+}
