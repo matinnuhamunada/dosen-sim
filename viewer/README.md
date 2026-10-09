@@ -45,3 +45,12 @@ demo): white floating cards over an isometric campus.
 
 Regenerate the test fixture after changing the log format:
 `.venv/bin/python viewer/test/make_fixture.py` (from the repository root).
+
+## Static hosting (Cloudflare Pages)
+
+`viewer/publish_cf_pages.sh` (from the repo root) regenerates a few seeded example runs into
+`viewer/public/runs/`, builds, and commits `viewer/dist` to the `cf-pages` branch. Point
+Cloudflare Pages at that branch with no build command and output directory `/`. With no
+`?run=` the page opens `runs/policy_experiments/baseline_seed1/events.jsonl`; other bundled
+runs: `?run=runs/archetypes_seed1/events.jsonl`, `?run=runs/department_stress_seed1/events.jsonl`,
+`?run=runs/policy_experiments/<baseline|teaching_cap|reward_supervision|reward_community>_seed1/events.jsonl`.

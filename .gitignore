@@ -8,3 +8,4 @@ runs/
 .snakemake/
 viewer/node_modules/
 viewer/dist/
+viewer/public/runs/

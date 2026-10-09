@@ -5,6 +5,7 @@ import { ARCHETYPE_COLORS, type CameraCommand, CampusScene, PIN_COLORS, SELECT_C
 import { aggregateRows, fmt, gini, quantile, type ScoreRow, scoreRows, toCsv } from "./scores";
 
 const SEMESTER_SECONDS = 4; // playback duration of one semester at 1x
+const DEFAULT_RUN = "runs/policy_experiments/baseline_seed1/events.jsonl";
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
 type Tab = "lecturers" | "events" | "dept";
@@ -635,7 +636,14 @@ async function boot(): Promise<void> {
   state.pinned = (p.get("pins") ?? "").split(",").filter(Boolean).slice(0, 3);
   const urls = p.getAll("run");
   setPlaying(false);
-  if (urls.length) {
+  if (!urls.length) {
+    // Default example run (bundled on the GitHub Pages build); stay on the empty screen if absent.
+    try {
+      await loadUrls([DEFAULT_RUN]);
+    } catch {
+      /* no bundled run: user opens logs */
+    }
+  } else {
     try {
       await loadUrls(urls);
       state.current = Math.min(Number(p.get("run_index") ?? 0), state.runs.length - 1);
