@@ -39,3 +39,12 @@ def check_workload(
         if share < min_share - TOLERANCE:
             violations.append(f"{cat} share {share:.3f} < min {min_share:g}")
     return violations
+
+
+def check_commitments(hours: Mapping[str, float], floors: Mapping[str, float]) -> list[str]:
+    """Violations of agreed minimum weekly hours per activity (teaching load, roles)."""
+    return [
+        f"{act} {hours.get(act, 0.0):g} < committed {floor:g}"
+        for act, floor in floors.items()
+        if hours.get(act, 0.0) < floor - TOLERANCE
+    ]

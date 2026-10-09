@@ -30,4 +30,15 @@ def score_credits(
 
 
 def add_credits(a: Mapping[str, float], b: Mapping[str, float]) -> dict[str, float]:
-    return {k: a.get(k, 0.0) + b.get(k, 0.0) for k in a.keys() | b.keys()}
+    keys = [*a, *(k for k in b if k not in a)]  # stable order (set order varies by process)
+    return {k: a.get(k, 0.0) + b.get(k, 0.0) for k in keys}
+
+
+def author_shares(n_authors: int, first_author_share: float) -> list[float]:
+    """Credit share per author, first author first; a sole author gets everything."""
+    if n_authors < 1:
+        raise ValueError("need at least one author")
+    if n_authors == 1:
+        return [1.0]
+    rest = (1 - first_author_share) / (n_authors - 1)
+    return [first_author_share] + [rest] * (n_authors - 1)

@@ -5,8 +5,16 @@ from __future__ import annotations
 from lecsim.config import PayRules
 
 
-def monthly_pay(*, rank: str, years_of_service: int, certified: bool, rules: PayRules) -> dict:
-    """Fixed monthly pay components in IDR."""
+def monthly_pay(
+    *,
+    rank: str,
+    years_of_service: int,
+    certified: bool,
+    rules: PayRules,
+    role_allowance: float = 0.0,
+) -> dict:
+    """Fixed monthly pay components in IDR; ``role_allowance`` is the sum of the monthly
+    allowances of departmental roles held."""
     base = rules.base_salary_by_rank[rank] + rules.seniority_increment_per_year * years_of_service
     remun = rules.remuneration
     return {
@@ -17,6 +25,7 @@ def monthly_pay(*, rank: str, years_of_service: int, certified: bool, rules: Pay
         else 0.0,
         "honorary_allowance": rules.honorary_allowance_multiplier_by_rank.get(rank, 0.0) * base,
         "remuneration_base": remun.base_by_rank.get(rank, 0.0) if remun.enabled else 0.0,
+        "role_allowance": role_allowance,
     }
 
 

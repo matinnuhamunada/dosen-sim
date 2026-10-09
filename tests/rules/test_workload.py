@@ -1,4 +1,4 @@
-from lecsim.rules.workload import check_workload, duty_hours_by_category
+from lecsim.rules.workload import check_commitments, check_workload, duty_hours_by_category
 
 # Budget 40 h/week; duty 20..30; education >= 25% and research >= 20% of duty hours.
 VALID = {
@@ -63,3 +63,8 @@ def test_zero_duty_reports_shares_and_min(reg):
 def test_negative_hours(reg):
     assert "negative hours" in check_workload(VALID | {"rest": -1, "external": 17},
                                               reg.workload, 40)  # fmt: skip
+
+
+def test_commitments():
+    assert check_commitments(VALID, {"teaching": 8, "admin": 4}) == []
+    assert check_commitments(VALID, {"teaching": 9}) == ["teaching 8 < committed 9"]

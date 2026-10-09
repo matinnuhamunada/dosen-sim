@@ -59,6 +59,7 @@ TEST_REG = {
         ]
     },
     "certification": {"min_rank": "Lektor", "min_semesters_service": 4},
+    "coauthor_credit": {"first_author_share": 0.6},
     "pay": {
         "base_salary_by_rank": {"Asisten Ahli": 3000, "Lektor": 4000, "Profesor": 6000},
         "seniority_increment_per_year": 50,

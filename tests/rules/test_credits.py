@@ -1,6 +1,6 @@
 import pytest
 
-from lecsim.rules.credits import add_credits, score_credits
+from lecsim.rules.credits import add_credits, author_shares, score_credits
 
 
 def score(reg, outputs):
@@ -45,3 +45,11 @@ def test_negative_output_raises(reg):
 
 def test_add_credits():
     assert add_credits({"a": 1, "b": 2}, {"b": 3, "c": 4}) == {"a": 1, "b": 5, "c": 4}
+
+
+def test_author_shares():
+    assert author_shares(1, 0.6) == [1.0]
+    assert author_shares(2, 0.6) == pytest.approx([0.6, 0.4])
+    assert author_shares(3, 0.6) == pytest.approx([0.6, 0.2, 0.2])
+    with pytest.raises(ValueError):
+        author_shares(0, 0.6)

@@ -8,7 +8,7 @@ def test_monthly_uncertified(reg):
     # base 3000 + 2 years * 50 = 3100; functional 100; no professional, honorary, remuneration
     m = monthly_pay(rank="Asisten Ahli", years_of_service=2, certified=False, rules=reg.pay)
     assert m == {"base_salary": 3100, "functional_allowance": 100, "professional_allowance": 0,
-                 "honorary_allowance": 0, "remuneration_base": 0}  # fmt: skip
+                 "honorary_allowance": 0, "remuneration_base": 0, "role_allowance": 0}  # fmt: skip
 
 
 def test_professor_certified(reg):
@@ -56,3 +56,10 @@ def test_negative_inputs_rejected(reg):
 def test_unknown_rank_raises(reg):
     with pytest.raises(KeyError):
         monthly_pay(rank="Dean", years_of_service=0, certified=False, rules=reg.pay)
+
+
+def test_role_allowance_added(reg):
+    m = monthly_pay(rank="Lektor", years_of_service=0, certified=False, rules=reg.pay,
+                    role_allowance=500)  # fmt: skip
+    assert m["role_allowance"] == 500
+    assert sum(m.values()) == 4000 + 200 + 500
