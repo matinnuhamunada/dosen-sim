@@ -1,0 +1,30 @@
+# M2 scenario: two lecturers per archetype, career-stage rule policy, 20 years.
+name: archetypes
+regulation: ../regulations/national.yaml
+agents: ../agents/archetypes.yaml
+semesters: 40
+
+lecturers:
+  - { count: 2, policy: stage, archetype: research_maximiser, rank: Asisten Ahli, degree: doctorate }
+  - { count: 2, policy: stage, archetype: teaching_loyalist, rank: Asisten Ahli, degree: doctorate }
+  - { count: 2, policy: stage, archetype: admin_climber, rank: Asisten Ahli, degree: doctorate }
+  - { count: 2, policy: stage, archetype: external_earner, rank: Asisten Ahli, degree: doctorate }
+  - { count: 2, policy: stage, archetype: balanced_strategist, rank: Asisten Ahli, degree: doctorate }
+
+# Environment / production parameters are model assumptions, not regulation.
+# All PLACEHOLDERS — see docs/assumptions.md.
+environment:
+  production: # output = scale * hours_per_semester^alpha * lognormal(mean 1, sigma)
+    research: { scale: 0.05, alpha: 0.7, sigma: 0.3 } # TODO(source): manuscripts per semester
+    community_service: { scale: 0.05, alpha: 0.7, sigma: 0.3 } # TODO(source): outputs per semester
+  journals: # acceptance probability and decision lag (semesters) per tier
+    national: { accept_prob: 0.7, lag_semesters: 1 } # TODO(source)
+    national_accredited: { accept_prob: 0.5, lag_semesters: 1 } # TODO(source)
+    international: { accept_prob: 0.3, lag_semesters: 2 } # TODO(source)
+    international_reputable: { accept_prob: 0.15, lag_semesters: 2 } # TODO(source)
+  grants:
+    base_prob: 0.1 # TODO(source)
+    prob_per_publication: 0.02 # TODO(source): track-record effect
+    max_prob: 0.5 # TODO(source)
+    duration_semesters: 4 # TODO(source)
+    research_multiplier: 1.5 # TODO(source): research productivity while a grant is active

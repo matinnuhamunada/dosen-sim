@@ -1,0 +1,68 @@
+# Lecturer archetypes: presets of persona parameters plus rule-policy settings.
+# A new archetype is a new entry here, not new code.
+# ALL values are modelling assumptions — TODO(source): expert elicitation with senior lecturers.
+#
+# shares: fixed fraction of weekly hours per activity (sum to 1); policies repair them to the
+#   regulation's workload limits, so they need not match any particular regulation exactly.
+# stage_shares: per career-stage replacement for `shares` (stages: early_career, mid_career,
+#   pre_promotion_push, post_promotion, senior).
+# gap_shift: fraction of the weekly budget a threshold rule moves toward an unmet promotion gap.
+
+stages: # career-stage state machine thresholds, shared by all archetypes
+  early_career_semesters: 4 # TODO(source): semesters of service counted as early career
+  post_promotion_semesters: 2 # TODO(source): semesters after a promotion counted as "post"
+  push_distance: 0.5 # TODO(source): promotion distance at or below which the agent pushes
+
+archetypes:
+  research_maximiser:
+    persona: { w_rank: 0.6, w_pay: 0.2, w_wellbeing: 0.2, risk_aversion: 0.2, discount: 0.95,
+               cooperativeness: 0.3, choice_noise: 0.05, burnout_sensitivity: 0.3 }
+    shares: { teaching: 0.15, supervision: 0.10, research: 0.40, community_service: 0.05,
+              admin: 0.05, external: 0.0, rest: 0.25 }
+    stage_shares:
+      senior: { teaching: 0.15, supervision: 0.20, research: 0.35, community_service: 0.05,
+                admin: 0.05, external: 0.0, rest: 0.20 }
+    journal_tier: international_reputable
+    gap_shift: 0.10
+
+  teaching_loyalist:
+    persona: { w_rank: 0.3, w_pay: 0.3, w_wellbeing: 0.4, risk_aversion: 0.6, discount: 0.90,
+               cooperativeness: 0.8, choice_noise: 0.05, burnout_sensitivity: 0.5 }
+    shares: { teaching: 0.40, supervision: 0.10, research: 0.10, community_service: 0.08,
+              admin: 0.07, external: 0.0, rest: 0.25 }
+    journal_tier: national
+    apply_grants: false
+    gap_shift: 0.05
+
+  admin_climber:
+    persona: { w_rank: 0.5, w_pay: 0.4, w_wellbeing: 0.1, risk_aversion: 0.5, discount: 0.90,
+               cooperativeness: 0.6, choice_noise: 0.05, burnout_sensitivity: 0.3 }
+    shares: { teaching: 0.20, supervision: 0.05, research: 0.10, community_service: 0.05,
+              admin: 0.30, external: 0.0, rest: 0.30 }
+    stage_shares:
+      pre_promotion_push: { teaching: 0.15, supervision: 0.05, research: 0.25, community_service: 0.05,
+                            admin: 0.20, external: 0.0, rest: 0.30 }
+    journal_tier: national_accredited
+    gap_shift: 0.10
+
+  external_earner:
+    persona: { w_rank: 0.1, w_pay: 0.8, w_wellbeing: 0.1, risk_aversion: 0.4, discount: 0.85,
+               cooperativeness: 0.3, choice_noise: 0.05, burnout_sensitivity: 0.3 }
+    shares: { teaching: 0.20, supervision: 0.05, research: 0.10, community_service: 0.05,
+              admin: 0.10, external: 0.30, rest: 0.20 }
+    journal_tier: national
+    apply_grants: false
+    gap_shift: 0.05
+
+  balanced_strategist:
+    persona: { w_rank: 0.4, w_pay: 0.4, w_wellbeing: 0.2, risk_aversion: 0.4, discount: 0.93,
+               cooperativeness: 0.5, choice_noise: 0.05, burnout_sensitivity: 0.4 }
+    shares: { teaching: 0.20, supervision: 0.10, research: 0.25, community_service: 0.07,
+              admin: 0.08, external: 0.05, rest: 0.25 }
+    stage_shares:
+      early_career: { teaching: 0.25, supervision: 0.05, research: 0.25, community_service: 0.07,
+                      admin: 0.08, external: 0.05, rest: 0.25 }
+      pre_promotion_push: { teaching: 0.15, supervision: 0.10, research: 0.35, community_service: 0.07,
+                            admin: 0.05, external: 0.03, rest: 0.25 }
+    journal_tier: international
+    gap_shift: 0.10

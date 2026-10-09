@@ -25,7 +25,7 @@ def test_local_override_merges_over_national():
 
 def test_baseline_scenario_loads():
     sc = load_scenario(ROOT / "configs/scenarios/baseline.yaml")
-    assert sc.lecturers.count == 5
+    assert sum(g.count for g in sc.lecturers) == 5
     assert len(sc.config_hash()) == 64
 
 

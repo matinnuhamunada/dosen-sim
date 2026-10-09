@@ -144,24 +144,94 @@ class Environment(_Model):
 class LecturerSpec(_Model):
     count: int = Field(ge=1)
     policy: str
+    archetype: str | None = None
     rank: str
     degree: str
+
+
+# --- agents -----------------------------------------------------------------
+
+
+class Persona(_Model):
+    """Per-agent preference parameters (PRD 'Persona parameters')."""
+
+    w_rank: float = Field(ge=0)
+    w_pay: float = Field(ge=0)
+    w_wellbeing: float = Field(ge=0)
+    risk_aversion: float = Field(ge=0)
+    discount: float = Field(gt=0, le=1)
+    cooperativeness: float = Field(ge=0, le=1)  # used from M3
+    choice_noise: float = Field(ge=0)  # logit temperature; 0 = best response
+    burnout_sensitivity: float = Field(ge=0)  # used from M3
+
+
+def _check_shares(shares: dict[str, float], where: str) -> None:
+    from lecsim.core.actions import Activity
+
+    unknown = set(shares) - set(Activity)
+    if unknown:
+        raise ValueError(f"{where}: unknown activities {sorted(unknown)}")
+    if any(v < 0 for v in shares.values()) or abs(sum(shares.values()) - 1) > 1e-6:
+        raise ValueError(f"{where}: shares must be non-negative and sum to 1")
+
+
+class Archetype(_Model):
+    persona: Persona
+    shares: dict[str, float]  # fixed-share baseline: fraction of weekly hours per activity
+    stage_shares: dict[str, dict[str, float]] = {}  # career-stage overrides of ``shares``
+    journal_tier: str  # preferred tier when no publication requirement binds
+    apply_grants: bool = True
+    gap_shift: float = Field(ge=0, le=1)  # share of budget moved toward a promotion gap
+
+    @model_validator(mode="after")
+    def _check(self) -> Archetype:
+        _check_shares(self.shares, "shares")
+        for stage, sh in self.stage_shares.items():
+            if stage not in STAGES:
+                raise ValueError(f"unknown career stage {stage!r}")
+            _check_shares(sh, f"stage_shares.{stage}")
+        return self
+
+
+STAGES = ("early_career", "mid_career", "pre_promotion_push", "post_promotion", "senior")
+
+
+class StageRules(_Model):
+    early_career_semesters: int = Field(ge=0)
+    post_promotion_semesters: int = Field(ge=0)
+    push_distance: float = Field(ge=0)
+
+
+class AgentBook(_Model):
+    stages: StageRules
+    archetypes: dict[str, Archetype]
 
 
 class Scenario(_Model):
     name: str
     regulation: Regulation
     semesters: int = Field(ge=1)
-    lecturers: LecturerSpec
+    lecturers: list[LecturerSpec] = Field(min_length=1)
     environment: Environment
+    agents: AgentBook | None = None
+    candidate_grid_steps: int = Field(default=8, ge=1)  # allocation grid: utility agents
+    optimiser_grid_steps: int = Field(default=6, ge=1)  # coarser grid: optimiser enumerates plans
 
     @model_validator(mode="after")
     def _cross_check(self) -> Scenario:
         reg = self.regulation
-        if self.lecturers.rank not in reg.rank_names:
-            raise ValueError(f"unknown initial rank {self.lecturers.rank!r}")
-        if self.lecturers.degree not in reg.degrees:
-            raise ValueError(f"unknown degree {self.lecturers.degree!r}")
+        for spec in self.lecturers:
+            if spec.rank not in reg.rank_names:
+                raise ValueError(f"unknown initial rank {spec.rank!r}")
+            if spec.degree not in reg.degrees:
+                raise ValueError(f"unknown degree {spec.degree!r}")
+            if spec.archetype is not None and (
+                self.agents is None or spec.archetype not in self.agents.archetypes
+            ):
+                raise ValueError(f"unknown archetype {spec.archetype!r}")
+        for name, arch in self.agents.archetypes.items() if self.agents else []:
+            if arch.journal_tier not in reg.journal_tiers:
+                raise ValueError(f"archetype {name}: unknown journal tier {arch.journal_tier!r}")
         if set(self.environment.journals) != set(reg.journal_tiers):
             raise ValueError("environment.journals must cover exactly regulation.journal_tiers")
         return self
@@ -201,4 +271,6 @@ def load_scenario(path: str | Path) -> Scenario:
     path = Path(path)
     data = yaml.safe_load(path.read_text())
     data["regulation"] = _load_regulation_dict(path.parent / data["regulation"])
+    if "agents" in data:
+        data["agents"] = yaml.safe_load((path.parent / data["agents"]).read_text())
     return Scenario.model_validate(data)

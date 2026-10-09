@@ -4,10 +4,7 @@ regulation: ../regulations/national.yaml # relative to this file
 semesters: 10
 
 lecturers:
-  count: 5
-  policy: random
-  rank: Asisten Ahli
-  degree: master
+  - { count: 5, policy: random, rank: Asisten Ahli, degree: master }
 
 # Environment / production parameters are model assumptions, not regulation.
 # All PLACEHOLDERS — see docs/assumptions.md.
