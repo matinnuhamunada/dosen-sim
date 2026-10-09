@@ -21,6 +21,7 @@ interface State {
   pinned: string[];
   trail: boolean;
   tab: Tab;
+  trackerWide: boolean;
   runUrls: string[] | null;
   sort: { key: string; dir: 1 | -1 };
   shownEndBoard: boolean;
@@ -37,6 +38,7 @@ const state: State = {
   pinned: [],
   trail: true,
   tab: "lecturers",
+  trackerWide: false,
   runUrls: null,
   sort: { key: "own score", dir: -1 },
   shownEndBoard: false,
@@ -127,6 +129,7 @@ function syncUrl(): void {
     if (boardOpen()) p.set("board", "1");
     p.set("t", String(state.t));
     if (state.selected) p.set("agent", state.selected);
+    if (state.selected && state.trackerWide) p.set("wide", "1");
     if (state.pinned.length) p.set("pins", state.pinned.join(","));
     history.replaceState(null, "", `?${p}`);
   }, 250);
@@ -334,7 +337,11 @@ function renderTracker(r: Run): void {
   const panel = $("tracker");
   const a = state.selected ? r.agents.get(state.selected) : undefined;
   panel.classList.toggle("hidden", !a);
+  panel.classList.toggle("wide", !!a && state.trackerWide);
   if (!a) return;
+  const wide = state.trackerWide;
+  // chart width follows the panel: right column of the expanded view, or the compact card
+  const cw = wide ? Math.max(320, Math.floor((window.innerWidth - 60) * 0.6) - 48) : 274;
   const ranks = r.info.rank_names;
   const s = semAt(a, state.t);
   const present = isPresent(a, state.t);
@@ -351,8 +358,10 @@ function renderTracker(r: Run): void {
         <h2>${a.id}</h2><small>${a.policy} policy · ${tierOf(a.policy)}</small></div>
       <button class="btn icon" id="pin-btn" title="${pinned ? "Unpin" : "Pin to compare (max 3)"}"
         ${!pinned && state.pinned.length >= 3 ? "disabled" : ""}>${pinned ? "📌" : "📍"}</button>
+      <button class="btn icon" id="wide-tracker" title="${wide ? "Collapse" : "Expand"}">${wide ? "⤡" : "⤢"}</button>
       <button class="btn icon" id="close-tracker" title="Close">✕</button>
     </div>
+    <div class="tr-cols"><div class="tr-main">
     <div class="tr-status">
       <span class="pill ${present ? "green" : ""}" id="zone-now">${present ? `${ZONES[zone]?.icon ?? ""} ${ZONES[zone]?.label ?? zone}` : "Left the department"}</span>
       <span class="pill blue">${s?.rank ?? ranks[0]}</span>
@@ -367,22 +376,29 @@ function renderTracker(r: Run): void {
       <span>Commitments</span><span>${Object.entries(s?.commitments ?? {}).map(([k, v]) => `${k} ${v.toFixed(1)} h`).join(", ") || "–"}</span>
       ${persona ? `<span>Weights</span><span>rank ${persona.w_rank} · pay ${persona.w_pay} · wellbeing ${persona.w_wellbeing}</span>` : ""}
     </div>
+    </div><div class="tr-side">
     <h3>Weekly hours</h3>
     <div id="tr-alloc"></div>
     <div class="legend" id="tr-legend"></div>
     <h3>Trajectory vs department</h3>
     <div id="tr-charts"></div>
+    </div><div class="tr-main tr-events">
     <h3>Key events</h3>
-    <ul class="timeline-list" id="tr-events"></ul>`;
+    <ul class="timeline-list" id="tr-events"></ul></div></div>`;
   $("pin-btn").addEventListener("click", () => togglePin(a.id));
   $("close-tracker").addEventListener("click", () => select(null));
+  $("wide-tracker").addEventListener("click", () => {
+    state.trackerWide = !state.trackerWide;
+    refreshHud();
+    syncUrl();
+  });
 
   const acts = r.info.activities;
   const alloc: Record<string, number>[] = [];
   for (let t = 0; t < r.semesters; t++) alloc.push(a.sems.get(t)?.hours ?? {});
   const colors = Object.fromEntries(acts.map((k) => [k, zoneColor(k)]));
   $("tr-alloc").append(stackedBars(alloc, acts, colors, {
-    width: 254, height: 56, marker: state.t, title: "", total: r.info.hours_per_week,
+    width: cw, height: wide ? 110 : 56, marker: state.t, title: "", total: r.info.hours_per_week,
   }));
   $("tr-legend").innerHTML = acts.map((k) => `<span><i style="background:${colors[k]}"></i>${ZONES[k]?.label ?? k}</span>`).join("");
 
@@ -403,7 +419,7 @@ function renderTracker(r: Run): void {
   const pay = (x: Agent, t: number) => (x.sems.get(t) ? x.sems.get(t)!.cumIncome / 1e6 : null);
   const cred = (x: Agent, t: number) =>
     x.sems.get(t) ? Object.values(x.sems.get(t)!.credits).reduce((p, q) => p + q, 0) : null;
-  const opts = { width: 254, height: 70, marker: state.t };
+  const opts = { width: cw, height: wide ? 150 : 70, marker: state.t };
   const box = $("tr-charts");
   box.append(
     lineChart(series(rankIdx), { ...opts, title: `Rank (0 = ${ranks[0]})`, yFmt: (v) => v.toFixed(0) }),
@@ -558,6 +574,10 @@ document.addEventListener("keydown", (e) => {
     searchBox.select();
   } else if (e.key === "Escape") {
     if (boardOpen()) setBoard(false);
+    else if (state.trackerWide) {
+      state.trackerWide = false;
+      refreshHud();
+    }
     else select(null);
   }
 });
@@ -632,6 +652,7 @@ function frame(now: number): void {
 async function boot(): Promise<void> {
   const p = new URLSearchParams(location.search);
   state.selected = p.get("agent");
+  state.trackerWide = p.get("wide") === "1";
   state.pinned = (p.get("pins") ?? "").split(",").filter(Boolean).slice(0, 3);
   const urls = p.getAll("run");
   setPlaying(false);
@@ -656,4 +677,5 @@ async function boot(): Promise<void> {
   $("empty").classList.toggle("hidden", !!run());
   requestAnimationFrame(frame);
 }
+window.addEventListener("resize", () => state.trackerWide && refreshHud());
 void boot();
