@@ -60,6 +60,18 @@ department:
     - { name: lab_head_11, hours_per_week: 4, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
     - { name: lab_head_12, hours_per_week: 4, duration_semesters: 10, allowance_monthly: 1000000, min_rank: Lektor } # TODO(source)
 
+  # Supporting (non-tridharma) work: event and task teams beyond the structural positions.
+  # Hours count as admin (support), the honorarium is paid monthly while serving, and seats go
+  # to the most junior staff first (lowest rank, then youngest; user-stated practice).
+  # Every number is a PLACEHOLDER (TODO(source)).
+  max_committees_per_lecturer: 2 # TODO(source)
+  committees:
+    - { name: accreditation_team, hours_per_week: 4, duration_semesters: 2, members: 6, honorarium_monthly: 500000, every_semesters: 10 } # TODO(source): 5-year accreditation cycle assumed
+    - { name: dies_natalis_committee, hours_per_week: 3, duration_semesters: 1, members: 6, honorarium_monthly: 300000, every_semesters: 2, offset: 1 } # TODO(source)
+    - { name: summer_course_team, hours_per_week: 4, duration_semesters: 1, members: 4, honorarium_monthly: 500000, every_semesters: 2, offset: 1 } # TODO(source)
+    - { name: international_seminar_committee, hours_per_week: 3, duration_semesters: 1, members: 6, honorarium_monthly: 300000, every_semesters: 2 } # TODO(source)
+    - { name: event_committee, hours_per_week: 2, duration_semesters: 1, members: 4, honorarium_monthly: 200000, every_semesters: 1 } # TODO(source): other ad-hoc events
+
 # Rank x degree mix: 16 Profesor (from the page); the rest is a PLACEHOLDER split
 # (24 Lektor Kepala, 18 Lektor, 10 Asisten Ahli) chosen to give ~53 doctorates. TODO(source)
 # Archetypes and policies are cycled across lecturers (modelling assumption).

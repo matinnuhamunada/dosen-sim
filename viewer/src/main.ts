@@ -301,7 +301,7 @@ function renderOps(r: Run): void {
       })
       .join("");
   } else if (state.tab === "events") {
-    const icon: Record<string, string> = { paper: "📄", promotion: "⭐", grant: "💰", role: "🏷️", teaching: "💬",
+    const icon: Record<string, string> = { paper: "📄", promotion: "⭐", grant: "💰", role: "🏷️", committee: "📋", teaching: "💬",
       coauthor: "🤝", attrition: "🚪", retirement: "🎓", mentor: "🧑‍🏫", hire: "👋", certified: "📜" };
     body.innerHTML = evs.length
       ? evs.map((e) => `<div class="ev-row" data-id="${e.agent}"><span>${icon[e.kind] ?? "•"}</span><b>${e.agent}</b>
@@ -412,6 +412,7 @@ function renderTracker(r: Run): void {
       <span>Credits</span><span>${Object.entries(s?.credits ?? {}).map(([k, v]) => `${k} ${v.toFixed(0)}`).join(" · ") || "–"}</span>
       <span>Papers / grants</span><span>${s?.publications ?? 0} / ${grants}</span>
       <span>Roles</span><span>${s?.roles.join(", ") || "–"}</span>
+      ${s?.committees?.length ? `<span>Committees</span><span>${s.committees.join(", ").replaceAll("_", " ")}</span>` : ""}
       <span>Co-author</span><span>${s?.coauthor ?? "–"}</span>
       ${s?.mentor ? `<span>Mentor</span><span>${s.mentor} (co-teaching)</span>` : ""}
       <span>Commitments</span><span>${Object.entries(s?.commitments ?? {}).map(([k, v]) => `${k} ${v.toFixed(1)} h`).join(", ") || "–"}</span>

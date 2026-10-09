@@ -102,3 +102,10 @@ One entry per milestone gate: what was built, open inputs, and the gate outcome.
 - Roles: 5-year terms (10 semesters) for every structural position; 12 laboratory heads added; minimum ranks (dean Lektor Kepala; vice deans, head of department, lab and programme heads Lektor); one role per lecturer.
 - Existing scenarios unchanged (event logs identical apart from the new state fields).
 - 10 seeds × 40 semesters: 19–27 retirements, 2–6 burnout leavers, 19–27 hires (all Lektor, doctorate), teaching coverage ≥ 0.96 (mean ≥ 0.999), no vacant roles, probationers never supervise; 28–36 of 62–68 active lecturers are Profesor by year 20 (placeholder promotion rules).
+
+## 2026-10-09 — Faculty case: committees (supporting work)
+
+- Recurring committee teams beyond tridharma (`department.committees`): accreditation team (every 5 years), dies natalis, summer course and international seminar (yearly), and other event committees (each semester). Each has seats, weekly hours, a duration and a small monthly honorarium (all placeholders).
+- The head offers seats to the most junior staff first (lowest rank, then youngest), imposing unfilled seats in the same order; at most 2 committees per lecturer. Hours become admin commitments; honoraria join the role-allowance pay component.
+- Seed 1 (40 semesters): 504 committee seats, all filled; 95 % went to Asisten Ahli and Lektor, median member age 34 against a faculty median of 45 at t = 0. Coverage stays 1.0, mean burnout 0.06.
+- Viewer: committee events (📋) and a Committees row on the lecturer card.

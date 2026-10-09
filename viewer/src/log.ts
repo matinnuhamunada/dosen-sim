@@ -44,6 +44,7 @@ export interface AgentSem {
   credits: Record<string, number>;
   publications: number;
   roles: string[];
+  committees: string[];
   coauthor: string | null;
   age: number | null; // end of semester; null when ages are not modelled
   probation: boolean; // on probation during this semester
@@ -55,6 +56,7 @@ export type EventKind =
   | "promotion"
   | "grant"
   | "role"
+  | "committee"
   | "teaching"
   | "coauthor"
   | "attrition"
@@ -180,6 +182,7 @@ export function parseLog(text: string, name = "run"): Run {
             0,
           ),
           roles: Object.keys(s.roles ?? {}),
+          committees: Object.keys(s.committees ?? {}),
           coauthor: s.coauthor ?? null,
           age: s.age ?? null,
           probation: s.probation_until != null && t < s.probation_until,
@@ -206,6 +209,9 @@ export function parseLog(text: string, name = "run"): Run {
         break;
       case "role_assigned":
         push({ t, kind: "role", agent: e.agent, text: `${e.role} (${e.outcome})`, outcome: e.outcome });
+        break;
+      case "committee_assigned":
+        push({ t, kind: "committee", agent: e.agent, text: `${e.committee.replaceAll("_", " ")} (${e.outcome})`, outcome: e.outcome });
         break;
       case "teaching_agreed":
         push({

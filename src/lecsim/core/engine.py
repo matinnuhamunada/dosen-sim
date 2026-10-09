@@ -123,6 +123,7 @@ class Engine:
     def _leave(self, t: int, lec: LecturerState, kind: str, **fields: object) -> None:
         """Deactivate ``lec`` and queue a replacement under the recruitment rules."""
         lec.active, lec.left_at, lec.roles, lec.mentor = False, t, {}, None
+        lec.committees = {}
         self.log.event(t, "events", kind, lec.id, **fields)
         hiring = self.sc.department.hiring
         if hiring.replace_leavers:
@@ -191,6 +192,7 @@ class Engine:
                     self.log.event(t, "events", "grant_ended", lid, start=g.start)
             lec.grants = [g for g in lec.grants if g.end > t]
             lec.roles = {r: end for r, end in lec.roles.items() if end > t}
+            lec.committees = {c: end for c, end in lec.committees.items() if end > t}
             if retirement.must_retire(lec.age, lec.rank, self.reg.retirement):
                 self._leave(t, lec, "retirement", age=lec.age, rank=lec.rank)
                 continue
@@ -240,9 +242,10 @@ class Engine:
             lec.commitments, lec.coauthor, lec.limits = {}, None, {}
         self._mentor(t, lecs)
         self.head.fill_roles(t, lecs, self.ask, self.log.event)
+        self.head.fill_committees(t, lecs, self.ask, self.log.event)
         for lec in lecs.values():
-            if lec.roles:
-                lec.commitments["admin"] = self.head.role_hours(lec)
+            if lec.roles or lec.committees:
+                lec.commitments["admin"] = self.head.admin_hours(lec)
         spec = self.sc.department.teaching_demand
         z = float(self.rng.get("teaching_demand").standard_normal())
         demand = self.state.teaching_demand_base * production.lognormal_noise(z, spec.sigma)
@@ -427,5 +430,6 @@ class Engine:
             teaching_coverage=1 - uncovered / demand if demand > 0 else 1.0,
             mean_burnout=sum(lec.burnout for lec in lecs) / len(lecs) if lecs else math.nan,
             roles_filled=sum(len(lec.roles) for lec in lecs),
+            committee_seats=sum(len(lec.committees) for lec in lecs),
             coauthor_pairs=sum(lec.coauthor is not None for lec in lecs) // 2,
         )  # fmt: skip

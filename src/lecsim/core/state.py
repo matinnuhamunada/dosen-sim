@@ -42,6 +42,7 @@ class LecturerState(BaseModel):
     burnout: float = 0.0
     commitments: dict[str, float] = Field(default_factory=dict)  # agreed weekly hour floors
     roles: dict[str, int] = Field(default_factory=dict)  # role name -> end semester (exclusive)
+    committees: dict[str, int] = Field(default_factory=dict)  # committee -> end (exclusive)
     coauthor: str | None = None  # partner this semester
     age: float | None = None  # years, at the start of the current semester
     probation_until: int | None = None  # first semester after probation (new hires only)

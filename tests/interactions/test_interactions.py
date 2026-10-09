@@ -172,3 +172,34 @@ def test_probationer_teaching_covers_part_of_demand():
     # demand 20 split 10/10; B's 10 co-taught hours cover 5 -> 5 uncovered
     assert head.assign_teaching(0, lecs, 20, ask, lambda *a, **k: None) == pytest.approx(5)
     assert head.assign_teaching(2, lecs, 20, ask, lambda *a, **k: None) == pytest.approx(0)
+
+
+def test_committee_seats_go_to_junior_staff_then_imposed():
+    team = {"name": "seminar", "hours_per_week": 3, "duration_semesters": 1, "members": 2,
+            "honorarium_monthly": 100, "every_semesters": 2, "offset": 1}  # fmt: skip
+    dept = Department.model_validate(
+        DEPT.model_dump() | {"committees": [team], "max_committees_per_lecturer": 1}
+    )
+    head = HeadOfDepartment(dept, WORKLOAD, RANKS)
+    lecs = {"S": lec("S", rank="Lektor Kepala", age=50.0), "O": lec("O", rank="Lektor", age=40.0),
+            "Y": lec("Y", rank="Lektor", age=32.0), "F": lec("F", rank="Lektor", age=30.0,
+                                                            committees={"other": 3})}  # fmt: skip
+    log = []
+    head.fill_committees(0, lecs, lambda lid, p: Response(kind="accept"), lambda *a, **k: None)
+    assert not any("seminar" in x.committees for x in lecs.values())  # not formed at t=0
+
+    # F is full (limit 1); order is rank then age: Y, O, S. Y accepts; O, S refuse -> O imposed
+    def only_y(lid, p):
+        return Response(kind="accept" if lid == "Y" else "reject")
+
+    head.fill_committees(1, lecs, only_y, lambda *a, **k: log.append((a[3], k["outcome"])))
+    assert log == [("Y", "accepted"), ("O", "imposed")]
+    assert lecs["Y"].committees == {"seminar": 2} and head.admin_hours(lecs["Y"]) == 3
+
+
+def test_committee_cannot_outlast_its_cycle():
+    from lecsim.config import CommitteeSpec
+
+    with pytest.raises(ValueError, match="cycle"):
+        CommitteeSpec(name="x", hours_per_week=1, duration_semesters=3, members=1,
+                      honorarium_monthly=0, every_semesters=2)  # fmt: skip

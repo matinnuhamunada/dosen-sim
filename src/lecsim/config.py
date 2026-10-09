@@ -216,6 +216,26 @@ class RoleSpec(_Model):
     min_rank: str | None = None  # lowest rank eligible to hold the role
 
 
+class CommitteeSpec(_Model):
+    """A recurring event team (accreditation, dies natalis, seminar, ...): formed every
+    ``every_semesters`` (from ``offset``), lasts ``duration_semesters``, paid a small
+    monthly honorarium. Seats go to the most junior staff first."""
+
+    name: str
+    hours_per_week: float = Field(ge=0)
+    duration_semesters: int = Field(ge=1)
+    members: int = Field(ge=1)
+    honorarium_monthly: float = Field(ge=0)  # IDR, while serving
+    every_semesters: int = Field(ge=1)
+    offset: int = Field(default=0, ge=0)
+
+    @model_validator(mode="after")
+    def _check(self) -> CommitteeSpec:
+        if self.duration_semesters > self.every_semesters:
+            raise ValueError(f"committee {self.name}: lasts longer than its cycle")
+        return self
+
+
 class CoauthorshipParams(_Model):
     enabled: bool = True
     productivity_boost: float = Field(ge=0)  # research multiplier while paired
@@ -234,6 +254,8 @@ class Department(_Model):
     head: HeadRules
     roles: list[RoleSpec] = []
     max_roles_per_lecturer: int | None = Field(default=None, ge=1)  # None: limited by hours
+    committees: list[CommitteeSpec] = []
+    max_committees_per_lecturer: int = Field(default=2, ge=1)
     coauthorship: CoauthorshipParams
     hiring: HiringParams
 

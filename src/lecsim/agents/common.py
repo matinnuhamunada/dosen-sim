@@ -204,8 +204,8 @@ def archetype_respond(arch: Archetype, obs: Observation, proposal: Proposal) -> 
     - teaching_load: accept up to reservation r = preferred teaching x (1 + cooperativeness),
       otherwise counter with r.
     - extra_teaching (volunteering): accept if the extra still fits under r.
-    - admin_role: accept if the archetype wants the admin time, or if cooperative and
-      holding no role yet (volunteer's dilemma).
+    - admin_role / committee: accept if the archetype wants the admin time, or if
+      cooperative and holding no role yet (volunteer's dilemma).
     - coauthor: tit-for-tat on the partner's last answer; otherwise accept if cooperative
       or research-oriented.
     """
@@ -223,7 +223,7 @@ def archetype_respond(arch: Archetype, obs: Observation, proposal: Proposal) -> 
             r = arch.shares.get("teaching", 0.0) * budget * (1 + coop)
             ok = terms["current"] + terms["hours"] <= r + 1e-9
             return Response(kind="accept" if ok else "reject")
-        case "admin_role":
+        case "admin_role" | "committee":
             wanted = arch.shares.get("admin", 0.0) * budget - obs.me.commitments.get("admin", 0.0)
             ok = wanted >= terms["hours"] / 2 or (coop >= ROLE_COOPERATION and not obs.me.roles)
             return Response(kind="accept" if ok else "reject")

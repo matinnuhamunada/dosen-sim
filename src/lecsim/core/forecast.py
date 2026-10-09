@@ -143,8 +143,11 @@ class Forecaster:
         return remun + ext
 
     def role_allowance(self, me: LecturerState) -> float:
-        by_name = {r.name: r.allowance_monthly for r in self.sc.department.roles}
-        return sum(by_name[r] for r in me.roles)
+        """Monthly role allowances plus committee honoraria."""
+        dept = self.sc.department
+        by_name = {r.name: r.allowance_monthly for r in dept.roles}
+        teams = {c.name: c.honorarium_monthly for c in dept.committees}
+        return sum(by_name[r] for r in me.roles) + sum(teams[c] for c in me.committees)
 
     def burnout_after(self, burnout: float, hours: dict[Activity, float], sensitivity: float):
         rest = hours[Activity.REST]

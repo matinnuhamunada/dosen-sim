@@ -33,7 +33,7 @@ senior lecturers.
 
 | Entity | State variables |
 | --- | --- |
-| **Lecturer** (`LecturerState`) | id; policy; archetype; active / hired_at / left_at; rank; degree; semesters in rank and in service; certification; credit points by category (cumulative and earned in the current rank); publications by journal tier; manuscripts ready and fractional manuscript progress; active grants; burnout ∈ [0, 1]; weekly commitments (teaching, admin); roles held (with term end); co-author this semester; monthly pay; cumulative income; age (optional); probation end, hour limits and mentor (new hires) |
+| **Lecturer** (`LecturerState`) | id; policy; archetype; active / hired_at / left_at; rank; degree; semesters in rank and in service; certification; credit points by category (cumulative and earned in the current rank); publications by journal tier; manuscripts ready and fractional manuscript progress; active grants; burnout ∈ [0, 1]; weekly commitments (teaching, admin); roles and committee seats held (with term end); co-author this semester; monthly pay; cumulative income; age (optional); probation end, hour limits and mentor (new hires) |
 | **Department** (`DepartmentState`) | semester; lecturers; pending journal submissions (with co-authors and hidden decisions); base teaching demand; hiring queue; co-authorship reciprocity memory |
 | **Head of department** (`institution/head.py`) | Rule parameters only: rank load weights, concession limit, rounds, teaching cap, commitment cap |
 | **Environment** | Journals (acceptance probability and decision lag per tier); grant agency (success probability rising with track record); teaching demand from an aggregate student cohort |
@@ -65,7 +65,8 @@ processed in sorted-id order. Each stochastic process draws from its own named R
 2. **Negotiation.**
    1. Probationers get their hour ceilings (no supervision) and a senior co-teaching mentor.
       The head fills vacant roles (eligible: rank ≥ the role's minimum, not on probation,
-      below the per-lecturer role limit).
+      below the per-lecturer role limit), then staffs committees formed this semester
+      (junior staff first).
    2. Teaching demand is drawn, and the head bargains a load with each lecturer, then runs a
       volunteering round for any shortfall.
    3. Lecturers are paired as co-authors.
@@ -184,7 +185,7 @@ tests (`tests/rules/`, 100% line coverage).
 | Utility policy | `agents/utility_policy.py` | U = w_rank·Δdistance + w_pay·income/income_ref + w_wellbeing·(rest share − burnout); logit choice over about 400 grid bundles satisfying the commitments |
 | Optimiser | `agents/optimiser.py` | Enumerates one-bundle-per-rank plans (numpy broadcasting). Promotion time T = max(1, min semesters, ⌈credit gap/flow⌉, ⌈publication gap/rate⌉), or ∞ if share or degree rules fail. Objective = Σ discount^t · u_t. Verified against brute force |
 | Bargaining | `interactions/negotiation.py` | Counter ≥ (1 − concession) × offer is accepted; a lower counter is met halfway; after the maximum rounds the head imposes its offer |
-| Head of department | `institution/head.py` | Fills roles (eligible lecturers, least committed first; imposes if nobody accepts); teaching offers = demand × rank weight share, capped; volunteering round, lowest load first. A probationer's hour covers `probation_coverage` of demand (co-taught) |
+| Head of department | `institution/head.py` | Fills roles (eligible lecturers, least committed first; imposes if nobody accepts); staffs committees (lowest rank, then youngest first; unfilled seats imposed in that order); teaching offers = demand × rank weight share, capped; volunteering round, lowest load first. A probationer's hour covers `probation_coverage` of demand (co-taught) |
 | Co-authorship | `interactions/coauthorship.py` | Random order; each lecturer is offered the strongest unmatched colleague; both accept; tit-for-tat memory |
 | Lecturer responses | `agents/common.py` | Teaching reservation = preferred teaching × (1 + cooperativeness), else counter; roles accepted if own admin time ≥ half the role, or cooperative and holding no role; co-authorship by tit-for-tat, otherwise by cooperativeness or research orientation |
 

@@ -57,6 +57,7 @@ Status: open unless marked. Add new items under the right heading as they come u
 - Whether to apply the 2025 recruitment and probation rules nationally (move from `regulation_overrides` to `national.yaml`) and rerun the M4 sweep.
 - Professor promotion is fast under placeholder rules (about half the faculty is Profesor after 20 years).
 - Faculty-level teaching demand (currently 8 h/week per lecturer, as in the department scenario).
+- Committees: real list of teams, sizes, hours, honoraria and cycles; whether committee membership earns its own BKD/KUM support credit (now only admin hours count); how seats are really chosen (seniority vs. age vs. head's choice).
 
 ## Engineering to-dos
 

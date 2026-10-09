@@ -179,6 +179,12 @@ The case is anonymised: neither the institution nor the faculty is named in the 
 | Heads of study programme (S1, S2, S3) | 8 h/week, 10 semesters, 3 M IDR/month, min rank Lektor | term: user; rank assumed; rest TODO | |
 | 12 laboratory heads | 4 h/week, 10 semesters, 1 M IDR/month, min rank Lektor | rank, term: user; rest TODO | One per laboratory |
 | Roles per lecturer | at most 1 | assumption | `max_roles_per_lecturer` |
+| Accreditation team | 6 seats, 4 h/week, 2 semesters, every 10 semesters, 0.5 M IDR/month | TODO | 5-year accreditation cycle assumed |
+| Dies natalis committee | 6 seats, 3 h/week, 1 semester, yearly, 0.3 M IDR/month | TODO | Supporting (non-tridharma) work |
+| Summer course team | 4 seats, 4 h/week, 1 semester, yearly, 0.5 M IDR/month | TODO | |
+| International seminar committee | 6 seats, 3 h/week, 1 semester, yearly, 0.3 M IDR/month | TODO | |
+| Other event committees | 4 seats, 2 h/week, 1 semester, every semester, 0.2 M IDR/month | TODO | Ad-hoc events |
+| Committees per lecturer | at most 2 at a time | TODO | `max_committees_per_lecturer` |
 | Regulation | `ptnbh.yaml` (institutional remuneration on) | struct | PTNBH university |
 | Start age | uniform 29–31 years | user estimate | Founders and hires |
 | Founders' years of service | AA 0–6, Lektor 2–16, LK 8–30, Profesor 15–38 (uniform) | TODO | Sets founders' age and seniority pay |
@@ -200,3 +206,4 @@ The case is anonymised: neither the institution nor the faculty is named in the 
 40. **Recruitment rule scope:** the doctorate-only, enter-as-Lektor rule and probation are applied in the faculty case only (`regulation_overrides`), so the M4 scenarios keep their earlier rules (hire as Asisten Ahli with the leaver's degree). Hires take the leaver's policy and archetype. The first-author SINTA 4 article required for first appointment as Lektor is not modelled.
 41. **Probation mechanics:** probation applies only to new hires. The engine sets the barred activities' weekly ceiling to 0 (validated like commitments), halves teaching credit, pays only the scaled base salary (seniority included) and no performance remuneration; external work is still paid at the market rate. Probationers cannot hold roles. Agents' forecasts ignore probation pay and credit (they plan as if confirmed).
 42. **Founders' seniority:** drawn years of service also set `semesters_service` (seniority pay, certification); founders still start with 0 semesters in rank.
+43. **Committees (supporting work):** recurring event and task teams (accreditation, dies natalis, summer course, international seminar, other events) are formed on a fixed cycle. Seats are offered in turn to the most junior lecturers (lowest rank, then youngest) with room under the commitment cap and below the committee limit; they accept on the same rule as roles, and seats nobody takes are imposed in the same order. Hours become an admin commitment and earn ordinary admin-hour (support) credit; there is no per-committee credit. The honorarium is paid monthly while serving (not on probation, where only base salary is paid). Probationers can be seated.
