@@ -9,21 +9,30 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-import numpy as np
-
-from lecsim.agents.base import Policy
+from lecsim.agents.base import Observation, Policy
+from lecsim.agents.optimiser import OptimiserPolicy
 from lecsim.agents.random_policy import RandomPolicy
+from lecsim.agents.rule_policies import FixedSharePolicy, StagePolicy, ThresholdPolicy
+from lecsim.agents.utility_policy import UtilityPolicy
 from lecsim.config import Scenario
 from lecsim.core.actions import Activity, Allocation
 from lecsim.core.clock import Clock
+from lecsim.core.forecast import Forecaster
 from lecsim.core.rng import RngStreams
-from lecsim.core.state import DepartmentState, Grant, LecturerState, Observation
+from lecsim.core.state import DepartmentState, Grant, LecturerState
 from lecsim.env import grants, journals
 from lecsim.logging.events import EventLog
 from lecsim.rules import credits, pay, production, promotion
 from lecsim.rules.workload import check_workload
 
-POLICIES: dict[str, Callable[[np.random.Generator], Policy]] = {"random": RandomPolicy}
+POLICIES: dict[str, Callable[..., Policy]] = {
+    "random": RandomPolicy,
+    "fixed_share": FixedSharePolicy,
+    "threshold": ThresholdPolicy,
+    "stage": StagePolicy,
+    "utility": UtilityPolicy,
+    "optimiser": OptimiserPolicy,
+}
 
 
 class InvalidAllocation(ValueError):
@@ -37,34 +46,49 @@ class Engine:
         self.rng = RngStreams(seed)
         self.log = log
         self.clock = Clock(self.reg.time.months_per_semester)
-        spec = scenario.lecturers
-        ids = [f"L{i + 1:02d}" for i in range(spec.count)]
+        self.forecast = Forecaster(scenario)
         zero_credits = dict.fromkeys(self.reg.credit_categories, 0.0)
-        self.state = DepartmentState(
-            lecturers={
-                i: LecturerState(
-                    id=i,
+        lecturers: dict[str, LecturerState] = {}
+        self.policies: dict[str, Policy] = {}
+        book = scenario.agents
+        for spec in scenario.lecturers:
+            if spec.policy not in POLICIES:
+                raise ValueError(f"unknown policy {spec.policy!r}; known: {sorted(POLICIES)}")
+            if spec.policy != "random" and spec.archetype is None:
+                raise ValueError(f"policy {spec.policy!r} needs an archetype")
+            for _ in range(spec.count):
+                lid = f"L{len(lecturers) + 1:02d}"
+                lecturers[lid] = LecturerState(
+                    id=lid,
                     policy=spec.policy,
+                    archetype=spec.archetype,
                     rank=spec.rank,
                     degree=spec.degree,
                     credits_total=dict(zero_credits),
                     credits_in_rank=dict(zero_credits),
                     publications=dict.fromkeys(self.reg.journal_tiers, 0),
                 )
-                for i in ids
-            }
-        )
-        self.policies: dict[str, Policy] = {
-            i: POLICIES[spec.policy](self.rng.get("policy", i)) for i in ids
-        }
+                self.policies[lid] = POLICIES[spec.policy](
+                    self.rng.get("policy", lid),
+                    archetype=book.archetypes[spec.archetype] if spec.archetype else None,
+                    stages=book.stages if book else None,
+                )
+        self.state = DepartmentState(lecturers=lecturers)
 
     def observe(self, lid: str) -> Observation:
+        lec = self.state.lecturers[lid]
+        gaps = promotion.lecturer_gaps(lec, self.reg)
         return Observation(
             semester=self.state.semester,
-            me=self.state.lecturers[lid].model_copy(deep=True),
+            horizon=self.sc.semesters,
+            me=lec.model_copy(deep=True),
             hours_per_week=self.reg.time.hours_per_week,
             workload=self.reg.workload,
             journal_tiers=self.reg.journal_tiers,
+            rank_names=self.reg.rank_names,
+            gaps=gaps,
+            promotion_distance=promotion.promotion_distance(gaps),
+            forecast=self.forecast,
         )
 
     def run(self) -> DepartmentState:
@@ -120,7 +144,7 @@ class Engine:
             t, "allocation", "allocation", lid,
             hours={str(a): h for a, h in alloc.hours.items()},
             journal_tier=alloc.journal_tier, apply_grant=alloc.apply_grant,
-            violations=violations,
+            info=alloc.info, violations=violations,
         )  # fmt: skip
         if violations:
             # ponytail: invalid allocations abort the run; add a fallback policy in Phase 2.

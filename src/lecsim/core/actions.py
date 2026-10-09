@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -26,6 +26,7 @@ class Allocation(BaseModel):
     hours: dict[Activity, float]  # hours per week
     journal_tier: str | None = None  # tier for manuscripts ready this semester; None = hold
     apply_grant: bool = False
+    info: dict[str, Any] = Field(default_factory=dict)  # policy rationale, logged verbatim
 
     @field_validator("hours")
     @classmethod

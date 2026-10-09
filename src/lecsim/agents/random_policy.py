@@ -4,15 +4,15 @@ from __future__ import annotations
 
 import numpy as np
 
+from lecsim.agents.base import Observation
 from lecsim.core.actions import Activity, Allocation, Proposal, Response
-from lecsim.core.state import Observation
 from lecsim.rules.workload import check_workload
 
 MAX_TRIES = 10_000
 
 
 class RandomPolicy:
-    def __init__(self, rng: np.random.Generator) -> None:
+    def __init__(self, rng: np.random.Generator, archetype: object = None, stages: object = None):
         self.rng = rng
 
     def decide_allocation(self, obs: Observation) -> Allocation:

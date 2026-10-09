@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field
-
-from lecsim.config import WorkloadRules
+from pydantic import BaseModel, Field
 
 
 class Grant(BaseModel):
@@ -23,6 +21,7 @@ class Submission(BaseModel):
 class LecturerState(BaseModel):
     id: str
     policy: str
+    archetype: str | None = None
     rank: str
     degree: str
     semesters_in_rank: int = 0
@@ -42,15 +41,3 @@ class DepartmentState(BaseModel):
     semester: int = 0
     lecturers: dict[str, LecturerState]
     submissions: list[Submission] = Field(default_factory=list)
-
-
-class Observation(BaseModel):
-    """What a lecturer policy sees: its own state plus the rules it must obey."""
-
-    model_config = ConfigDict(frozen=True)
-
-    semester: int
-    me: LecturerState
-    hours_per_week: float
-    workload: WorkloadRules
-    journal_tiers: list[str]

@@ -5,8 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Annotated
 
+import polars as pl
 import typer
 
+from analysis.frontier import aggregate, frontier
 from analysis.metrics import summarize
 from lecsim.config import load_scenario
 from lecsim.core.engine import Engine
@@ -43,3 +45,19 @@ def run(
     run_dir = run_scenario(scenario, seed, out)
     typer.echo(f"wrote {run_dir}/events.jsonl")
     typer.echo(summarize(run_dir / "events.jsonl"))
+
+
+@app.command("frontier")
+def frontier_cmd(
+    scenario: Annotated[Path, typer.Argument(exists=True, dir_okay=False)],
+    seeds: Annotated[int, typer.Option(help="Seeds 1..N.")] = 10,
+    out: Annotated[Path, typer.Option(help="Output directory.")] = Path("runs/frontier"),
+) -> None:
+    """M2 gate: archetype x policy comparison plus an optimiser rank/pay weight sweep."""
+    sc = load_scenario(scenario)
+    raw = frontier(sc, seeds, out)
+    raw.write_csv(out / "frontier_raw.csv")
+    agg = aggregate(raw, sc.regulation.rank_names)
+    agg.write_csv(out / "frontier_summary.csv")
+    with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=200):
+        typer.echo(agg)
