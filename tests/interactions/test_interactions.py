@@ -1,0 +1,142 @@
+import numpy as np
+import pytest
+
+from lecsim.config import Department, WorkloadRules
+from lecsim.core.actions import Proposal, Response
+from lecsim.core.state import LecturerState
+from lecsim.institution.head import HeadOfDepartment
+from lecsim.interactions.coauthorship import match
+from lecsim.interactions.negotiation import bargain
+
+
+def scripted(*responses):
+    """An ask() that replays responses and records proposals."""
+    seen, it = [], iter(responses)
+
+    def ask(lid, proposal):
+        seen.append((lid, proposal))
+        return next(it)
+
+    return ask, seen
+
+
+def counter(hours):
+    return Response(kind="counter", counter=Proposal(sender="x", topic="t", terms={"hours": hours}))
+
+
+def test_bargain_accept():
+    ask, _ = scripted(Response(kind="accept"))
+    assert bargain(ask, "L1", "teaching_load", 10, 2, 0.2) == (10, "accepted")
+
+
+def test_bargain_counter_within_concession():
+    ask, _ = scripted(counter(8.5))  # >= 10 * 0.8
+    assert bargain(ask, "L1", "teaching_load", 10, 2, 0.2) == (8.5, "counter_accepted")
+
+
+def test_bargain_low_counter_meets_halfway_then_imposes():
+    # 6 < 8 -> head offers (10 + 6) / 2 = 8; lecturer rejects -> imposed at 8
+    ask, seen = scripted(counter(6), Response(kind="reject"))
+    assert bargain(ask, "L1", "teaching_load", 10, 2, 0.2) == (8, "imposed")
+    assert [p.terms["hours"] for _, p in seen] == [10, 8]
+
+
+def test_bargain_reject_keeps_offer():
+    ask, _ = scripted(Response(kind="reject"), Response(kind="accept"))
+    assert bargain(ask, "L1", "teaching_load", 10, 2, 0.2) == (10, "accepted")
+
+
+def test_match_pairs_strongest_and_records_memory():
+    answers = {"A": "accept", "B": "accept", "C": "reject"}
+
+    def ask(lid, proposal):
+        return Response(kind=answers[lid])
+
+    memory: dict[str, bool] = {}
+    pairs = match(["A", "B", "C"], {"A": 1, "B": 5, "C": 3}, memory, ask,
+                  np.random.default_rng(0))  # fmt: skip
+    # whoever goes first is offered the strongest unmatched colleague; C always declines
+    assert all("C" not in p for p in pairs)
+    assert all(v in (True, False) for v in memory.values())
+
+
+def test_match_tit_for_tat_terms():
+    seen = []
+
+    def ask(lid, proposal):
+        seen.append((lid, proposal.sender, proposal.terms["partner_accepted_last"]))
+        return Response(kind="accept")
+
+    memory = {"A>B": False}  # B declined A last time
+    match(["A", "B"], {"A": 0, "B": 0}, memory, ask, np.random.default_rng(0))
+    assert ("A", "B", 0) in seen and ("B", "A", -1) in seen
+    assert memory == {"A>B": True, "B>A": True}
+
+
+WORKLOAD = WorkloadRules(
+    duty_activities=["teaching", "research", "supervision", "community_service", "admin"],
+    activity_category={"teaching": "education", "supervision": "education",
+                       "research": "research", "community_service": "community_service",
+                       "admin": "support"},  # fmt: skip
+    min_duty_hours_per_week=20, max_duty_hours_per_week=30,
+    min_share={"education": 0.25, "research": 0.2},
+)  # fmt: skip
+DEPT = Department.model_validate({
+    "teaching_demand": {"hours_per_lecturer": 8, "sigma": 0},
+    "head": {"rank_load_weights": {"Asisten Ahli": 2, "Lektor": 1}, "max_concession": 0.2,
+             "max_rounds": 2, "max_teaching_hours": 16},
+    "roles": [{"name": "sec", "hours_per_week": 6, "duration_semesters": 4,
+               "allowance_monthly": 100}],
+    "coauthorship": {"productivity_boost": 0.3},
+    "hiring": {"lag_semesters": 1},
+})  # fmt: skip
+
+
+def lec(i, rank="Asisten Ahli", **kw):
+    return LecturerState(id=i, policy="test", rank=rank, degree="doctorate", **kw)
+
+
+def test_commit_cap():
+    # committed teaching/admin may use max duty minus the research minimum: 30 * (1 - .2)
+    assert HeadOfDepartment(DEPT, WORKLOAD).commit_cap == pytest.approx(24)
+
+
+def test_teaching_split_by_rank_weight_and_volunteering():
+    head = HeadOfDepartment(DEPT, WORKLOAD)
+    lecs = {"A": lec("A"), "B": lec("B", rank="Lektor")}
+    # demand 30: offers A 20 -> capped 16, B 10. A accepts 16, B counters 8 (>= 8, accepted).
+    # shortfall 6: B (lowest load) asked for 6 more -> accepts
+    responses = {"teaching_load": {"A": Response(kind="accept"), "B": counter(8)},
+                 "extra_teaching": {"B": Response(kind="accept")}}  # fmt: skip
+
+    def ask(lid, p):
+        return responses[p.topic][lid]
+
+    uncovered = head.assign_teaching(0, lecs, 30, ask, lambda *a, **k: None)
+    assert lecs["A"].commitments["teaching"] == 16
+    assert lecs["B"].commitments["teaching"] == 14
+    assert uncovered == pytest.approx(0)
+
+
+def test_teaching_uncovered_when_nobody_volunteers():
+    head = HeadOfDepartment(DEPT, WORKLOAD)
+    lecs = {"A": lec("A"), "B": lec("B")}
+
+    def ask(lid, p):
+        return Response(kind="accept") if p.topic == "teaching_load" else Response(kind="reject")
+
+    # demand 40 split 20/20, each capped at 16 -> 8 uncovered after refusals
+    assert head.assign_teaching(0, lecs, 40, ask, lambda *a, **k: None) == pytest.approx(8)
+
+
+def test_role_volunteer_then_imposed():
+    head = HeadOfDepartment(DEPT, WORKLOAD)
+    log = []
+    lecs = {"A": lec("A"), "B": lec("B")}
+    head.fill_roles(0, lecs, lambda lid, p: Response(kind="accept" if lid == "B" else "reject"),
+                    lambda *a, **k: log.append(k))  # fmt: skip
+    assert lecs["B"].roles == {"sec": 4} and log[-1]["outcome"] == "accepted"
+    lecs = {"A": lec("A"), "B": lec("B")}
+    head.fill_roles(0, lecs, lambda lid, p: Response(kind="reject"),
+                    lambda *a, **k: log.append(k))  # fmt: skip
+    assert lecs["A"].roles == {"sec": 4} and log[-1]["outcome"] == "imposed"
