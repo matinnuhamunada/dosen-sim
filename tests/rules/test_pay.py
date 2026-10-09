@@ -1,0 +1,58 @@
+import pytest
+
+from lecsim.config import PayRules
+from lecsim.rules.pay import monthly_pay, semester_income
+
+
+def test_monthly_uncertified(reg):
+    # base 3000 + 2 years * 50 = 3100; functional 100; no professional, honorary, remuneration
+    m = monthly_pay(rank="Asisten Ahli", years_of_service=2, certified=False, rules=reg.pay)
+    assert m == {"base_salary": 3100, "functional_allowance": 100, "professional_allowance": 0,
+                 "honorary_allowance": 0, "remuneration_base": 0}  # fmt: skip
+
+
+def test_professor_certified(reg):
+    # base 6000 + 10*50 = 6500; functional 500; professional 1x base = 6500; honorary 2x = 13000
+    m = monthly_pay(rank="Profesor", years_of_service=10, certified=True, rules=reg.pay)
+    assert m["professional_allowance"] == 6500
+    assert m["honorary_allowance"] == 13000
+    assert sum(m.values()) == 26500
+
+
+def test_semester_income(reg):
+    m = monthly_pay(rank="Lektor", years_of_service=0, certified=True, rules=reg.pay)
+    # monthly 4000 + 200 + 4000 = 8200, x 6 months = 49200; external 50 h * 20 = 1000
+    s = semester_income(monthly=m, months=6, credits_earned=30, external_hours=50, rules=reg.pay)
+    assert s["external"] == 1000
+    assert s["remuneration_performance"] == 0  # disabled
+    assert s["total"] == 50200
+
+
+def test_remuneration_when_enabled(reg):
+    rules = PayRules.model_validate(
+        reg.pay.model_dump()
+        | {
+            "remuneration": {
+                "enabled": True,
+                "base_by_rank": {"Lektor": 700},
+                "per_credit_point": 10,
+            }
+        }  # fmt: skip
+    )
+    m = monthly_pay(rank="Lektor", years_of_service=0, certified=False, rules=rules)
+    assert m["remuneration_base"] == 700
+    # monthly 4000 + 200 + 700 = 4900 x 6 = 29400; performance 30 * 10 = 300
+    s = semester_income(monthly=m, months=6, credits_earned=30, external_hours=0, rules=rules)
+    assert s["remuneration_performance"] == 300
+    assert s["total"] == 29700
+
+
+def test_negative_inputs_rejected(reg):
+    m = monthly_pay(rank="Lektor", years_of_service=0, certified=False, rules=reg.pay)
+    with pytest.raises(ValueError):
+        semester_income(monthly=m, months=6, credits_earned=-1, external_hours=0, rules=reg.pay)
+
+
+def test_unknown_rank_raises(reg):
+    with pytest.raises(KeyError):
+        monthly_pay(rank="Dean", years_of_service=0, certified=False, rules=reg.pay)
