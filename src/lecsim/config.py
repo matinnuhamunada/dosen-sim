@@ -90,6 +90,7 @@ class BkdRules(_Model):
     hours_per_sks: float = Field(gt=0)  # weekly hours per SKS
     bonus_requires: list[SksRequirement]
     max_sks: float | None = None  # paid norm; duty above it is unpaid overtime (not a cap)
+    research_sks_without_grant: float | None = None  # research SKS claimable with no grant
 
 
 class RetirementRules(_Model):
@@ -312,6 +313,15 @@ class PowerParams(_Model):
     appoint_w_affinity: float = Field(ge=0)
     appoint_w_lab: float = Field(ge=0)
     appoint_noise: float = Field(ge=0)
+    # Access to grants, students and teaching (not regulation): base by rank (probation
+    # lower) + access_w_favor x (standing + supervisor's liking), clipped to [0, 1].
+    access_by_rank: dict[str, float] = {}  # missing rank: 1
+    access_probation: float = Field(default=1.0, ge=0, le=1)
+    access_w_favor: float = Field(default=0.0, ge=0)
+    supervision_max_hours: float | None = None  # weekly supervision cap = access x this
+    phd_apprentice_semesters: tuple[int, int] = (0, 0)  # new Lektor: (favoured, not) semesters
+    apprentice_supervision_factor: float = Field(default=1.0, ge=0, le=1)  # examining board only
+    committee_excuse_prob_by_rank: dict[str, float] = {}  # refusing gets you excused (seniors)
 
     @model_validator(mode="after")
     def _check(self) -> PowerParams:
@@ -341,6 +351,9 @@ class Department(_Model):
     max_roles_per_lecturer: int | None = Field(default=None, ge=1)  # None: limited by hours
     committees: list[CommitteeSpec] = []
     max_committees_per_lecturer: int = Field(default=2, ge=1)
+    teaching_counts_assigned_only: bool = (
+        False  # teaching beyond the assigned load earns no SKS/credit
+    )
     labs: list[str] = []  # laboratories; each lecturer is a member of one (drawn at random)
     power: PowerParams | None = None  # None: no assessments or favoritism
     coauthorship: CoauthorshipParams

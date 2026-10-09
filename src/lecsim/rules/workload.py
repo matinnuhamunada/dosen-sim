@@ -59,9 +59,18 @@ def check_limits(hours: Mapping[str, float], ceilings: Mapping[str, float]) -> l
     ]
 
 
-def bkd_met(hours: Mapping[str, float], rules: WorkloadRules, bkd: BkdRules) -> bool:
-    """Whether a weekly allocation meets every BKD minimum (in SKS) for the bonus."""
-    by_cat = duty_hours_by_category(hours, rules)
+def bkd_met(
+    hours: Mapping[str, float],
+    rules: WorkloadRules,
+    bkd: BkdRules,
+    counted_caps: Mapping[str, float] | None = None,
+) -> bool:
+    """Whether a weekly allocation meets every BKD minimum (in SKS) for the bonus.
+    ``counted_caps`` caps the hours that can be claimed per activity (assigned teaching,
+    research without a funded project)."""
+    caps = counted_caps or {}
+    counted = {a: min(h, caps.get(a, h)) for a, h in hours.items()}
+    by_cat = duty_hours_by_category(counted, rules)
     return all(
         sum(by_cat.get(c, 0.0) for c in req.categories)
         >= req.min_sks * bkd.hours_per_sks - TOLERANCE

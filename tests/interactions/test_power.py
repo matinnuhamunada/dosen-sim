@@ -76,3 +76,39 @@ def test_engine_logs_assessments_and_scales_ladder_credit(tmp_path):
             f = factor[(e["agent"], e["t"])]
             assert all(abs(e["counted"][k] - v * f) < 1e-9 for k, v in e["earned"].items())
     assert all(x.lab in SC.department.labs for x in eng.state.lecturers.values())
+
+
+def test_access_sets_supervision_cap_and_weights():
+    eng = engine()
+    lecs = {i: x for i, x in eng.state.lecturers.items() if x.active}
+    p = SC.department.power
+    eng.power.grant_access(0, lecs)
+    for lec in lecs.values():
+        assert 0.0 <= lec.access <= 1.0
+        assert lec.limits["supervision"] <= lec.access * p.supervision_max_hours + 1e-9
+    junior = next(x for x in lecs.values() if x.rank == "Lektor" and x.semesters_in_rank == 0)
+    assert junior.limits["supervision"] <= junior.access * p.supervision_max_hours * 0.5 + 1e-9
+    probationer = junior.model_copy(update={"probation_until": 2, "favor": 0.0})
+    eng.power.grant_access(0, {"x": probationer})
+    assert probationer.access <= p.access_probation + p.access_w_favor * 2  # base 0.4 +- liking
+
+
+def test_seniors_get_excused_from_committees():
+    eng = engine()
+    team = SC.department.committees[0]
+    prof = next(x for x in eng.state.lecturers.values() if x.rank == "Profesor")
+    aa = next(x for x in eng.state.lecturers.values() if x.rank == "Asisten Ahli")
+    assert not any(eng.power.excused(team, aa) for _ in range(50))  # juniors never
+    assert sum(eng.power.excused(team, prof) for _ in range(200)) > 120  # 0.8 for professors
+
+
+def test_counted_caps_limit_claimable_sks():
+    eng = engine()
+    f = eng.forecast
+    lec = next(iter(eng.state.lecturers.values())).model_copy(
+        update={"commitments": {"teaching": 5.0}, "grants": [], "roles": {}})  # fmt: skip
+    caps = f.counted_caps(lec)
+    assert caps == {"teaching": 5.0, "research": 15.0}  # 6 SKS x 2.5 h without a grant
+    h = {"teaching": 20, "supervision": 5, "research": 20, "community_service": 3,
+         "admin": 0, "external": 0, "rest": 8}  # fmt: skip
+    assert not f.bonus_eligible(lec, h)  # counted 5 + 5 + 15 = 25 h < 30 h

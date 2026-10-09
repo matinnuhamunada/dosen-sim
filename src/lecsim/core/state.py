@@ -51,6 +51,7 @@ class LecturerState(BaseModel):
     lab: str | None = None  # laboratory membership (power dynamics)
     favor: float = 0.0  # standing with leadership and peers (power dynamics)
     grade: str | None = None  # last supervisor assessment
+    access: float = 1.0  # access to grants, students and teaching (power dynamics)
 
     def on_probation(self, t: int) -> bool:
         return self.probation_until is not None and t < self.probation_until

@@ -135,13 +135,20 @@ def aim_for_bkd(shares: Mapping[str, float], obs: Observation, margin: float) ->
     if obs.bkd is None:
         return out
     duty = set(obs.workload.duty_activities)
+    budget = obs.hours_per_week
+    cap = {a: min(obs.bkd_caps.get(a, budget), obs.me.limits.get(a, budget)) / budget
+           for a in Activity}  # claimable share per activity  # fmt: skip
     for req in obs.bkd.bonus_requires:
-        acts = [a for a in Activity if a in duty and a not in obs.me.limits
+        acts = [a for a in Activity if a in duty
                 and obs.workload.activity_category[a] in req.categories]  # fmt: skip
-        target = req.min_sks * obs.bkd.hours_per_sks * (1 + margin) / obs.hours_per_week
-        need = target - sum(out[a] for a in acts)
-        if acts and need > 0:
-            out = transfer(out, acts, need, keep=[a for a in duty if a not in acts])
+        target = req.min_sks * obs.bkd.hours_per_sks * (1 + margin) / budget
+        for _ in range(3):  # pour into activities with claimable room, refill as caps bind
+            room = [a for a in acts if cap[a] - out[a] > 1e-9]
+            need = target - sum(min(out[a], cap[a]) for a in acts)
+            if not room or need <= 1e-9:
+                break
+            out = transfer(out, room, min(need, sum(cap[a] - out[a] for a in room)),
+                           keep=[a for a in duty if a not in room])  # fmt: skip
     return out
 
 
@@ -161,7 +168,7 @@ def transfer(
     if amount <= 0 or not to:
         return out
     for a, v in donors.items():
-        out[a] = v - amount * v / avail
+        out[a] = max(0.0, v - amount * v / avail)  # rounding can dip below 0
     for a in to:
         out[a] += amount / len(to)
     return out

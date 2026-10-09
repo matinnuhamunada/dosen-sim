@@ -55,6 +55,7 @@ export interface AgentSem {
   lab: string | null;
   favor: number | null; // standing (power dynamics)
   grade: string | null; // supervisor's assessment this semester
+  access: number | null; // access to grants, students and courses (power dynamics)
   creditFactor: number | null; // share of credit counted for the career ladder
   supervisor: string | null;
 }
@@ -65,6 +66,7 @@ export type EventKind =
   | "grant"
   | "role"
   | "committee"
+  | "excused"
   | "patent"
   | "teaching"
   | "coauthor"
@@ -206,6 +208,7 @@ export function parseLog(text: string, name = "run"): Run {
           lab: s.lab ?? null,
           favor: e.state.grade != null ? (s.favor ?? 0) : null,
           grade: s.grade ?? null,
+          access: s.access ?? null,
         });
         a.sems.set(t, p as AgentSem);
         break;
@@ -234,6 +237,9 @@ export function parseLog(text: string, name = "run"): Run {
         break;
       case "patent_licensed":
         for (const i of e.inventors) push({ t, kind: "patent", agent: i, text: `patent licensed at TRL ${e.trl.toFixed(1)}: royalties` });
+        break;
+      case "committee_excused":
+        push({ t, kind: "excused", agent: e.agent, text: `excused from ${e.committee.replaceAll("_", " ")}` });
         break;
       case "committee_assigned":
         push({ t, kind: "committee", agent: e.agent, text: `${e.committee.replaceAll("_", " ")} (${e.outcome})`, outcome: e.outcome });

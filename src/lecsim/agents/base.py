@@ -29,6 +29,7 @@ class Observation(BaseModel):
     promotion_distance: float
     forecast: Any = Field(default=None, exclude=True)  # lecsim.core.forecast.Forecaster
     bkd: BkdRules | None = None  # bonus minimums that apply to me (None: none or exempt)
+    bkd_caps: dict[str, float] = Field(default_factory=dict)  # claimable hours per activity
 
 
 class Policy(Protocol):

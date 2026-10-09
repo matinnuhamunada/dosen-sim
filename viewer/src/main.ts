@@ -5,7 +5,7 @@ import { ARCHETYPE_COLORS, type CameraCommand, CampusScene, PIN_COLORS, SELECT_C
 import { aggregateRows, fmt, gini, quantile, type ScoreRow, scoreRows, toCsv } from "./scores";
 
 const SEMESTER_SECONDS = 4; // playback duration of one semester at 1x
-const DEFAULT_RUN = "runs/policy_experiments/baseline_seed1/events.jsonl";
+const DEFAULT_RUN = "runs/faculty_case_seed1/events.jsonl";
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
 type Tab = "lecturers" | "events" | "dept";
@@ -302,7 +302,7 @@ function renderOps(r: Run): void {
       .join("");
   } else if (state.tab === "events") {
     const icon: Record<string, string> = { paper: "📄", promotion: "⭐", grant: "💰", role: "🏷️", committee: "📋", patent: "💡", teaching: "💬",
-      coauthor: "🤝", attrition: "🚪", retirement: "🎓", mentor: "🧑‍🏫", hire: "👋", certified: "📜" };
+      coauthor: "🤝", excused: "🙅", attrition: "🚪", retirement: "🎓", mentor: "🧑‍🏫", hire: "👋", certified: "📜" };
     body.innerHTML = evs.length
       ? evs.map((e) => `<div class="ev-row" data-id="${e.agent}"><span>${icon[e.kind] ?? "•"}</span><b>${e.agent}</b>
           <span${e.outcome === "imposed" ? ' style="color:var(--red)"' : ""}>${e.text}</span></div>`).join("")
@@ -417,7 +417,8 @@ function renderTracker(r: Run): void {
       ${s?.mentor ? `<span>Mentor</span><span>${s.mentor} (co-teaching)</span>` : ""}
       ${s?.lab ? `<span>Lab</span><span>${s.lab}</span>` : ""}
       ${s?.grade ? `<span>Assessment</span><span>${s.grade.replace("_", " ")} → ${Math.round((s.creditFactor ?? 1) * 100)} % credit${s.supervisor ? ` (by ${s.supervisor})` : ""}</span>
-        <span>Standing</span><span>${(s.favor ?? 0) >= 0 ? "+" : ""}${(s.favor ?? 0).toFixed(2)}</span>` : ""}
+        <span>Standing</span><span>${(s.favor ?? 0) >= 0 ? "+" : ""}${(s.favor ?? 0).toFixed(2)}</span>
+        <span>Access</span><span>${Math.round((s.access ?? 1) * 100)} % (grants, students, courses)</span>` : ""}
       ${r.info.hours_per_sks && s?.hours ? (() => {
         const h = s.hours, k = r.info.hours_per_sks!;
         const core = ((h.teaching ?? 0) + (h.supervision ?? 0) + (h.research ?? 0)) / k;

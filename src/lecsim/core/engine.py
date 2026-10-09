@@ -186,6 +186,7 @@ class Engine:
             promotion_distance=promotion.promotion_distance(gaps),
             forecast=self.forecast,
             bkd=None if self.forecast.bkd_exempt(lec) else self.reg.bkd,
+            bkd_caps=self.forecast.counted_caps(lec),
         )
 
     def ask(self, lid: str, proposal: Proposal) -> Response:
@@ -285,13 +286,18 @@ class Engine:
         self._mentor(t, lecs)
         self.head.fill_roles(t, lecs, self.ask, self.log.event, self.power)
         self.head.fill_committees(t, lecs, self.ask, self.log.event, self.power)
+        if self.power is not None:
+            self.power.grant_access(t, lecs)
         for lec in lecs.values():
             if lec.roles or lec.committees:
                 lec.commitments["admin"] = self.head.admin_hours(lec)
         spec = self.sc.department.teaching_demand
         z = float(self.rng.get("teaching_demand").standard_normal())
         demand = self.state.teaching_demand_base * production.lognormal_noise(z, spec.sigma)
-        uncovered = self.head.assign_teaching(t, lecs, demand, self.ask, self.log.event)
+        uncovered = self.head.assign_teaching(
+            t, lecs, demand, self.ask, self.log.event,
+            {i: lec.access for i, lec in lecs.items()} if self.power else None,
+        )  # fmt: skip
         if self.sc.department.coauthorship.enabled:
             pubs = {i: sum(lecs[i].publications.values()) for i in ids}
             pairs = coauthorship.match(
@@ -398,16 +404,20 @@ class Engine:
 
         if alloc.apply_grant:
             pubs = sum(lec.publications.values())
-            won = grants.apply(pubs, env.grants, self.rng.get("grants"), grant_bonus)
+            won = grants.apply(pubs, env.grants, self.rng.get("grants"), grant_bonus, lec.access)
             if won:
                 lec.grants.append(Grant(start=t + 1, end=t + 1 + env.grants.duration_semesters))
                 out["grant_awarded"] = 1.0
             self.log.event(
                 t, "resolution", "grant_application", lid,
-                success_prob=grants.success_prob(pubs, env.grants, grant_bonus), awarded=won,
+                success_prob=grants.success_prob(pubs, env.grants, grant_bonus) * lec.access,
+                awarded=won,
             )  # fmt: skip
 
-        out["teaching_hours"] = sem_hours[Activity.TEACHING]
+        teach = alloc.hours[Activity.TEACHING]
+        if self.sc.department.teaching_counts_assigned_only:  # extra teaching is not claimable
+            teach = min(teach, lec.commitments.get("teaching", 0.0))
+        out["teaching_hours"] = teach * weeks
         out["supervision_hours"] = sem_hours[Activity.SUPERVISION]
         # committee hours earn no career credit (they buy standing instead)
         committee = self.head.committee_hours(lec) * weeks

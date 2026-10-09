@@ -111,16 +111,23 @@ class HeadOfDepartment:
             proposal = Proposal(sender="head", topic="committee", terms=terms)
             if power is not None:
                 pool.sort(key=lambda lec: power.committee_priority(team, lec))
-                for lec in pool[: team.members]:
+                seated = 0
+                for lec in pool:
+                    if seated == team.members:
+                        break
                     willing = ask(lec.id, proposal).kind == "accept"
                     power.committee_answer(team, lec, willing)
+                    if not willing and power.excused(team, lec):
+                        log(t, "negotiation", "committee_excused", lec.id, committee=team.name)
+                        continue  # seniors and the well-connected dodge the task
+                    seated += 1
                     lec.committees[team.name] = t + team.duration_semesters
                     log(t, "negotiation", "committee_assigned", lec.id, committee=team.name,
                         outcome="accepted" if willing else "imposed",
                         until=t + team.duration_semesters)  # fmt: skip
-                if len(pool) < team.members:
+                if seated < team.members:
                     log(t, "negotiation", "committee_short", None, committee=team.name,
-                        missing=team.members - len(pool))  # fmt: skip
+                        missing=team.members - seated)  # fmt: skip
                 continue
             seated: list[LecturerState] = []
             for lec in pool:  # offered in turn until the team is full
@@ -140,8 +147,9 @@ class HeadOfDepartment:
                     missing=team.members - len(seated) - len(imposed))  # fmt: skip
 
     def assign_teaching(
-        self, t: int, lecturers: dict[str, LecturerState], demand: float, ask: Ask, log: Log
-    ) -> float:
+        self, t: int, lecturers: dict[str, LecturerState], demand: float, ask: Ask, log: Log,
+        access: dict[str, float] | None = None,
+    ) -> float:  # fmt: skip
         """Split ``demand`` weekly teaching hours; returns the uncovered hours. A probationer
         co-teaches, so each of their hours covers only ``probation_coverage`` of demand."""
         ids = sorted(lecturers)
@@ -152,7 +160,8 @@ class HeadOfDepartment:
                             self.commit_cap - self.admin_hours(lecturers[i])))
             for i in ids
         }  # fmt: skip
-        w = {i: self.rules.rank_load_weights[lecturers[i].rank] for i in ids}
+        w = {i: self.rules.rank_load_weights[lecturers[i].rank] * (access or {}).get(i, 1.0)
+             for i in ids}  # power dynamics: favourites get the courses  # fmt: skip
         total_w = sum(w.values())
         agreed: dict[str, float] = {}
         for i in ids:

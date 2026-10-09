@@ -146,12 +146,23 @@ class Forecaster:
         """Holding a role exempt from the BKD minimum (dean, vice deans)."""
         return any(r.bkd_exempt and r.name in me.roles for r in self.sc.department.roles)
 
+    def counted_caps(self, me: LecturerState) -> dict[str, float]:
+        """Weekly hours that can be claimed (SKS, teaching credit): assigned teaching only,
+        and research capped without a funded project."""
+        caps: dict[str, float] = {}
+        if self.sc.department.teaching_counts_assigned_only:
+            caps["teaching"] = me.commitments.get("teaching", 0.0)
+        bkd = self.reg.bkd
+        if bkd is not None and bkd.research_sks_without_grant is not None and not me.grants:
+            caps["research"] = bkd.research_sks_without_grant * bkd.hours_per_sks
+        return caps
+
     def bonus_eligible(self, me: LecturerState, hours: Mapping[str, float]) -> bool:
         """Performance bonus condition: BKD minimums met, or holding an exempt role."""
         bkd = self.reg.bkd
         if bkd is None or self.bkd_exempt(me):
             return True
-        return workload.bkd_met(hours, self.reg.workload, bkd)
+        return workload.bkd_met(hours, self.reg.workload, bkd, self.counted_caps(me))
 
     def variable_income(
         self,
@@ -222,6 +233,12 @@ class Forecaster:
         )  # fmt: skip
         if me.roles:
             outputs["admin_role_semesters"] = len(me.roles)
+        caps = self.counted_caps(me)
+        if "teaching" in caps:  # only assigned teaching earns credit
+            weeks = self.reg.time.weeks_per_semester
+            outputs["teaching_hours"] = min(hours[Activity.TEACHING], caps["teaching"]) * weeks
+        if "grant_awarded" in outputs:
+            outputs["grant_awarded"] *= me.access
         earned = self.score(outputs)
         total = sum(earned.values())
         income = self.fixed_income(

@@ -162,7 +162,7 @@ def test_aim_for_bkd_takes_from_rest_and_external():
         {"categories": ["education", "research"], "min_sks": 12},
         {"categories": ["community_service"], "min_sks": 1},
     ])  # fmt: skip
-    obs = SimpleNamespace(bkd=bkd, workload=RULES, hours_per_week=40,
+    obs = SimpleNamespace(bkd=bkd, workload=RULES, hours_per_week=40, bkd_caps={},
                           me=SimpleNamespace(limits={"supervision": 0.0}))  # fmt: skip
     shares = {"teaching": 0.2, "research": 0.2, "admin": 0.1, "external": 0.2, "rest": 0.3}
     out = aim_for_bkd(shares, obs, margin=0.1)

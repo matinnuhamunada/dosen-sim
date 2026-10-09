@@ -26,6 +26,7 @@ regulation_overrides:
   bkd:
     hours_per_sks: 2.5 # user-stated: 16 SKS = 40 h/week
     max_sks: 16 # user-stated: paid norm; above it is unpaid overtime
+    research_sks_without_grant: 6 # assumption: research SKS needs a funded project as evidence. TODO(source)
     bonus_requires:
       - { categories: [education, research], min_sks: 12 } # user-stated
       - { categories: [community_service], min_sks: 1 } # user-stated "one community service"; 1 SKS assumed
@@ -112,6 +113,7 @@ department:
   # to the most junior staff first (lowest rank, then youngest; user-stated practice).
   # Every number is a PLACEHOLDER (TODO(source)); hours are 1 SKS (accreditation 2 SKS).
   max_committees_per_lecturer: 2 # TODO(source)
+  teaching_counts_assigned_only: true # only the assigned load earns SKS and credit
   committees:
     - { name: accreditation_team, hours_per_week: 5, duration_semesters: 2, members: 6, honorarium_monthly: 500000, every_semesters: 10, assigned_by: vice_dean_academic } # TODO(source): 5-year accreditation cycle assumed
     - { name: dies_natalis_committee, hours_per_week: 2.5, duration_semesters: 1, members: 6, honorarium_monthly: 300000, every_semesters: 2, offset: 1, assigned_by: vice_dean_finance } # TODO(source)
@@ -152,6 +154,17 @@ department:
     appoint_w_affinity: 0.5
     appoint_w_lab: 0.3
     appoint_noise: 0.3
+    # Access to grants, students and teaching (user: power dynamics, not regulation). Juniors
+    # and probationers start low; standing and the supervisor's liking move it.
+    access_by_rank: { Asisten Ahli: 0.5, Lektor: 0.8, Lektor Kepala: 1.0, Profesor: 1.0 }
+    access_probation: 0.4
+    access_w_favor: 0.25
+    supervision_max_hours: 10 # weekly supervision cap = access x 10 h
+    phd_apprentice_semesters: [2, 4] # user-stated 1-2 years on examining boards (favoured, not)
+    apprentice_supervision_factor: 0.5 # master's students only meanwhile
+    # Refusing a committee gets you excused with this chance (user: seniors are rarely
+    # given committee work, and some avoid it)
+    committee_excuse_prob_by_rank: { Lektor: 0.2, Lektor Kepala: 0.5, Profesor: 0.8 }
 
 # Rank x degree mix: 16 Profesor (from the page); the rest is a PLACEHOLDER split
 # (24 Lektor Kepala, 18 Lektor, 10 Asisten Ahli) chosen to give ~53 doctorates. TODO(source)

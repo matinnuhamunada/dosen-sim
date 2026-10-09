@@ -79,7 +79,11 @@ def test_bonus_needs_bkd_minimum_unless_exempt():
     sc = load_scenario(ROOT / "configs/scenarios/faculty_case.yaml")
     eng = Engine(sc, 1, EventLog(os.devnull))
     f = eng.forecast
-    lec = next(iter(eng.state.lecturers.values()))
+    from lecsim.core.state import Grant
+
+    lec = next(iter(eng.state.lecturers.values())).model_copy(  # assigned 15 h, funded
+        update={"commitments": {"teaching": 15.0}, "grants": [Grant(start=0, end=4)]}
+    )
     core = {"teaching": 15, "supervision": 5, "research": 10, "community_service": 2.5,
             "admin": 0, "external": 0, "rest": 7.5}  # fmt: skip
     assert f.bonus_eligible(lec, core)  # 12 SKS core + 1 SKS community

@@ -109,6 +109,32 @@ class Power:
         liking = self.affinity(assigner, lec.id) if assigner else 0.0
         return (self.rank_of[lec.rank], -liking, lec.age or 0.0, lec.id)
 
+    def excused(self, team: CommitteeSpec, lec: LecturerState) -> bool:
+        """A refusal gets the lecturer excused with a rank-dependent chance."""
+        prob = self.p.committee_excuse_prob_by_rank.get(lec.rank, 0.0)
+        return prob > 0 and self.rng.get("excuse", team.name).random() < prob
+
+    def grant_access(self, t: int, lecs: dict[str, LecturerState]) -> None:
+        """Access to grants, students and teaching: base by rank (lower on probation),
+        moved by standing and the supervisor's liking. Sets supervision caps: a share of
+        the maximum, halved while a new Lektor serves on examining boards first."""
+        p, holders = self.p, self.holders()
+        for lec in lecs.values():
+            sup = self.supervisor(lec, holders)
+            base = (
+                p.access_probation if lec.on_probation(t) else p.access_by_rank.get(lec.rank, 1.0)
+            )
+            liking = self.affinity(sup, lec.id) if sup else 0.0
+            lec.access = max(0.0, min(1.0, base + p.access_w_favor * (lec.favor + liking)))
+            if p.supervision_max_hours is None:
+                continue
+            cap = lec.access * p.supervision_max_hours
+            favoured, other = p.phd_apprentice_semesters
+            board = favoured if lec.access >= 0.8 else other
+            if lec.rank == "Lektor" and lec.semesters_in_rank < board:  # ponytail: rank name
+                cap *= p.apprentice_supervision_factor
+            lec.limits["supervision"] = min(lec.limits.get("supervision", cap), cap)
+
     def committee_answer(self, team: CommitteeSpec, lec: LecturerState, willing: bool) -> None:
         """Willing members gain standing and the assigner's liking; reluctant ones (still
         assigned) lose the assigner's liking."""

@@ -14,6 +14,11 @@ def success_prob(publications: int, params: GrantParams, bonus: float = 0.0) -> 
 
 
 def apply(
-    publications: int, params: GrantParams, rng: np.random.Generator, bonus: float = 0.0
+    publications: int,
+    params: GrantParams,
+    rng: np.random.Generator,
+    bonus: float = 0.0,
+    access: float = 1.0,
 ) -> bool:
-    return bool(rng.random() < success_prob(publications, params, bonus))
+    """Win with the success chance scaled by ``access`` (power dynamics)."""
+    return bool(rng.random() < success_prob(publications, params, bonus) * access)
