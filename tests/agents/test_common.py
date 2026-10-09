@@ -86,3 +86,27 @@ def test_logit_choice():
     picks = np.bincount([logit_choice(u, 1.0, rng) for _ in range(20_000)], minlength=3) / 20_000
     expected = np.exp(u) / np.exp(u).sum()
     assert picks == pytest.approx(expected, abs=0.015)
+
+
+def test_floors_respected():
+    h = fit_to_workload({"rest": 0.5, "research": 0.5}, RULES, 40, {"teaching": 10, "admin": 4})
+    assert not check_workload(h, RULES, 40)
+    assert h[A.TEACHING] >= 10 - 1e-9 and h[A.ADMIN] >= 4 - 1e-9
+
+
+def test_min_share_from_free_time_when_duty_is_pinned():
+    # regression (stress run): floors pin duty; research minimum must come from rest/external
+    rules = RULES.model_copy(
+        update={"max_duty_hours_per_week": 36, "min_share": {"education": 0.2, "research": 0.1}}
+    )
+    shares = {
+        "teaching": 0.062,
+        "research": 0.139,
+        "supervision": 0.012,
+        "community_service": 0.041,
+        "admin": 0.004,
+        "external": 0.319,
+        "rest": 0.423,
+    }
+    h = fit_to_workload(shares, rules, 40, {"admin": 8.0, "teaching": 16.0})
+    assert not check_workload(h, rules, 40)

@@ -22,15 +22,23 @@ def brute_force(obs, persona, apply_grants):
     pubs0 = sum(me.publications.values())
     r0 = ranks.index(me.rank)
 
+    def steady_burnout(b):
+        drift = f.burnout_drift(cands[b], persona.burnout_sensitivity)
+        return 1.0 if drift > 0 else 0.0 if drift < 0 else me.burnout
+
     def flows(r, b):
         tier = _plan_tier(obs, r, persona.discount)
-        out, m = f.expected_outputs(cands[b], tier, apply_grants, pubs0, False)
+        prod = 1 - f.env.burnout.productivity_penalty * steady_burnout(b)
+        out, m = f.expected_outputs(cands[b], tier, apply_grants, pubs0, False, productivity=prod)
         cr = f.score(out)
         var = f.variable_income(sum(cr.values()), cands[b][Activity.EXTERNAL])
         return tier, cr, m, var
 
+    def wellbeing(b):
+        return cands[b][Activity.REST] / 40 - steady_burnout(b)
+
     top_b = max(range(len(cands)), key=lambda b: persona.w_pay * flows(len(ranks) - 1, b)[3] / ref
-                + persona.w_wellbeing * cands[b][Activity.REST] / 40)  # fmt: skip
+                + persona.w_wellbeing * wellbeing(b))  # fmt: skip
     best = -np.inf
     for plan in itertools.product(range(len(cands)), repeat=len(ranks) - 1 - r0):
         r, in_rank_sem = r0, 0
@@ -45,7 +53,7 @@ def brute_force(obs, persona, apply_grants):
             value += persona.discount**k * (
                 persona.w_pay * (fixed + var) / ref
                 + persona.w_rank * r / (len(ranks) - 1)
-                + persona.w_wellbeing * cands[b][Activity.REST] / 40
+                + persona.w_wellbeing * wellbeing(b)
             )
             tot, in_rank = credits.add_credits(tot, cr), credits.add_credits(in_rank, cr)
             pubs[tier] += m

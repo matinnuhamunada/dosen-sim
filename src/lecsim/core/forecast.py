@@ -15,12 +15,13 @@ import math
 from dataclasses import dataclass
 from functools import cache
 
-from lecsim.config import Scenario
+from lecsim.config import Persona, Scenario
 from lecsim.core.actions import Activity
 from lecsim.core.clock import Clock
 from lecsim.core.state import LecturerState
 from lecsim.env import grants
 from lecsim.rules import credits, pay, production, promotion
+from lecsim.rules.burnout import productivity_multiplier, update_burnout
 from lecsim.rules.workload import check_workload
 
 
@@ -31,6 +32,7 @@ class Outlook:
     credits: dict[str, float]  # publications discounted by expected delay
     income: float  # expected semester income
     rest_share: float
+    burnout_after: float
     distance_before: float
     distance_after: float
 
@@ -73,11 +75,18 @@ class Forecaster:
         publications_total: float,
         grant_active: bool,
         pub_weight: float = 1.0,
+        productivity: float = 1.0,
+        research_boost: float = 1.0,
     ) -> tuple[dict[str, float], float]:
-        """Expected semester outputs and expected manuscripts; pubs weighted by ``pub_weight``."""
+        """Expected semester outputs and expected manuscripts; pubs weighted by ``pub_weight``.
+
+        ``productivity`` (burnout) scales research and community output; ``research_boost``
+        (co-authorship) scales research only.
+        """
         weeks = self.reg.time.weeks_per_semester
         prod = self.env.production
-        mult = self.env.grants.research_multiplier if grant_active else 1.0
+        mult = (self.env.grants.research_multiplier if grant_active else 1.0) * productivity
+        mult *= research_boost
         # z with exp(sigma z - sigma^2/2) == 1 gives the mean of the noise factor
         z_mean = prod["research"].sigma / 2
         manuscripts = production.produce(
@@ -89,7 +98,10 @@ class Forecaster:
             "supervision_hours": hours[Activity.SUPERVISION] * weeks,
             "admin_hours": hours[Activity.ADMIN] * weeks,
             "community_outputs": production.produce(
-                hours[Activity.COMMUNITY_SERVICE] * weeks, prod["community_service"], z_mean
+                hours[Activity.COMMUNITY_SERVICE] * weeks,
+                prod["community_service"],
+                z_mean,
+                productivity,
             ),
         }
         if tier is not None and manuscripts > 0:
@@ -101,7 +113,9 @@ class Forecaster:
     def score(self, outputs: dict[str, float]) -> dict[str, float]:
         return credits.score_credits(outputs, self.reg.credit_table, self.reg.credit_categories)
 
-    def fixed_income(self, rank: str, service_before: int, certified: bool) -> float:
+    def fixed_income(
+        self, rank: str, service_before: int, certified: bool, role_allowance: float = 0.0
+    ) -> float:
         """Semester pay that does not depend on the allocation (engine timing: service +1)."""
         service = service_before + 1
         certified = certified or promotion.is_certified(rank, service, self.reg)
@@ -110,6 +124,7 @@ class Forecaster:
             years_of_service=self.clock.years(service),
             certified=certified,
             rules=self.reg.pay,
+            role_allowance=role_allowance,
         )
         return sum(monthly.values()) * self.reg.time.months_per_semester
 
@@ -127,6 +142,21 @@ class Forecaster:
         )
         return remun + ext
 
+    def role_allowance(self, me: LecturerState) -> float:
+        by_name = {r.name: r.allowance_monthly for r in self.sc.department.roles}
+        return sum(by_name[r] for r in me.roles)
+
+    def burnout_after(self, burnout: float, hours: dict[Activity, float], sensitivity: float):
+        rest = hours[Activity.REST]
+        return update_burnout(
+            burnout, self.reg.time.hours_per_week - rest, rest, self.reg.time.hours_per_week,
+            self.env.burnout, sensitivity,
+        )  # fmt: skip
+
+    def burnout_drift(self, hours: dict[Activity, float], sensitivity: float) -> float:
+        """Per-semester burnout change away from the bounds (sign gives the steady state)."""
+        return self.burnout_after(0.5, hours, sensitivity) - 0.5
+
     @property
     def income_ref(self) -> float:
         """Normaliser for income utility: fixed semester pay at top rank, certified, year 0."""
@@ -141,17 +171,26 @@ class Forecaster:
         hours: dict[Activity, float],
         tier: str | None,
         apply_grant: bool,
-        discount: float,
+        persona: Persona,
     ) -> Outlook:
         grant_active = any(g.start <= t < g.end for g in me.grants)
-        pub_weight = discount ** self.expected_delay(tier) if tier is not None else 0.0
+        pub_weight = persona.discount ** self.expected_delay(tier) if tier is not None else 0.0
+        boost = 1.0
+        if me.coauthor is not None:
+            boost = 1 + self.sc.department.coauthorship.productivity_boost
+            pub_weight *= self.reg.coauthor_credit.first_author_share
         pubs_total = sum(me.publications.values())
         outputs, manuscripts = self.expected_outputs(
-            hours, tier, apply_grant, pubs_total, grant_active, pub_weight
-        )
+            hours, tier, apply_grant, pubs_total, grant_active, pub_weight,
+            productivity_multiplier(me.burnout, self.env.burnout), boost,
+        )  # fmt: skip
+        if me.roles:
+            outputs["admin_role_semesters"] = len(me.roles)
         earned = self.score(outputs)
         total = sum(earned.values())
-        income = self.fixed_income(me.rank, me.semesters_service, me.certified)
+        income = self.fixed_income(
+            me.rank, me.semesters_service, me.certified, self.role_allowance(me)
+        )
         income += self.variable_income(total, hours[Activity.EXTERNAL])
         before = promotion.promotion_distance(promotion.lecturer_gaps(me, self.reg))
         pubs_after = dict(me.publications)
@@ -172,6 +211,7 @@ class Forecaster:
             credits=earned,
             income=income,
             rest_share=hours[Activity.REST] / self.reg.time.hours_per_week,
+            burnout_after=self.burnout_after(me.burnout, hours, persona.burnout_sensitivity),
             distance_before=before,
             distance_after=after,
         )

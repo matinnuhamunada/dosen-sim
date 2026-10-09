@@ -1,12 +1,18 @@
 """Semester tick loop. The engine owns all state and computes every outcome.
 
 Each tick runs six fixed phases (PRD FR-01):
-events -> negotiation -> allocation -> resolution -> evaluation -> reflection.
-Negotiation and reflection are no-ops in M1.
+
+1. events       journal decisions, grant expiry, attrition, hiring
+2. negotiation  head fills roles and splits teaching demand; co-authorship pairing
+3. allocation   each lecturer's policy returns a weekly allocation (validated)
+4. resolution   production, submissions, grant applications
+5. evaluation   credits, certification, pay, burnout, promotion, snapshots
+6. reflection   policy hook (no-op for rule-based agents)
 """
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 
 from lecsim.agents.base import Observation, Policy
@@ -15,15 +21,17 @@ from lecsim.agents.random_policy import RandomPolicy
 from lecsim.agents.rule_policies import FixedSharePolicy, StagePolicy, ThresholdPolicy
 from lecsim.agents.utility_policy import UtilityPolicy
 from lecsim.config import Scenario
-from lecsim.core.actions import Activity, Allocation
+from lecsim.core.actions import Activity, Allocation, Proposal, Response
 from lecsim.core.clock import Clock
 from lecsim.core.forecast import Forecaster
 from lecsim.core.rng import RngStreams
-from lecsim.core.state import DepartmentState, Grant, LecturerState
+from lecsim.core.state import DepartmentState, Grant, Hire, LecturerState, Submission
 from lecsim.env import grants, journals
+from lecsim.institution.head import HeadOfDepartment
+from lecsim.interactions import coauthorship
 from lecsim.logging.events import EventLog
-from lecsim.rules import credits, pay, production, promotion
-from lecsim.rules.workload import check_workload
+from lecsim.rules import burnout, credits, pay, production, promotion
+from lecsim.rules.workload import check_commitments, check_workload
 
 POLICIES: dict[str, Callable[..., Policy]] = {
     "random": RandomPolicy,
@@ -33,6 +41,7 @@ POLICIES: dict[str, Callable[..., Policy]] = {
     "utility": UtilityPolicy,
     "optimiser": OptimiserPolicy,
 }
+DEFAULT_BURNOUT_SENSITIVITY = 1.0  # agents without an archetype (random)
 
 
 class InvalidAllocation(ValueError):
@@ -47,33 +56,41 @@ class Engine:
         self.log = log
         self.clock = Clock(self.reg.time.months_per_semester)
         self.forecast = Forecaster(scenario)
-        zero_credits = dict.fromkeys(self.reg.credit_categories, 0.0)
-        lecturers: dict[str, LecturerState] = {}
+        self.head = HeadOfDepartment(scenario.department, self.reg.workload)
         self.policies: dict[str, Policy] = {}
-        book = scenario.agents
+        self.state = DepartmentState(lecturers={})
         for spec in scenario.lecturers:
             if spec.policy not in POLICIES:
                 raise ValueError(f"unknown policy {spec.policy!r}; known: {sorted(POLICIES)}")
             if spec.policy != "random" and spec.archetype is None:
                 raise ValueError(f"policy {spec.policy!r} needs an archetype")
             for _ in range(spec.count):
-                lid = f"L{len(lecturers) + 1:02d}"
-                lecturers[lid] = LecturerState(
-                    id=lid,
-                    policy=spec.policy,
-                    archetype=spec.archetype,
-                    rank=spec.rank,
-                    degree=spec.degree,
-                    credits_total=dict(zero_credits),
-                    credits_in_rank=dict(zero_credits),
-                    publications=dict.fromkeys(self.reg.journal_tiers, 0),
-                )
-                self.policies[lid] = POLICIES[spec.policy](
-                    self.rng.get("policy", lid),
-                    archetype=book.archetypes[spec.archetype] if spec.archetype else None,
-                    stages=book.stages if book else None,
-                )
-        self.state = DepartmentState(lecturers=lecturers)
+                self._add_lecturer(spec.policy, spec.archetype, spec.rank, spec.degree, 0)
+        demand = scenario.department.teaching_demand
+        self.state.teaching_demand_base = demand.hours_per_lecturer * len(self.state.lecturers)
+
+    def _add_lecturer(
+        self, policy: str, archetype: str | None, rank: str, degree: str, t: int
+    ) -> str:
+        lid = f"L{len(self.state.lecturers) + 1:02d}"
+        zero = dict.fromkeys(self.reg.credit_categories, 0.0)
+        self.state.lecturers[lid] = LecturerState(
+            id=lid, policy=policy, archetype=archetype, rank=rank, degree=degree, hired_at=t,
+            credits_total=dict(zero), credits_in_rank=dict(zero),
+            publications=dict.fromkeys(self.reg.journal_tiers, 0),
+        )  # fmt: skip
+        book = self.sc.agents
+        self.policies[lid] = POLICIES[policy](
+            self.rng.get("policy", lid),
+            archetype=book.archetypes[archetype] if archetype else None,
+            stages=book.stages if book else None,
+        )
+        return lid
+
+    def _sensitivity(self, lec: LecturerState) -> float:
+        if lec.archetype is None:
+            return DEFAULT_BURNOUT_SENSITIVITY
+        return self.sc.agents.archetypes[lec.archetype].persona.burnout_sensitivity
 
     def observe(self, lid: str) -> Observation:
         lec = self.state.lecturers[lid]
@@ -91,6 +108,15 @@ class Engine:
             forecast=self.forecast,
         )
 
+    def ask(self, lid: str, proposal: Proposal) -> Response:
+        """Route a proposal to a lecturer's policy and log both envelopes."""
+        resp = self.policies[lid].respond(self.observe(lid), proposal)
+        self.log.event(
+            self.state.semester, "negotiation", "message", lid,
+            proposal=proposal.model_dump(mode="json"), response=resp.model_dump(mode="json"),
+        )  # fmt: skip
+        return resp
+
     def run(self) -> DepartmentState:
         for _ in range(self.sc.semesters):
             self.step()
@@ -98,53 +124,100 @@ class Engine:
 
     def step(self) -> None:
         t = self.state.semester
-        ids = sorted(self.state.lecturers)
+        self._events(t)
+        ids = self.state.active_ids()
         outputs: dict[str, dict[str, float]] = {i: {} for i in ids}
-        self._events(t, outputs)
-        # negotiation: no-op in M1
+        self._collect_publications(t, outputs)
+        uncovered, demand = self._negotiate(t, ids)
         allocations = {i: self._allocate(t, i) for i in ids}
         for i in ids:
             self._resolve(t, i, allocations[i], outputs[i])
         for i in ids:
             self._evaluate(t, i, allocations[i], outputs[i])
+        self._department_summary(t, ids, demand, uncovered)
         for i in ids:
             self.policies[i].reflect(self.observe(i))
         self.state.semester += 1
 
     # --- phases -------------------------------------------------------------
 
-    def _events(self, t: int, outputs: dict[str, dict[str, float]]) -> None:
-        due = [s for s in self.state.submissions if s.decision_due == t]
-        self.state.submissions = [s for s in self.state.submissions if s.decision_due != t]
-        for s in due:
-            lec = self.state.lecturers[s.agent]
-            if s.accepted:
-                lec.publications[s.tier] += 1
-                key = f"publication_{s.tier}"
-                outputs[s.agent][key] = outputs[s.agent].get(key, 0.0) + 1
-            else:
-                lec.manuscripts_ready += 1  # rejected manuscripts can be resubmitted
-            self.log.event(
-                t, "events", "journal_decision", s.agent,
-                tier=s.tier, submitted=s.submitted, accepted=s.accepted,
-            )  # fmt: skip
-        for lid in sorted(self.state.lecturers):
+    def _events(self, t: int) -> None:
+        dept = self.sc.department
+        for lid in self.state.active_ids():
             lec = self.state.lecturers[lid]
             for g in lec.grants:
                 if g.end == t:
                     self.log.event(t, "events", "grant_ended", lid, start=g.start)
             lec.grants = [g for g in lec.grants if g.end > t]
+            lec.roles = {r: end for r, end in lec.roles.items() if end > t}
+            risk = burnout.attrition_risk(lec.burnout, self.sc.environment.burnout)
+            if risk > 0 and self.rng.get("attrition").random() < risk:
+                lec.active, lec.left_at, lec.roles = False, t, {}
+                self.log.event(t, "events", "attrition", lid, burnout=lec.burnout)
+                if dept.hiring.replace_leavers:
+                    self.state.hires.append(Hire(due=t + dept.hiring.lag_semesters,
+                                                 policy=lec.policy, archetype=lec.archetype,
+                                                 degree=lec.degree))  # fmt: skip
+        for h in [h for h in self.state.hires if h.due <= t]:
+            self.state.hires.remove(h)
+            lid = self._add_lecturer(h.policy, h.archetype, self.reg.rank_names[0], h.degree, t)
+            self.log.event(t, "events", "hire", lid, policy=h.policy, archetype=h.archetype)
+
+    def _collect_publications(self, t: int, outputs: dict[str, dict[str, float]]) -> None:
+        due = [s for s in self.state.submissions if s.decision_due == t]
+        self.state.submissions = [s for s in self.state.submissions if s.decision_due != t]
+        share_rule = self.reg.coauthor_credit.first_author_share
+        for s in due:
+            authors = [s.agent, *s.coauthors]
+            if s.accepted:
+                key = f"publication_{s.tier}"
+                for a, share in zip(authors, credits.author_shares(len(authors), share_rule),
+                                    strict=True):  # fmt: skip
+                    lec = self.state.lecturers[a]
+                    lec.publications[s.tier] += 1
+                    if a in outputs:  # departed co-authors keep the count, not the credit
+                        outputs[a][key] = outputs[a].get(key, 0.0) + share
+            elif self.state.lecturers[s.agent].active:
+                self.state.lecturers[s.agent].manuscripts_ready += 1  # resubmit later, solo
+            self.log.event(
+                t, "events", "journal_decision", s.agent,
+                tier=s.tier, submitted=s.submitted, accepted=s.accepted, coauthors=s.coauthors,
+            )  # fmt: skip
+
+    def _negotiate(self, t: int, ids: list[str]) -> tuple[float, float]:
+        lecs = {i: self.state.lecturers[i] for i in ids}
+        for lec in lecs.values():
+            lec.commitments, lec.coauthor = {}, None
+        self.head.fill_roles(t, lecs, self.ask, self.log.event)
+        for lec in lecs.values():
+            if lec.roles:
+                lec.commitments["admin"] = self.head.role_hours(lec)
+        spec = self.sc.department.teaching_demand
+        z = float(self.rng.get("teaching_demand").standard_normal())
+        demand = self.state.teaching_demand_base * production.lognormal_noise(z, spec.sigma)
+        uncovered = self.head.assign_teaching(t, lecs, demand, self.ask, self.log.event)
+        if self.sc.department.coauthorship.enabled:
+            pubs = {i: sum(lecs[i].publications.values()) for i in ids}
+            pairs = coauthorship.match(
+                ids, pubs, self.state.coauthor_memory, self.ask, self.rng.get("coauthor")
+            )
+            for a, b in pairs:
+                lecs[a].coauthor, lecs[b].coauthor = b, a
+                self.log.event(t, "negotiation", "coauthorship", a, partner=b)
+        return uncovered, demand
 
     def _allocate(self, t: int, lid: str) -> Allocation:
+        lec = self.state.lecturers[lid]
         alloc = self.policies[lid].decide_allocation(self.observe(lid))
         violations = check_workload(alloc.hours, self.reg.workload, self.reg.time.hours_per_week)
+        violations += check_commitments(alloc.hours, lec.commitments)
         if alloc.journal_tier is not None and alloc.journal_tier not in self.reg.journal_tiers:
             violations.append(f"unknown journal tier {alloc.journal_tier!r}")
         self.log.event(
             t, "allocation", "allocation", lid,
             hours={str(a): h for a, h in alloc.hours.items()},
             journal_tier=alloc.journal_tier, apply_grant=alloc.apply_grant,
-            info=alloc.info, violations=violations,
+            commitments=lec.commitments, info=alloc.info, violations=violations,
         )  # fmt: skip
         if violations:
             # ponytail: invalid allocations abort the run; add a fallback policy in Phase 2.
@@ -159,35 +232,47 @@ class Engine:
         prod_rng = self.rng.get("production", lid)
 
         active_grant = any(g.start <= t < g.end for g in lec.grants)
-        mult = env.grants.research_multiplier if active_grant else 1.0
+        productivity = burnout.productivity_multiplier(lec.burnout, env.burnout)
+        mult = (env.grants.research_multiplier if active_grant else 1.0) * productivity
+        if lec.coauthor is not None:
+            mult *= 1 + self.sc.department.coauthorship.productivity_boost
         made = production.produce(
             sem_hours[Activity.RESEARCH], env.production["research"],
             float(prod_rng.standard_normal()), mult,
         )  # fmt: skip
         whole, lec.manuscript_progress = production.accumulate(lec.manuscript_progress, made)
-        lec.manuscripts_ready += whole
         community = production.produce(
             sem_hours[Activity.COMMUNITY_SERVICE], env.production["community_service"],
-            float(prod_rng.standard_normal()),
+            float(prod_rng.standard_normal()), productivity,
         )  # fmt: skip
         self.log.event(
             t, "resolution", "production", lid,
             research_output=made, manuscripts_completed=whole,
             manuscript_progress=lec.manuscript_progress, community_outputs=community,
-            grant_active=active_grant,
+            grant_active=active_grant, productivity=productivity, coauthor=lec.coauthor,
         )  # fmt: skip
 
-        if alloc.journal_tier is not None:
-            for _ in range(lec.manuscripts_ready):
-                sub = journals.submit(
-                    lid, alloc.journal_tier, t,
-                    env.journals[alloc.journal_tier], self.rng.get("journals"),
-                )  # fmt: skip
-                self.state.submissions.append(sub)
-                self.log.event(
-                    t, "resolution", "submission", lid,
-                    tier=sub.tier, decision_due=sub.decision_due,
-                )  # fmt: skip
+        # Manuscripts finished while paired are co-authored; older ones stay solo.
+        batches = [([], lec.manuscripts_ready)]
+        if lec.coauthor is not None:
+            batches.append(([lec.coauthor], whole))
+        else:
+            batches[0] = ([], lec.manuscripts_ready + whole)
+        if alloc.journal_tier is None:
+            lec.manuscripts_ready += whole
+        else:
+            for coauthors, count in batches:
+                for _ in range(count):
+                    sub = journals.submit(
+                        lid, alloc.journal_tier, t,
+                        env.journals[alloc.journal_tier], self.rng.get("journals"),
+                    )  # fmt: skip
+                    sub = Submission(**sub.model_dump() | {"coauthors": coauthors})
+                    self.state.submissions.append(sub)
+                    self.log.event(
+                        t, "resolution", "submission", lid,
+                        tier=sub.tier, decision_due=sub.decision_due, coauthors=coauthors,
+                    )  # fmt: skip
             lec.manuscripts_ready = 0
 
         if alloc.apply_grant:
@@ -205,6 +290,8 @@ class Engine:
         out["supervision_hours"] = sem_hours[Activity.SUPERVISION]
         out["admin_hours"] = sem_hours[Activity.ADMIN]
         out["community_outputs"] = community
+        if lec.roles:
+            out["admin_role_semesters"] = float(len(lec.roles))
 
     def _evaluate(self, t: int, lid: str, alloc: Allocation, out: dict[str, float]) -> None:
         lec = self.state.lecturers[lid]
@@ -223,6 +310,7 @@ class Engine:
         monthly = pay.monthly_pay(
             rank=lec.rank, years_of_service=self.clock.years(lec.semesters_service),
             certified=lec.certified, rules=reg.pay,
+            role_allowance=self.forecast.role_allowance(lec),
         )  # fmt: skip
         income = pay.semester_income(
             monthly=monthly, months=reg.time.months_per_semester,
@@ -233,6 +321,12 @@ class Engine:
         lec.monthly_pay = sum(monthly.values())
         lec.cumulative_income += income["total"]
         self.log.event(t, "evaluation", "pay", lid, monthly=monthly, semester=income)
+
+        rest = alloc.hours[Activity.REST]
+        lec.burnout = burnout.update_burnout(
+            lec.burnout, reg.time.hours_per_week - rest, rest, reg.time.hours_per_week,
+            self.sc.environment.burnout, self._sensitivity(lec),
+        )  # fmt: skip
 
         blockers = promotion.promotion_blockers(lec, reg)
         target = promotion.next_rank(lec.rank, reg)
@@ -245,4 +339,15 @@ class Engine:
             t, "evaluation", "snapshot", lid,
             label=self.clock.label(t), blockers=blockers,
             state=lec.model_dump(mode="json", exclude={"grants"}),
+        )  # fmt: skip
+
+    def _department_summary(self, t: int, ids: list[str], demand: float, uncovered: float) -> None:
+        lecs = [self.state.lecturers[i] for i in ids]
+        self.log.event(
+            t, "evaluation", "department", None,
+            active=len(lecs), teaching_demand=demand, teaching_uncovered=uncovered,
+            teaching_coverage=1 - uncovered / demand if demand > 0 else 1.0,
+            mean_burnout=sum(lec.burnout for lec in lecs) / len(lecs) if lecs else math.nan,
+            roles_filled=sum(len(lec.roles) for lec in lecs),
+            coauthor_pairs=sum(lec.coauthor is not None for lec in lecs) // 2,
         )  # fmt: skip

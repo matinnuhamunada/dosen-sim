@@ -5,19 +5,27 @@ from __future__ import annotations
 import numpy as np
 
 from lecsim.agents.base import Observation
-from lecsim.agents.common import logit_choice, risk_adjusted_tier
+from lecsim.agents.common import (
+    ArchetypeResponder,
+    fit_to_workload,
+    logit_choice,
+    risk_adjusted_tier,
+)
 from lecsim.config import Archetype, StageRules
-from lecsim.core.actions import Allocation, Proposal, Response
+from lecsim.core.actions import Allocation
+from lecsim.rules.workload import check_commitments
 
 
-class UtilityPolicy:
+class UtilityPolicy(ArchetypeResponder):
     """Scores every candidate bundle by expected one-semester utility
 
         U = w_rank * (distance_before - distance_after)
           + w_pay * income / income_ref
-          + w_wellbeing * rest_share
+          + w_wellbeing * (rest_share - expected burnout after)
 
     using the engine's forecasts, then picks one with logit noise (``choice_noise``).
+    Candidates that break agreed commitments are excluded; if none remain, the archetype's
+    fixed shares are fitted to the commitments instead.
     """
 
     def __init__(
@@ -29,16 +37,20 @@ class UtilityPolicy:
     def decide_allocation(self, obs: Observation) -> Allocation:
         f, p = obs.forecast, self.arch.persona
         tier = risk_adjusted_tier(obs, p)
-        cands = f.candidates(f.sc.candidate_grid_steps)
+        floors = obs.me.commitments
+        cands = [h for h in f.candidates(f.sc.candidate_grid_steps)
+                 if not check_commitments(h, floors)]  # fmt: skip
+        if not cands:
+            cands = [fit_to_workload(self.arch.shares, obs.workload, obs.hours_per_week, floors)]
         ref = f.income_ref
         # ponytail: one Python outlook per candidate (~400); vectorise if sweeps get slow.
         utils = np.empty(len(cands))
         for i, h in enumerate(cands):
-            o = f.outlook(obs.me, obs.semester, h, tier, self.arch.apply_grants, p.discount)
+            o = f.outlook(obs.me, obs.semester, h, tier, self.arch.apply_grants, p)
             utils[i] = (
                 p.w_rank * (o.distance_before - o.distance_after)
                 + p.w_pay * o.income / ref
-                + p.w_wellbeing * o.rest_share
+                + p.w_wellbeing * (o.rest_share - o.burnout_after)
             )
         i = logit_choice(utils, p.choice_noise, self.rng)
         return Allocation(
@@ -49,11 +61,5 @@ class UtilityPolicy:
                 "utility": float(utils[i]),
                 "best_utility": float(utils.max()),
                 "candidates": len(cands),
-            },  # fmt: skip
+            },
         )
-
-    def respond(self, obs: Observation, proposal: Proposal) -> Response:
-        return Response(kind="accept" if self.arch.persona.cooperativeness >= 0.5 else "reject")
-
-    def reflect(self, obs: Observation) -> None:
-        return None

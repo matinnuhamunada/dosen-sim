@@ -33,6 +33,9 @@ def summarize(events_path: str | Path) -> pl.DataFrame:
                 **{f"credits_{k}": v for k, v in sorted(s["credits_total"].items())},
                 "publications": sum(s["publications"].values()),
                 "cumulative_income": s["cumulative_income"],
+                "burnout": s["burnout"],
+                "active": s["active"],
+                "left_at": s["left_at"],
             }
         )
     return pl.DataFrame(rows)

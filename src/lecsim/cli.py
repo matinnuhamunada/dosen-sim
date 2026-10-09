@@ -61,3 +61,7 @@ def frontier_cmd(
     agg.write_csv(out / "frontier_summary.csv")
     with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=200):
         typer.echo(agg)
+
+
+if __name__ == "__main__":
+    app()

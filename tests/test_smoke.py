@@ -1,5 +1,8 @@
 """Smoke test: 5 random agents x 10 semesters; same seed -> byte-identical event log."""
 
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 from lecsim.cli import run_scenario
@@ -34,3 +37,19 @@ def test_rng_streams_independent_of_creation_order():
     r2.get("other").random()
     assert r1.get("journals").random() == r2.get("journals").random()
     assert RngStreams(7).get("a").random() != RngStreams(7).get("b").random()
+
+
+def test_identical_across_processes(tmp_path):
+    """Different PYTHONHASHSEEDs must not change the log (no set-order dependence)."""
+    scenario = Path(__file__).parents[1] / "configs/scenarios/department_stress.yaml"
+    logs = []
+    for hash_seed in ("1", "2"):
+        out = tmp_path / hash_seed
+        env = os.environ | {"PYTHONHASHSEED": hash_seed}
+        subprocess.run(
+            [sys.executable, "-m", "lecsim.cli", "run", str(scenario), "--seed", "5",
+             "--out", str(out)],
+            check=True, env=env, capture_output=True,
+        )  # fmt: skip
+        logs.append((out / "department_stress_seed5" / "events.jsonl").read_bytes())
+    assert logs[0] == logs[1]

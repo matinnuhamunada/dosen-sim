@@ -16,7 +16,11 @@ degree is insufficient). The objective over the remaining horizon is
 
 All plans are enumerated with numpy broadcasting (|B|^(ranks to go) leaves). The plan is
 re-solved from the true state after every promotion, so stochastic timing is absorbed.
-Approximations: publication lag and grant productivity boosts are ignored in planning.
+Burnout enters through its steady state per bundle: 1 if the bundle's weekly strain
+exceeds its recovery, else 0 (current level if exactly balanced). It scales research and
+community output by the productivity penalty and enters wellbeing as rest share - burnout.
+Approximations: publication lag, grant boosts, co-authorship and burnout transients are
+ignored in planning; commitments (teaching load, roles) are applied when acting.
 """
 
 from __future__ import annotations
@@ -26,8 +30,10 @@ import math
 import numpy as np
 
 from lecsim.agents.base import Observation
+from lecsim.agents.common import ArchetypeResponder, fit_to_workload
 from lecsim.config import Archetype, Persona, StageRules
-from lecsim.core.actions import Activity, Allocation, Proposal, Response
+from lecsim.core.actions import Activity, Allocation
+from lecsim.rules.workload import check_commitments
 
 
 def _plan_tier(obs: Observation, rank_index: int, discount: float) -> str:
@@ -66,6 +72,9 @@ def solve(obs: Observation, persona: Persona, apply_grants: bool) -> tuple[dict,
     ref = f.income_ref
     rest = np.array([h[Activity.REST] for h in cands]) / reg.time.hours_per_week
     pubs_total = sum(me.publications.values())
+    drift = np.array([f.burnout_drift(h, persona.burnout_sensitivity) for h in cands])
+    b_ss = np.where(drift > 0, 1.0, np.where(drift < 0, 0.0, me.burnout))
+    prod_mult = 1 - f.env.burnout.productivity_penalty * b_ss
 
     def tables(r: int):
         tier = _plan_tier(obs, r, persona.discount)
@@ -73,7 +82,9 @@ def solve(obs: Observation, persona: Persona, apply_grants: bool) -> tuple[dict,
         rate = np.zeros(len(cands))
         var = np.zeros(len(cands))
         for b, h in enumerate(cands):
-            out, manuscripts = f.expected_outputs(h, tier, apply_grants, pubs_total, False)
+            out, manuscripts = f.expected_outputs(
+                h, tier, apply_grants, pubs_total, False, productivity=prod_mult[b]
+            )
             cr = f.score(out)
             flow[b] = [cr[c] for c in cats]
             rate[b] = manuscripts
@@ -83,7 +94,7 @@ def solve(obs: Observation, persona: Persona, apply_grants: bool) -> tuple[dict,
         )
         a = persona.w_pay * fixed / ref + persona.w_rank * r / max(n_ranks - 1, 1)
         pa = np.concatenate([[0.0], np.cumsum(d * a)])
-        bv = persona.w_pay * var / ref + persona.w_wellbeing * rest
+        bv = persona.w_pay * var / ref + persona.w_wellbeing * (rest - b_ss)
         return tier, flow, rate, bv, pa
 
     # Frontier of partial plans: start semester k, cumulative credit, pubs by tier, value.
@@ -162,7 +173,7 @@ def solve(obs: Observation, persona: Persona, apply_grants: bool) -> tuple[dict,
     return plan, info
 
 
-class OptimiserPolicy:
+class OptimiserPolicy(ArchetypeResponder):
     def __init__(
         self, rng: np.random.Generator, archetype: Archetype, stages: StageRules | None = None
     ) -> None:
@@ -177,13 +188,12 @@ class OptimiserPolicy:
             self.plan, info = solve(obs, self.arch.persona, self.arch.apply_grants)
             info["replanned"] = True
         idx, tier = self.plan[me.rank]
-        cands = obs.forecast.candidates(obs.forecast.sc.optimiser_grid_steps)
+        hours = obs.forecast.candidates(obs.forecast.sc.optimiser_grid_steps)[idx]
+        if check_commitments(hours, me.commitments):
+            budget = obs.hours_per_week
+            shares = {a: h / budget for a, h in hours.items()}
+            hours = fit_to_workload(shares, obs.workload, budget, me.commitments)
+            info["fitted_to_commitments"] = True
         return Allocation(
-            hours=cands[idx], journal_tier=tier, apply_grant=self.arch.apply_grants, info=info
+            hours=hours, journal_tier=tier, apply_grant=self.arch.apply_grants, info=info
         )
-
-    def respond(self, obs: Observation, proposal: Proposal) -> Response:
-        return Response(kind="accept" if self.arch.persona.cooperativeness >= 0.5 else "reject")
-
-    def reflect(self, obs: Observation) -> None:
-        return None

@@ -5,12 +5,12 @@ from __future__ import annotations
 import numpy as np
 
 from lecsim.agents.base import Observation
-from lecsim.agents.common import fit_to_workload, preferred_tier, transfer
+from lecsim.agents.common import ArchetypeResponder, fit_to_workload, preferred_tier, transfer
 from lecsim.config import Archetype, StageRules
-from lecsim.core.actions import Activity, Allocation, Proposal, Response
+from lecsim.core.actions import Activity, Allocation
 
 
-class FixedSharePolicy:
+class FixedSharePolicy(ArchetypeResponder):
     """Constant fraction of hours per activity (repaired to the workload rules)."""
 
     def __init__(
@@ -29,17 +29,11 @@ class FixedSharePolicy:
     def decide_allocation(self, obs: Observation) -> Allocation:
         shares, info = self.target_shares(obs)
         return Allocation(
-            hours=fit_to_workload(shares, obs.workload, obs.hours_per_week),
+            hours=fit_to_workload(shares, obs.workload, obs.hours_per_week, obs.me.commitments),
             journal_tier=self.tier(obs),
             apply_grant=self.arch.apply_grants,
             info=info,
         )
-
-    def respond(self, obs: Observation, proposal: Proposal) -> Response:
-        return Response(kind="accept" if self.arch.persona.cooperativeness >= 0.5 else "reject")
-
-    def reflect(self, obs: Observation) -> None:
-        return None
 
 
 class ThresholdPolicy(FixedSharePolicy):
@@ -48,7 +42,8 @@ class ThresholdPolicy(FixedSharePolicy):
     - a category below its minimum in-rank share -> shift ``gap_shift`` toward it;
     - a category above its maximum share -> shift ``gap_shift`` away from it;
     - unmet publication or cumulative-credit requirement -> shift ``gap_shift`` to research;
-    - publication requirement -> submit at least at the required tier.
+    - publication requirement -> submit at least at the required tier;
+    - burnout above the archetype's ``burnout_limit`` -> shift ``2 * gap_shift`` to rest.
     """
 
     def base_shares(self, obs: Observation) -> tuple[dict[str, float], dict]:
@@ -82,6 +77,9 @@ class ThresholdPolicy(FixedSharePolicy):
             boosted.append(to[0])
             shares = transfer(shares, to, self.arch.gap_shift, keep=boosted)
             rules.append(f"{g.kind}:{g.key or ''}->{to[0]}")
+        if obs.me.burnout > self.arch.burnout_limit:
+            shares = transfer(shares, [Activity.REST], 2 * self.arch.gap_shift)
+            rules.append("burnout->rest")
         return shares, info | {"rules": rules}
 
     def tier(self, obs: Observation) -> str:

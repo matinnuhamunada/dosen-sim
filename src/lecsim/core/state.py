@@ -11,7 +11,8 @@ class Grant(BaseModel):
 
 
 class Submission(BaseModel):
-    agent: str
+    agent: str  # first author (the producer)
+    coauthors: list[str] = Field(default_factory=list)
     tier: str
     submitted: int
     decision_due: int
@@ -22,6 +23,9 @@ class LecturerState(BaseModel):
     id: str
     policy: str
     archetype: str | None = None
+    active: bool = True
+    hired_at: int = 0
+    left_at: int | None = None
     rank: str
     degree: str
     semesters_in_rank: int = 0
@@ -35,9 +39,27 @@ class LecturerState(BaseModel):
     grants: list[Grant] = Field(default_factory=list)
     monthly_pay: float = 0.0
     cumulative_income: float = 0.0
+    burnout: float = 0.0
+    commitments: dict[str, float] = Field(default_factory=dict)  # agreed weekly hour floors
+    roles: dict[str, int] = Field(default_factory=dict)  # role name -> end semester (exclusive)
+    coauthor: str | None = None  # partner this semester
+
+
+class Hire(BaseModel):
+    due: int
+    policy: str
+    archetype: str | None
+    degree: str
 
 
 class DepartmentState(BaseModel):
     semester: int = 0
     lecturers: dict[str, LecturerState]
     submissions: list[Submission] = Field(default_factory=list)
+    teaching_demand_base: float = 0.0
+    hires: list[Hire] = Field(default_factory=list)
+    # "a>b" -> did b accept the last co-authorship pairing with a (reciprocity memory)
+    coauthor_memory: dict[str, bool] = Field(default_factory=dict)
+
+    def active_ids(self) -> list[str]:
+        return sorted(i for i, lec in self.lecturers.items() if lec.active)

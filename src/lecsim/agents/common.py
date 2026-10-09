@@ -9,9 +9,9 @@ from collections.abc import Iterable, Mapping
 import numpy as np
 
 from lecsim.agents.base import Observation
-from lecsim.config import Persona, WorkloadRules
-from lecsim.core.actions import Activity
-from lecsim.rules.workload import check_workload
+from lecsim.config import Archetype, Persona, WorkloadRules
+from lecsim.core.actions import Activity, Proposal, Response
+from lecsim.rules.workload import check_commitments, check_workload
 
 
 def _move(
@@ -33,41 +33,74 @@ def _move(
 
 
 def fit_to_workload(
-    shares: Mapping[str, float], rules: WorkloadRules, budget: float
+    shares: Mapping[str, float],
+    rules: WorkloadRules,
+    budget: float,
+    floors: Mapping[str, float] | None = None,
 ) -> dict[Activity, float]:
     """Turn target shares into a valid weekly allocation with minimal reshuffling.
 
+    0. Raise committed activities to their ``floors`` (agreed teaching load, role hours),
+       taking proportionally from the other activities.
     1. Scale shares to the budget.
     2. Clamp duty hours into [min, max], moving hours between duty and free activities.
     3. Raise any tridharma category below its minimum share, taking only from other
        categories' surplus above their own minimum.
+    No step takes an activity below its floor.
     """
+    floor = {Activity(a): v for a, v in (floors or {}).items()}
     h = {a: shares.get(a, 0.0) * budget for a in Activity}
+
+    def free(a: Activity) -> float:
+        return max(0.0, h[a] - floor.get(a, 0.0))
+
+    short = {a: v - h[a] for a, v in floor.items() if v > h[a]}
+    for a, need in short.items():
+        _move(h, {b: free(b) for b in Activity if b not in short}, [a], need)
+
     duty_acts = [Activity(a) for a in rules.duty_activities]
     free_acts = [a for a in Activity if a not in duty_acts]
     duty = sum(h[a] for a in duty_acts)
     target = min(max(duty, rules.min_duty_hours_per_week), rules.max_duty_hours_per_week)
     if target > duty:
-        _move(h, {a: h[a] for a in free_acts}, duty_acts, target - duty)
+        _move(h, {a: free(a) for a in free_acts}, duty_acts, target - duty)
     elif target < duty:
-        _move(h, {a: h[a] for a in duty_acts}, free_acts, duty - target)
+        _move(h, {a: free(a) for a in duty_acts}, free_acts, duty - target)
 
     cat_of = {Activity(a): c for a, c in rules.activity_category.items()}
-    for cat, lo in rules.min_share.items():
-        mine = [a for a in duty_acts if cat_of[a] == cat]
-        need = lo * target - sum(h[a] for a in mine)
-        if need <= 1e-12:
-            continue
-        donors: dict[Activity, float] = {}
-        for other in {cat_of[a] for a in duty_acts} - {cat}:
-            acts = [a for a in duty_acts if cat_of[a] == other]
-            hours = sum(h[a] for a in acts)
-            surplus = hours - rules.min_share.get(other, 0.0) * target
-            if surplus > 0:
-                donors.update({a: surplus * h[a] / hours for a in acts})
-        _move(h, donors, mine, need)
+    cats = sorted({cat_of[a] for a in duty_acts})  # sorted: set order varies across processes
+    for _ in range(len(rules.min_share) + 1):  # raising duty can dilute an earlier category
+        short_any = False
+        for cat, lo in rules.min_share.items():
+            mine = [a for a in duty_acts if cat_of[a] == cat]
+            duty = sum(h[a] for a in duty_acts)
+            need = lo * duty - sum(h[a] for a in mine)
+            if need <= 1e-9:
+                continue
+            short_any = True
+            # first from other categories' surplus (duty hours unchanged) ...
+            donors: dict[Activity, float] = {}
+            for other in cats:
+                if other == cat:
+                    continue
+                acts = [a for a in duty_acts if cat_of[a] == other]
+                hours = sum(h[a] for a in acts)
+                surplus = hours - rules.min_share.get(other, 0.0) * duty
+                if surplus > 0:
+                    donors.update({a: min(surplus * h[a] / hours, free(a)) for a in acts})
+            take = min(need, sum(donors.values()))
+            _move(h, donors, mine, take)
+            need -= take
+            # ... then from external work / rest, which also raises duty hours: x(1 - lo) = need
+            if need > 1e-9:
+                x = need / (1 - lo)
+                if x > rules.max_duty_hours_per_week - duty + 1e-9:
+                    raise ValueError("workload limits cannot be satisfied")
+                _move(h, {a: free(a) for a in free_acts}, mine, x)
+        if not short_any:
+            break
 
-    violations = check_workload(h, rules, budget)
+    violations = check_workload(h, rules, budget) + check_commitments(h, floor)
     if violations:
         raise ValueError(f"could not fit allocation: {violations}")
     return h
@@ -138,3 +171,64 @@ def logit_choice(utils: np.ndarray, temperature: float, rng: np.random.Generator
     z = (utils - utils.max()) / temperature
     p = np.exp(z)
     return int(rng.choice(len(utils), p=p / p.sum()))
+
+
+# --- rule-based interaction strategies (PRD: interaction strategies) -----------------
+# ponytail: thresholds are module constants; move to archetype config if they need tuning.
+ROLE_COOPERATION = 0.7  # cooperativeness at which a lecturer accepts a role out of duty
+COAUTHOR_COOPERATION = 0.5  # cooperativeness at which an unknown partner is accepted
+COAUTHOR_RESEARCH_SHARE = 0.25  # research-oriented lecturers accept co-authors anyway
+
+
+def archetype_respond(arch: Archetype, obs: Observation, proposal: Proposal) -> Response:
+    """Default lecturer responses to the head and to co-authorship offers.
+
+    - teaching_load: accept up to reservation r = preferred teaching x (1 + cooperativeness),
+      otherwise counter with r.
+    - extra_teaching (volunteering): accept if the extra still fits under r.
+    - admin_role: accept if the archetype wants the admin time, or if cooperative and
+      holding no role yet (volunteer's dilemma).
+    - coauthor: tit-for-tat on the partner's last answer; otherwise accept if cooperative
+      or research-oriented.
+    """
+    coop = arch.persona.cooperativeness
+    budget = obs.hours_per_week
+    terms = proposal.terms
+    match proposal.topic:
+        case "teaching_load":
+            r = arch.shares.get("teaching", 0.0) * budget * (1 + coop)
+            if terms["hours"] <= r + 1e-9:
+                return Response(kind="accept")
+            counter = Proposal(sender=obs.me.id, topic="teaching_load", terms={"hours": r})
+            return Response(kind="counter", counter=counter)
+        case "extra_teaching":
+            r = arch.shares.get("teaching", 0.0) * budget * (1 + coop)
+            ok = terms["current"] + terms["hours"] <= r + 1e-9
+            return Response(kind="accept" if ok else "reject")
+        case "admin_role":
+            wanted = arch.shares.get("admin", 0.0) * budget - obs.me.commitments.get("admin", 0.0)
+            ok = wanted >= terms["hours"] / 2 or (coop >= ROLE_COOPERATION and not obs.me.roles)
+            return Response(kind="accept" if ok else "reject")
+        case "coauthor":
+            last = terms.get("partner_accepted_last", -1)
+            if last in (0, 1):
+                ok = bool(last)
+            else:
+                ok = (
+                    coop >= COAUTHOR_COOPERATION
+                    or arch.shares.get("research", 0.0) >= COAUTHOR_RESEARCH_SHARE
+                )
+            return Response(kind="accept" if ok else "reject")
+    return Response(kind="reject")
+
+
+class ArchetypeResponder:
+    """Mixin: archetype-driven ``respond`` and no-op ``reflect``."""
+
+    arch: Archetype
+
+    def respond(self, obs: Observation, proposal: Proposal) -> Response:
+        return archetype_respond(self.arch, obs, proposal)
+
+    def reflect(self, obs: Observation) -> None:
+        return None
