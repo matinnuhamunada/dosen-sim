@@ -60,6 +60,9 @@ export function scoreRows(run: Run, t: number): ScoreRow[] {
       row[`t ${r}`] = ev ? ev.t + 1 - a.hiredAt : null;
     }
     const sems = [...a.sems.values()].filter((x) => x.t <= t);
+    row["lab"] = s.lab;
+    row["age"] = s.age;
+    row["years of service"] = s.service;
     row["pay (M IDR)"] = s.cumIncome / 1e6;
     for (const c of run.info.credit_categories) row[`credit ${c}`] = s.credits[c] ?? 0;
     row["papers"] = s.publications;

@@ -72,7 +72,7 @@ def lecturer_power_table(events_path: Path) -> pl.DataFrame:
                                               "programme_head_terms", "royalty_M", "grants")},
             "rank_at_first_leadership": snap_rank.get(first_role_rank.get(a, ("", -1))),
         })  # fmt: skip
-    return pl.DataFrame(rows)
+    return pl.DataFrame(rows, infer_schema_length=None)
 
 
 def report(run_dirs: list[Path]) -> str:

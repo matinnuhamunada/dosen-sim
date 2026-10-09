@@ -94,10 +94,17 @@ class Engine:
                 lo, hi = years[lec.rank]
                 lec.semesters_service = round(self._draw(lo, hi) * spy)
                 lec.age = self._draw(*scenario.demography.start_age) + lec.semesters_service / spy
+            self._seed_history()
         dept = scenario.department
         if dept.labs:
-            for lec in self.state.lecturers.values():  # creation order: deterministic
-                lec.lab = self._lab()
+            # Deal founders out over a seeded lab order, most senior and oldest first: every
+            # lab gets a balanced mix of ranks and age cohorts, sizes differ by at most 1.
+            labs = [dept.labs[i] for i in self.rng.get("labs").permutation(len(dept.labs))]
+            ranks = self.reg.rank_names
+            order = sorted(self.state.lecturers.values(),
+                           key=lambda x: (-ranks.index(x.rank), -(x.age or 0.0), x.id))  # fmt: skip
+            for k, lec in enumerate(order):
+                lec.lab = labs[k % len(labs)]
             if scenario.environment.patents is not None:
                 self.state.labs = {lab: LabState() for lab in dept.labs}
         self._made: dict[str, float] = {}  # research output this semester (patents)
@@ -147,6 +154,30 @@ class Engine:
             stages=book.stages if book else None,
         )
         return lid
+
+    def _seed_history(self) -> None:
+        """Founders' accumulated pay, credits and papers at t = 0, estimated from rank and
+        service: the career is assumed to have climbed evenly from the first rank."""
+        demo, reg, f = self.sc.demography, self.reg, self.forecast
+        ranks = reg.rank_names
+        tiers = demo.initial_pub_tier_shares
+        need = {r.name: r for r in reg.career.ranks}
+        for lec in self.state.lecturers.values():
+            top, n = ranks.index(lec.rank), lec.semesters_service
+            path = [ranks[top * k // n] if n else lec.rank for k in range(n)]
+            lec.cumulative_income = sum(
+                f.fixed_income(r, k, k + 1 >= reg.certification.min_semesters_service)
+                for k, r in enumerate(path)
+            )
+            if demo.initial_credit_shares:
+                total = need[lec.rank].min_cumulative_credit
+                lec.credits_total = {c: total * demo.initial_credit_shares.get(c, 0.0)
+                                     for c in reg.credit_categories}  # fmt: skip
+            papers = sum(demo.initial_pubs_per_semester_by_rank.get(r, 0.0) for r in path)
+            if tiers:
+                lec.publications = {t: round(papers * tiers.get(t, 0.0)) for t in reg.journal_tiers}
+                for tier, k in need[lec.rank].min_publications.items():  # rank already earned
+                    lec.publications[tier] = max(lec.publications[tier], k)
 
     def _lab(self) -> str:
         labs = self.sc.department.labs

@@ -265,7 +265,24 @@ function podium(r: Run): string {
   }).join("");
   return `<div class="float kpi podium"><div><div class="lbl">Top 3 by
     <select id="podium-metric" title="Ranking metric (same columns as the scoreboard)">${opts}</select></div>
-    <div class="chips">${chips || "<small>no lecturers yet</small>"}</div></div></div>`;
+    <div class="chips">${chips || "<small>no lecturers yet</small>"}</div>${labPodium(r)}</div></div>`;
+}
+
+/** Top 3 labs by the mean of the same metric over their active members. */
+function labPodium(r: Run): string {
+  const key = state.podium;
+  const labs = new Map<string, number[]>();
+  for (const row of scoreRows(r, state.t)) {
+    if (row.status !== "active" || typeof row.lab !== "string" || typeof row[key] !== "number") continue;
+    if (!labs.has(row.lab)) labs.set(row.lab, []);
+    labs.get(row.lab)!.push(row[key] as number);
+  }
+  if (!labs.size) return "";
+  const top = [...labs].map(([lab, v]) => ({ lab, n: v.length, mean: v.reduce((a, b) => a + b, 0) / v.length }))
+    .sort((p, q) => q.mean - p.mean).slice(0, 3);
+  const chips = top.map((x, i) => `<span class="chip" title="${x.lab}: mean ${PODIUM_METRICS[key]} of ${x.n} members">
+      <span class="medal">${["🥇", "🥈", "🥉"][i]}</span><b>${x.lab}</b><span class="pv">${fmt(x.mean)}</span></span>`).join("");
+  return `<div class="chips labs"><span class="lbl" title="Mean of the metric over each lab's active members">Labs</span>${chips}</div>`;
 }
 
 function renderOps(r: Run): void {

@@ -105,7 +105,7 @@ def agent_table(events_path: str | Path) -> pl.DataFrame:
             "common_score": score(sems[a], COMMON_WEIGHTS, info),
         }
         rows.append(row)
-    return pl.DataFrame(rows)
+    return pl.DataFrame(rows, infer_schema_length=None)
 
 
 def run_metrics(events_path: str | Path) -> dict[str, Any]:

@@ -42,12 +42,19 @@ def test_faculty_case_masks_ids_with_names():
     from lecsim.logging.events import EventLog
 
     sc = load_scenario(ROOT / "configs/scenarios/faculty_case.yaml")
-    assert sum(s.count for s in sc.lecturers) == 68
+    assert sum(s.count for s in sc.lecturers) == 70
     assert sum(s.count for s in sc.lecturers if s.rank == "Profesor") == 16
     with EventLog(Path("/dev/null")) as log:
         eng = Engine(sc, 1, log)
     ids = list(eng.state.lecturers)
-    assert ids[0] == f"L01_{sc.names[0]}" and ids[67] == f"L68_{sc.names[67]}"
+    assert ids[0] == f"L01_{sc.names[0]}" and ids[69] == f"L70_{sc.names[69]}"
+    labs = [x.lab for x in eng.state.lecturers.values()]
+    assert min(labs.count(lab) for lab in sc.department.labs) >= sc.department.min_lab_size == 5
+    profs = [x.lab for x in eng.state.lecturers.values() if x.rank == "Profesor"]
+    assert {profs.count(lab) for lab in sc.department.labs} <= {1, 2}
+    prof = next(x for x in eng.state.lecturers.values() if x.rank == "Profesor")
+    assert prof.cumulative_income > 0 and sum(prof.credits_total.values()) == 800
+    assert prof.publications["international_reputable"] >= 1  # rank requirement already met
 
 
 def test_duplicate_names_rejected(tmp_path):

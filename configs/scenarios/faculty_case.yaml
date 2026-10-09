@@ -7,7 +7,7 @@ name: faculty_case
 include: [../department.yaml]
 regulation: ../regulations/ptnbh.yaml
 agents: ../agents/archetypes.yaml
-semesters: 40
+semesters: 60 # 30 years
 
 # Newer national rules, applied here only (the M4 scenarios keep the older ones):
 regulation_overrides:
@@ -56,6 +56,11 @@ demography:
     Lektor: [2, 16]
     Lektor Kepala: [8, 30]
     Profesor: [15, 38]
+  # Founders' history at semester 1 (estimates, TODO(source)): credits = current rank's
+  # cumulative requirement; papers at ~60 % of today's rank rates along their career.
+  initial_credit_shares: { education: 0.35, research: 0.45, community_service: 0.1, support: 0.1 }
+  initial_pubs_per_semester_by_rank: { Asisten Ahli: 0.6, Lektor: 1.2, Lektor Kepala: 1.8, Profesor: 3.0 }
+  initial_pub_tier_shares: { national: 0.3, national_accredited: 0.3, international: 0.25, international_reputable: 0.15 }
 
 environment:
   burnout:
@@ -121,7 +126,8 @@ department:
     - { name: international_seminar_committee, hours_per_week: 2.5, duration_semesters: 1, members: 6, honorarium_monthly: 300000, every_semesters: 2, assigned_by: vice_dean_collaboration } # TODO(source)
     - { name: event_committee, hours_per_week: 2.5, duration_semesters: 1, members: 4, honorarium_monthly: 200000, every_semesters: 1, assigned_by: vice_dean_finance } # TODO(source): other ad-hoc events
 
-  # 12 laboratories (sourced count), masked as LAB-01 ... LAB-12; membership is drawn at random, hires take the leaver's lab.
+  # 12 laboratories (sourced count), masked as LAB-01 ... LAB-12; hires take the leaver's lab slot.
+  min_lab_size: 5 # user-stated; founders are spread evenly (5-6 per lab)
   labs: [LAB-01, LAB-02, LAB-03, LAB-04, LAB-05, LAB-06, LAB-07, LAB-08, LAB-09, LAB-10, LAB-11, LAB-12]
 
   # Power dynamics (user-described; every weight is a PLACEHOLDER, TODO(source)).
@@ -170,9 +176,9 @@ department:
     dean_lab_access_bonus: 0.2
     dean_archetype_access_bonus: 0.1
 
-# Rank x degree mix: 16 Profesor (from the page); the rest is a PLACEHOLDER split
-# (24 Lektor Kepala, 18 Lektor, 10 Asisten Ahli) chosen to give ~53 doctorates. TODO(source)
-# Archetypes and policies are cycled across lecturers (modelling assumption).
+# Rank x degree mix (70 lecturers, user-chosen; the real faculty has 68): 16 Profesor (sourced);
+# the rest is a PLACEHOLDER split (25 Lektor Kepala, 18 Lektor, 11 Asisten Ahli) giving ~54
+# doctorates. TODO(source). Archetypes and policies are cycled (modelling assumption).
 lecturers:
   - { count: 1, policy: stage, archetype: research_maximiser, rank: Profesor, degree: doctorate }
   - { count: 1, policy: utility, archetype: teaching_loyalist, rank: Profesor, degree: doctorate }
@@ -214,7 +220,7 @@ lecturers:
   - { count: 1, policy: utility, archetype: admin_climber, rank: Lektor Kepala, degree: doctorate }
   - { count: 1, policy: optimiser, archetype: external_earner, rank: Lektor Kepala, degree: doctorate }
   - { count: 1, policy: stage, archetype: balanced_strategist, rank: Lektor Kepala, degree: doctorate }
-  - { count: 1, policy: utility, archetype: research_maximiser, rank: Lektor, degree: doctorate }
+  - { count: 1, policy: utility, archetype: research_maximiser, rank: Lektor Kepala, degree: doctorate }
   - { count: 1, policy: optimiser, archetype: teaching_loyalist, rank: Lektor, degree: doctorate }
   - { count: 1, policy: stage, archetype: admin_climber, rank: Lektor, degree: doctorate }
   - { count: 1, policy: utility, archetype: external_earner, rank: Lektor, degree: doctorate }
@@ -227,12 +233,12 @@ lecturers:
   - { count: 1, policy: optimiser, archetype: research_maximiser, rank: Lektor, degree: doctorate }
   - { count: 1, policy: stage, archetype: teaching_loyalist, rank: Lektor, degree: doctorate }
   - { count: 1, policy: utility, archetype: admin_climber, rank: Lektor, degree: doctorate }
-  - { count: 1, policy: optimiser, archetype: external_earner, rank: Lektor, degree: master }
+  - { count: 1, policy: optimiser, archetype: external_earner, rank: Lektor, degree: doctorate }
   - { count: 1, policy: stage, archetype: balanced_strategist, rank: Lektor, degree: master }
   - { count: 1, policy: utility, archetype: research_maximiser, rank: Lektor, degree: master }
   - { count: 1, policy: optimiser, archetype: teaching_loyalist, rank: Lektor, degree: master }
   - { count: 1, policy: stage, archetype: admin_climber, rank: Lektor, degree: master }
-  - { count: 1, policy: utility, archetype: external_earner, rank: Asisten Ahli, degree: master }
+  - { count: 1, policy: utility, archetype: external_earner, rank: Lektor, degree: master }
   - { count: 1, policy: optimiser, archetype: balanced_strategist, rank: Asisten Ahli, degree: master }
   - { count: 1, policy: stage, archetype: research_maximiser, rank: Asisten Ahli, degree: master }
   - { count: 1, policy: utility, archetype: teaching_loyalist, rank: Asisten Ahli, degree: master }
@@ -242,6 +248,8 @@ lecturers:
   - { count: 1, policy: optimiser, archetype: research_maximiser, rank: Asisten Ahli, degree: master }
   - { count: 1, policy: stage, archetype: teaching_loyalist, rank: Asisten Ahli, degree: master }
   - { count: 1, policy: utility, archetype: admin_climber, rank: Asisten Ahli, degree: master }
+  - { count: 1, policy: optimiser, archetype: external_earner, rank: Asisten Ahli, degree: master }
+  - { count: 1, policy: stage, archetype: balanced_strategist, rank: Asisten Ahli, degree: master }
 
 names: [
   Budi, Siti, Agus, Sri, Dewi, Andi, Rina, Hendra, Wahyu, Dian, Eko, Nur,
@@ -255,5 +263,9 @@ names: [
   Andri, Bagus, Citra, Dimas, Elis, Fauzi, Galih, Hesti, Ilham, Januar, Kurnia, Lukman,
   Mulyadi, Nanda, Oktavia, Pratiwi, Ridwan, Sinta, Tono, Umi, Vina, Wawan, Yoga, Zainal,
   Aditya, Bella, Cahya, Danu, Erlina, Fikri, Gita, Hendro, Indra, Jamal, Krisna, Laras,
-  Mira, Nanang, Sulastri, Yudi
+  Mira, Nanang, Sulastri, Yudi,
+  Abdul, Bima, Candra, Daniel, Evi, Ferry, Gilang, Hana, Irma, Jaya, Kiki, Lusi,
+  Made, Nita, Oki, Pandu, Qori, Reza, Santi, Tika, Udin, Vera, Wiwik, Yogi,
+  Zahra, Agustina, Bonifasius, Cici, Doni, Erwin, Fransiska, Gede, Hari Purnomo, Intan,
+  Juli, Ketut, Lukas, Marlina, Nyoman, Rudi Hartono
 ]

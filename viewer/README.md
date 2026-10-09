@@ -53,6 +53,6 @@ Regenerate the test fixture after changing the log format:
 `viewer/publish_cf_pages.sh` (from the repo root) regenerates a few seeded example runs into
 `viewer/public/runs/`, builds, and commits `viewer/dist` to the `cf-pages` branch. Point
 Cloudflare Pages at that branch with no build command and output directory `/`. With no
-`?run=` the page opens the faculty case, `runs/faculty_case_seed1/events.jsonl`; other bundled
+`?run=` the page opens the faculty case (the score dashboard includes lab, age and years of service; the top-3 card also ranks labs by their members' mean), `runs/faculty_case_seed1/events.jsonl`; other bundled
 runs: `?run=runs/archetypes_seed1/events.jsonl`, `?run=runs/department_stress_seed1/events.jsonl`,
 `?run=runs/policy_experiments/<baseline|teaching_cap|reward_supervision|reward_community>_seed1/events.jsonl`.

@@ -357,7 +357,8 @@ class Department(_Model):
     teaching_counts_assigned_only: bool = (
         False  # teaching beyond the assigned load earns no SKS/credit
     )
-    labs: list[str] = []  # laboratories; each lecturer is a member of one (drawn at random)
+    labs: list[str] = []  # laboratories; founders are spread evenly (seeded), hires inherit
+    min_lab_size: int = Field(default=0, ge=0)
     power: PowerParams | None = None  # None: no assessments or favoritism
     coauthorship: CoauthorshipParams
     hiring: HiringParams
@@ -376,6 +377,12 @@ class Demography(_Model):
 
     start_age: tuple[float, float]  # age at first appointment (also for new hires)
     initial_service_years: dict[str, tuple[float, float]]  # by initial rank
+    # Founders' history at t = 0, estimated from rank and service (empty: start from zero):
+    # credits = the current rank's cumulative requirement split by these shares; papers =
+    # per-semester rates along a career that climbed evenly to the current rank, split by tier.
+    initial_credit_shares: dict[str, float] = {}
+    initial_pubs_per_semester_by_rank: dict[str, float] = {}
+    initial_pub_tier_shares: dict[str, float] = {}
 
 
 # --- agents -----------------------------------------------------------------
@@ -480,6 +487,9 @@ class Scenario(_Model):
                 raise ValueError(f"role {role.name}: unknown reports_to {role.reports_to!r}")
             if role.lab is not None and role.lab not in labs:
                 raise ValueError(f"role {role.name}: unknown lab {role.lab!r}")
+        headcount = sum(s.count for s in self.lecturers)
+        if dept.labs and len(dept.labs) * dept.min_lab_size > headcount:
+            raise ValueError("too few lecturers for min_lab_size in every lab")
         if self.environment.patents and not dept.labs:
             raise ValueError("environment.patents needs department.labs")
         if self.environment.patents and "patent_filed" not in reg.credit_table:

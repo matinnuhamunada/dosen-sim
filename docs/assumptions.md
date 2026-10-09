@@ -169,9 +169,9 @@ The case is anonymised: neither the institution nor the faculty is named in the 
 
 | Item | Value | Status | Meaning |
 | --- | --- | --- | --- |
-| Headcount | 68 | sourced | Founders at t = 0 |
+| Headcount | 70 (the real faculty has 68) | user-chosen | Founders at t = 0; 60 semesters (30 years) |
 | Profesor | 16 | sourced | Initial rank |
-| Lektor Kepala / Lektor / Asisten Ahli | 24 / 18 / 10 | TODO | Non-professor split; the directory gives none |
+| Lektor Kepala / Lektor / Asisten Ahli | 25 / 18 / 11 | TODO | Non-professor split; the directory gives none |
 | Degrees | 53 doctorate, 15 master | sourced (approx.) | From displayed titles |
 | SKS ↔ hours | 1 SKS = 2.5 h/week (16 SKS = 40 h) | user-stated | `bkd.hours_per_sks` |
 | Paid load norm | 16 SKS = 40 h/week | user-stated | Not a cap: duty above it is unpaid overtime (`bkd.max_sks`) |
@@ -193,7 +193,8 @@ The case is anonymised: neither the institution nor the faculty is named in the 
 | International seminar committee | 6 seats, 2.5 h/week, 1 semester, yearly, 0.3 M IDR/month | TODO | |
 | Other event committees | 4 seats, 2.5 h/week, 1 semester, every semester, 0.2 M IDR/month | TODO | Ad-hoc events |
 | Committees per lecturer | at most 2 at a time | TODO | `max_committees_per_lecturer` |
-| Labs | 12, masked LAB-01 … LAB-12; membership drawn uniformly at random; a hire takes the leaver's lab | count sourced; membership TODO | Lab heads come from their own lab |
+| Labs | 12, masked LAB-01 … LAB-12, at least 5 members (5–6); founders dealt out most senior and oldest first over a seeded lab order, so each lab has 1–2 professors and mixed age cohorts; a hire takes the leaver's lab slot | count sourced; minimum user-stated; membership TODO | Lab heads come from their own lab |
+| Founders' history at t = 0 | pay = fixed semester pay along a career that climbed evenly from Asisten Ahli to the current rank; credits = the current rank's cumulative requirement split 35/45/10/10 (education/research/community/support); papers = 0.6/1.2/1.8/3.0 per semester by rank along that career, split 30/30/25/15 % by tier, at least the rank's requirement | estimates, TODO | Age 30–67, median 45 (22 in their 30s, 30 in their 40s, 14 in their 50s, 4 in their 60s) |
 | Reporting chain | lecturer → lab head → head of department → vice dean (academic) → dean; programme heads → head of department; vacant posts are skipped upward | user-stated | `reports_to` on roles |
 | Assessment grades | very good ≥ 0.5 → 100 % credit; good ≥ 0 → 80 %; fair ≥ −0.5 → 60 %; poor → 40 % | 100 %/80 % user-stated; rest and cut-offs TODO | Share of the semester's credit that counts for the career ladder |
 | Assessment score | 1.0 × performance + 0.5 × liking + 0.3 × same lab + 0.5 × standing + 0.3 × noise | TODO | performance = (credit − median)/median, clipped to ±1 |

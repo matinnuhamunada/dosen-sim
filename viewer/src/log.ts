@@ -50,6 +50,7 @@ export interface AgentSem {
   committees: string[];
   coauthor: string | null;
   age: number | null; // end of semester; null when ages are not modelled
+  service: number; // years of service at the end of the semester
   probation: boolean; // on probation during this semester
   mentor: string | null;
   lab: string | null;
@@ -203,6 +204,7 @@ export function parseLog(text: string, name = "run"): Run {
           committees: Object.keys(s.committees ?? {}),
           coauthor: s.coauthor ?? null,
           age: s.age ?? null,
+          service: (s.semesters_service ?? 0) / (info.semesters_per_year || 2),
           probation: s.probation_until != null && t < s.probation_until,
           mentor: s.mentor ?? null,
           lab: s.lab ?? null,
