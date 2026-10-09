@@ -1,0 +1,118 @@
+# National lecturer regulations — STRUCTURE ONLY.
+# Every number below is a PLACEHOLDER, chosen to be obviously fake (round numbers),
+# so the engine can run. None of them is a real regulation value.
+# Real values must be supplied and sourced; see docs/assumptions.md.
+version: national-placeholder-0
+
+time:
+  weeks_per_semester: 16 # TODO(source): effective working weeks per semester
+  hours_per_week: 40 # TODO(source): weekly hour budget (all activities incl. rest)
+  months_per_semester: 6 # calendar fact: two semesters per year
+
+# Duty activities count toward the regulated workload; external and rest do not.
+workload:
+  duty_activities: [teaching, research, supervision, community_service, admin]
+  # Tridharma category of each duty activity (used for the balance check).
+  activity_category:
+    teaching: education
+    supervision: education
+    research: research
+    community_service: community_service
+    admin: support
+  min_duty_hours_per_week: 20 # TODO(source): minimum workload (BKD) in hours/week
+  max_duty_hours_per_week: 36 # TODO(source): maximum workload in hours/week
+  # Minimum share of duty hours per tridharma category (education = teaching + supervision).
+  min_share:
+    education: 0.2 # TODO(source)
+    research: 0.1 # TODO(source)
+    community_service: 0.05 # TODO(source)
+
+# Which credit category each scored output belongs to, and points per unit.
+# Classic cumulative-KUM scheme (assumed for now, see docs/assumptions.md).
+credit_categories: [education, research, community_service, support]
+credit_table:
+  teaching_hours: # per semester-hour taught
+    category: education
+    points_per_unit: 0.01 # TODO(source)
+    max_per_semester: 10.0 # TODO(source): per-semester cap on teaching credit
+  supervision_hours:
+    category: education
+    points_per_unit: 0.01 # TODO(source)
+  community_outputs: # per completed community-service output
+    category: community_service
+    points_per_unit: 1.0 # TODO(source)
+  admin_hours:
+    category: support
+    points_per_unit: 0.005 # TODO(source)
+    max_per_semester: 5.0 # TODO(source)
+  grant_awarded:
+    category: research
+    points_per_unit: 5.0 # TODO(source)
+  publication_national:
+    category: research
+    points_per_unit: 10.0 # TODO(source)
+  publication_national_accredited:
+    category: research
+    points_per_unit: 20.0 # TODO(source)
+  publication_international:
+    category: research
+    points_per_unit: 30.0 # TODO(source)
+  publication_international_reputable:
+    category: research
+    points_per_unit: 40.0 # TODO(source)
+
+# Journal tiers in ascending prestige; used for "at least tier X" publication requirements.
+journal_tiers: [national, national_accredited, international, international_reputable]
+
+degrees: [master, doctorate] # ascending
+
+career:
+  # Ordered ladder. Requirements are those needed to be promoted INTO that rank.
+  ranks:
+    - name: Asisten Ahli
+    - name: Lektor
+      min_semesters_in_rank: 4 # TODO(source)
+      min_cumulative_credit: 200 # TODO(source)
+      min_share_in_rank: { research: 0.3 } # TODO(source): share of credit earned in current rank
+      max_share_in_rank: { community_service: 0.2 } # TODO(source)
+      min_publications: { national: 1 } # TODO(source): count at tier >= key
+      required_degree: master # TODO(source)
+    - name: Lektor Kepala
+      min_semesters_in_rank: 4 # TODO(source)
+      min_cumulative_credit: 400 # TODO(source)
+      min_share_in_rank: { research: 0.4 } # TODO(source)
+      max_share_in_rank: { community_service: 0.2 } # TODO(source)
+      min_publications: { national_accredited: 1 } # TODO(source)
+      required_degree: master # TODO(source)
+    - name: Profesor
+      min_semesters_in_rank: 6 # TODO(source)
+      min_cumulative_credit: 800 # TODO(source)
+      min_share_in_rank: { research: 0.5 } # TODO(source)
+      max_share_in_rank: { community_service: 0.2 } # TODO(source)
+      min_publications: { international_reputable: 1 } # TODO(source)
+      required_degree: doctorate # TODO(source)
+
+certification: # gate for the professional allowance
+  min_rank: Asisten Ahli # TODO(source)
+  min_semesters_service: 4 # TODO(source)
+
+pay: # IDR per month unless stated
+  base_salary_by_rank: # TODO(source): real base salary depends on civil-service grade, not rank
+    Asisten Ahli: 1000000
+    Lektor: 2000000
+    Lektor Kepala: 3000000
+    Profesor: 4000000
+  seniority_increment_per_year: 10000 # TODO(source): flat periodic step per year of service
+  functional_allowance_by_rank: # TODO(source)
+    Asisten Ahli: 100000
+    Lektor: 200000
+    Lektor Kepala: 300000
+    Profesor: 400000
+  professional_allowance_multiplier: 1.0 # TODO(source): x base salary, only if certified
+  honorary_allowance_multiplier_by_rank: # TODO(source)
+    Profesor: 1.0
+  remuneration: # institutional performance pay (PTNBH); disabled nationally
+    enabled: false
+    base_by_rank: {}
+    per_credit_point: 0
+  external_rate_per_hour: 100000 # TODO(source): IDR per hour of external/consulting work
