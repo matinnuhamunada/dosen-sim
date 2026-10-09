@@ -1,0 +1,86 @@
+{
+ "L01": {
+  "common_score": 0.033756499752824846,
+  "cumulative_income": 108151906.65911043,
+  "final_rank": "Asisten Ahli",
+  "own_score": 0.033756499752824846,
+  "publications": 9
+ },
+ "L02": {
+  "common_score": 0.04565465562417679,
+  "cumulative_income": 136542081.17771888,
+  "final_rank": "Asisten Ahli",
+  "own_score": 0.04565465562417679,
+  "publications": 3
+ },
+ "L03": {
+  "common_score": 0.09879821958902822,
+  "cumulative_income": 132242131.30268538,
+  "final_rank": "Asisten Ahli",
+  "own_score": 0.09879821958902822,
+  "publications": 9
+ },
+ "L04": {
+  "common_score": 0.12059853229208069,
+  "cumulative_income": 62160000.0,
+  "final_rank": "Asisten Ahli",
+  "own_score": 0.1307935075677011,
+  "publications": 12
+ },
+ "L05": {
+  "common_score": 0.12056682738806396,
+  "cumulative_income": 59200000.0,
+  "final_rank": "Asisten Ahli",
+  "own_score": 0.13141854412015702,
+  "publications": 12
+ },
+ "L06": {
+  "common_score": 0.12008893013597316,
+  "cumulative_income": 58560000.0,
+  "final_rank": "Asisten Ahli",
+  "own_score": 0.1309884365932753,
+  "publications": 11
+ },
+ "L07": {
+  "common_score": 0.11095430107526881,
+  "cumulative_income": 82560000.0,
+  "final_rank": "Asisten Ahli",
+  "own_score": 0.06657258064516129,
+  "publications": 3
+ },
+ "L08": {
+  "common_score": 0.1145683990442055,
+  "cumulative_income": 98560000.0,
+  "final_rank": "Asisten Ahli",
+  "own_score": 0.0687410394265233,
+  "publications": 9
+ },
+ "L09": {
+  "common_score": 0.09512395459976104,
+  "cumulative_income": 98560000.0,
+  "final_rank": "Asisten Ahli",
+  "own_score": 0.05707437275985663,
+  "publications": 8
+ },
+ "L10": {
+  "common_score": 0.1546858821186778,
+  "cumulative_income": 152533333.3333333,
+  "final_rank": "Asisten Ahli",
+  "own_score": 0.28559333930704894,
+  "publications": 3
+ },
+ "L11": {
+  "common_score": 0.1546858821186778,
+  "cumulative_income": 152533333.3333333,
+  "final_rank": "Asisten Ahli",
+  "own_score": 0.28559333930704894,
+  "publications": 4
+ },
+ "L12": {
+  "common_score": 0.1546858821186778,
+  "cumulative_income": 152533333.3333333,
+  "final_rank": "Asisten Ahli",
+  "own_score": 0.28559333930704894,
+  "publications": 6
+ }
+}

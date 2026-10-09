@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lecsim replay</title>
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <header id="topbar">
+      <strong class="brand">lecsim replay</strong>
+      <select id="run-select" title="Loaded runs"></select>
+      <span id="run-labels"></span>
+      <span class="caveat">One simulated run with placeholder rules: illustrative, not a prediction.</span>
+      <label class="btn" title="Open one or more events.jsonl files">
+        Open logs<input id="file-input" type="file" accept=".jsonl,.json,.txt" multiple hidden />
+      </label>
+    </header>
+    <main id="stage">
+      <div id="scene"></div>
+      <aside id="left" class="panel">
+        <h3>Lecturers</h3>
+        <div id="agent-list"></div>
+        <h3>Department</h3>
+        <div id="dept-charts"></div>
+      </aside>
+      <aside id="tracker" class="panel hidden"></aside>
+      <section id="empty" class="hidden">
+        <h2>Load a lecsim run</h2>
+        <p>Drop one or more <code>events.jsonl</code> files here, use <em>Open logs</em>, or add
+          <code>?run=/runs/&lt;run&gt;/events.jsonl</code> to the URL (dev server).</p>
+        <p>Several runs of the same scenario give a multi-seed scoreboard.</p>
+      </section>
+      <section id="scoreboard" class="hidden">
+        <div class="sb-head">
+          <h2>Final score dashboard <small id="sb-at"></small></h2>
+          <label>Archetype <select id="sb-arch"></select></label>
+          <label>Policy <select id="sb-policy"></select></label>
+          <label title="Median and IQR per archetype and policy across all loaded runs">
+            <input type="checkbox" id="sb-multi" /> Multi-seed</label>
+          <button id="sb-csv" class="btn">Export CSV</button>
+          <button id="sb-close" class="btn">Close</button>
+        </div>
+        <p class="sb-note">Own score: mean per-semester utility under the agent's archetype weights
+          (pay, rank, rest − burnout). Common score: equal weights. Click a header to sort, a row to track.</p>
+        <div class="sb-table-wrap"><table id="sb-table"></table></div>
+      </section>
+    </main>
+    <footer id="timeline">
+      <button id="play" class="btn" title="Play / pause (space)">▶</button>
+      <select id="speed" title="Playback speed">
+        <option value="0.5">0.5×</option><option value="1" selected>1×</option>
+        <option value="2">2×</option><option value="4">4×</option><option value="8">8×</option>
+      </select>
+      <input id="scrub" type="range" min="0" max="0" step="0.01" value="0" />
+      <span id="time-label">–</span>
+      <label title="Show the selected agent's path this semester"><input type="checkbox" id="trail" checked /> Trail</label>
+      <button id="open-scoreboard" class="btn">Scoreboard</button>
+    </footer>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
