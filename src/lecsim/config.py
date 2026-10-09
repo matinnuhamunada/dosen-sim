@@ -73,6 +73,10 @@ class PayRules(_Model):
     external_rate_per_hour: float = 0
 
 
+class CoauthorRules(_Model):
+    first_author_share: float = Field(ge=0, le=1)  # rest split equally among co-authors
+
+
 class Regulation(_Model):
     version: str
     time: TimeRules
@@ -84,6 +88,7 @@ class Regulation(_Model):
     career: CareerRules
     certification: CertificationRules
     pay: PayRules
+    coauthor_credit: CoauthorRules
 
     @property
     def rank_names(self) -> list[str]:
@@ -135,10 +140,62 @@ class GrantParams(_Model):
     research_multiplier: float = Field(ge=0)
 
 
+class BurnoutParams(_Model):
+    sustainable_hours: float = Field(gt=0)  # weekly working hours with no strain
+    strain_rate: float = Field(ge=0)
+    recovery_rate: float = Field(ge=0)
+    productivity_penalty: float = Field(ge=0, le=1)  # output multiplier = 1 - penalty * burnout
+    attrition_threshold: float = Field(ge=0, le=1)
+    attrition_prob: float = Field(ge=0, le=1)  # per semester while above the threshold
+
+
 class Environment(_Model):
     production: dict[str, ProductionParams]
     journals: dict[str, JournalParams]
     grants: GrantParams
+    burnout: BurnoutParams
+
+
+# --- department -------------------------------------------------------------
+
+
+class TeachingDemand(_Model):
+    # Weekly teaching the department must cover = hours_per_lecturer x initial headcount;
+    # demand comes from students, so it does not shrink when lecturers leave.
+    hours_per_lecturer: float = Field(ge=0)
+    sigma: float = Field(ge=0)  # lognormal semester-to-semester variation
+
+
+class HeadRules(_Model):
+    rank_load_weights: dict[str, float]  # relative teaching share by rank
+    max_concession: float = Field(ge=0, le=1)  # accept counters down to (1 - this) * offer
+    max_rounds: int = Field(ge=1)
+    max_teaching_hours: float = Field(ge=0)  # per lecturer per week
+
+
+class RoleSpec(_Model):
+    name: str
+    hours_per_week: float = Field(ge=0)
+    duration_semesters: int = Field(ge=1)
+    allowance_monthly: float = Field(ge=0)  # side payment, IDR
+
+
+class CoauthorshipParams(_Model):
+    enabled: bool = True
+    productivity_boost: float = Field(ge=0)  # research multiplier while paired
+
+
+class HiringParams(_Model):
+    replace_leavers: bool = True
+    lag_semesters: int = Field(ge=0)
+
+
+class Department(_Model):
+    teaching_demand: TeachingDemand
+    head: HeadRules
+    roles: list[RoleSpec] = []
+    coauthorship: CoauthorshipParams
+    hiring: HiringParams
 
 
 class LecturerSpec(_Model):
@@ -182,6 +239,7 @@ class Archetype(_Model):
     journal_tier: str  # preferred tier when no publication requirement binds
     apply_grants: bool = True
     gap_shift: float = Field(ge=0, le=1)  # share of budget moved toward a promotion gap
+    burnout_limit: float = Field(default=0.5, ge=0, le=1)  # threshold rule: rest more above it
 
     @model_validator(mode="after")
     def _check(self) -> Archetype:
@@ -213,6 +271,7 @@ class Scenario(_Model):
     semesters: int = Field(ge=1)
     lecturers: list[LecturerSpec] = Field(min_length=1)
     environment: Environment
+    department: Department
     agents: AgentBook | None = None
     candidate_grid_steps: int = Field(default=8, ge=1)  # allocation grid: utility agents
     optimiser_grid_steps: int = Field(default=6, ge=1)  # coarser grid: optimiser enumerates plans
@@ -234,6 +293,9 @@ class Scenario(_Model):
                 raise ValueError(f"archetype {name}: unknown journal tier {arch.journal_tier!r}")
         if set(self.environment.journals) != set(reg.journal_tiers):
             raise ValueError("environment.journals must cover exactly regulation.journal_tiers")
+        missing = set(reg.rank_names) - set(self.department.head.rank_load_weights)
+        if missing:
+            raise ValueError(f"department.head.rank_load_weights missing ranks: {sorted(missing)}")
         return self
 
     def config_hash(self) -> str:
@@ -267,10 +329,22 @@ def load_regulation(path: str | Path) -> Regulation:
     return Regulation.model_validate(_load_regulation_dict(Path(path)))
 
 
-def load_scenario(path: str | Path) -> Scenario:
-    path = Path(path)
+def _load_with_includes(path: Path) -> dict[str, Any]:
+    """Read a scenario file, deep-merging its ``include:`` files (recursively) underneath
+    it. ``regulation`` / ``agents`` paths become absolute, relative to their own file."""
     data = yaml.safe_load(path.read_text())
-    data["regulation"] = _load_regulation_dict(path.parent / data["regulation"])
+    for key in ("regulation", "agents"):
+        if isinstance(data.get(key), str):
+            data[key] = str((path.parent / data[key]).resolve())
+    merged: dict[str, Any] = {}
+    for inc in data.pop("include", []):
+        merged = deep_merge(merged, _load_with_includes(path.parent / inc))
+    return deep_merge(merged, data)
+
+
+def load_scenario(path: str | Path) -> Scenario:
+    data = _load_with_includes(Path(path))
+    data["regulation"] = _load_regulation_dict(Path(data["regulation"]))
     if "agents" in data:
-        data["agents"] = yaml.safe_load((path.parent / data["agents"]).read_text())
+        data["agents"] = yaml.safe_load(Path(data["agents"]).read_text())
     return Scenario.model_validate(data)

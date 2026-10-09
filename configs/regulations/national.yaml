@@ -45,6 +45,9 @@ credit_table:
     category: support
     points_per_unit: 0.005 # TODO(source)
     max_per_semester: 5.0 # TODO(source)
+  admin_role_semesters: # per semester holding a structural/departmental role
+    category: support
+    points_per_unit: 3.0 # TODO(source)
   grant_awarded:
     category: research
     points_per_unit: 5.0 # TODO(source)
@@ -95,6 +98,9 @@ career:
 certification: # gate for the professional allowance
   min_rank: Asisten Ahli # TODO(source)
   min_semesters_service: 4 # TODO(source)
+
+coauthor_credit: # KUM split for co-authored publications
+  first_author_share: 0.6 # TODO(source): remainder split equally among co-authors
 
 pay: # IDR per month unless stated
   base_salary_by_rank: # TODO(source): real base salary depends on civil-service grade, not rank

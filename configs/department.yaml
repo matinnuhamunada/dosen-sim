@@ -1,0 +1,48 @@
+# Shared environment and department blocks, merged into scenarios via `include:`.
+# All values are PLACEHOLDERS / modelling assumptions — see docs/assumptions.md.
+environment:
+  production: # output = scale * hours_per_semester^alpha * lognormal(mean 1, sigma)
+    research: { scale: 0.05, alpha: 0.7, sigma: 0.3 } # TODO(source): manuscripts per semester
+    community_service: { scale: 0.05, alpha: 0.7, sigma: 0.3 } # TODO(source): outputs per semester
+  journals: # acceptance probability and decision lag (semesters) per tier
+    national: { accept_prob: 0.7, lag_semesters: 1 } # TODO(source)
+    national_accredited: { accept_prob: 0.5, lag_semesters: 1 } # TODO(source)
+    international: { accept_prob: 0.3, lag_semesters: 2 } # TODO(source)
+    international_reputable: { accept_prob: 0.15, lag_semesters: 2 } # TODO(source)
+  grants:
+    base_prob: 0.1 # TODO(source)
+    prob_per_publication: 0.02 # TODO(source): track-record effect
+    max_prob: 0.5 # TODO(source)
+    duration_semesters: 4 # TODO(source)
+    research_multiplier: 1.5 # TODO(source): research productivity while a grant is active
+  burnout: # b' = b + sensitivity*strain*max(0, work-S)/S - recovery*rest/budget, clamped to [0,1]
+    sustainable_hours: 30 # TODO(source): weekly working hours with no strain
+    strain_rate: 0.5 # TODO(source)
+    recovery_rate: 0.3 # TODO(source)
+    productivity_penalty: 0.5 # TODO(source): research/community output x (1 - penalty*burnout)
+    attrition_threshold: 0.8 # TODO(source)
+    attrition_prob: 0.2 # TODO(source): chance per semester of leaving while above threshold
+
+department:
+  teaching_demand:
+    hours_per_lecturer: 8 # TODO(source): weekly teaching demand per lecturer at initial headcount
+    sigma: 0.1 # TODO(source): cohort-size variation
+  head:
+    rank_load_weights: # TODO(source): relative teaching share by rank
+      Asisten Ahli: 1.2
+      Lektor: 1.0
+      Lektor Kepala: 0.9
+      Profesor: 0.8
+    max_concession: 0.2 # TODO(source)
+    max_rounds: 2 # TODO(source)
+    max_teaching_hours: 16 # TODO(source): per lecturer per week
+  roles: # TODO(source): departmental roles, weekly hours, term and allowance (IDR/month)
+    - { name: head_of_study_program, hours_per_week: 8, duration_semesters: 4, allowance_monthly: 1000000 }
+    - { name: secretary, hours_per_week: 6, duration_semesters: 4, allowance_monthly: 500000 }
+    - { name: lab_head, hours_per_week: 4, duration_semesters: 4, allowance_monthly: 300000 }
+  coauthorship:
+    enabled: true
+    productivity_boost: 0.3 # TODO(source): research output multiplier while paired
+  hiring:
+    replace_leavers: true
+    lag_semesters: 2 # TODO(source)

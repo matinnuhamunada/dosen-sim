@@ -1,0 +1,24 @@
+# M3 scenario: mixed department (each archetype under stage, utility and optimiser
+# policies) with head of department, roles, co-authorship, burnout and hiring. 20 years.
+name: department
+include: [../department.yaml]
+regulation: ../regulations/national.yaml
+agents: ../agents/archetypes.yaml
+semesters: 40
+
+lecturers:
+  - { count: 1, policy: stage, archetype: research_maximiser, rank: Asisten Ahli, degree: doctorate }
+  - { count: 1, policy: stage, archetype: teaching_loyalist, rank: Asisten Ahli, degree: doctorate }
+  - { count: 1, policy: stage, archetype: admin_climber, rank: Asisten Ahli, degree: doctorate }
+  - { count: 1, policy: stage, archetype: external_earner, rank: Asisten Ahli, degree: doctorate }
+  - { count: 1, policy: stage, archetype: balanced_strategist, rank: Asisten Ahli, degree: doctorate }
+  - { count: 1, policy: utility, archetype: research_maximiser, rank: Asisten Ahli, degree: doctorate }
+  - { count: 1, policy: utility, archetype: teaching_loyalist, rank: Asisten Ahli, degree: doctorate }
+  - { count: 1, policy: utility, archetype: admin_climber, rank: Asisten Ahli, degree: doctorate }
+  - { count: 1, policy: utility, archetype: external_earner, rank: Asisten Ahli, degree: doctorate }
+  - { count: 1, policy: utility, archetype: balanced_strategist, rank: Asisten Ahli, degree: doctorate }
+  - { count: 1, policy: optimiser, archetype: research_maximiser, rank: Asisten Ahli, degree: doctorate }
+  - { count: 1, policy: optimiser, archetype: teaching_loyalist, rank: Asisten Ahli, degree: doctorate }
+  - { count: 1, policy: optimiser, archetype: admin_climber, rank: Asisten Ahli, degree: doctorate }
+  - { count: 1, policy: optimiser, archetype: external_earner, rank: Asisten Ahli, degree: doctorate }
+  - { count: 1, policy: optimiser, archetype: balanced_strategist, rank: Asisten Ahli, degree: doctorate }

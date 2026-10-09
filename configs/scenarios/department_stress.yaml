@@ -1,0 +1,10 @@
+# Stress test of the M3 department: heavy teaching demand, random + rule agents.
+name: department_stress
+include: [department.yaml]
+department:
+  teaching_demand: { hours_per_lecturer: 14 } # TODO(source): deliberately high
+lecturers:
+  - { count: 3, policy: random, rank: Asisten Ahli, degree: doctorate }
+  - { count: 3, policy: stage, archetype: teaching_loyalist, rank: Asisten Ahli, degree: doctorate }
+  - { count: 3, policy: utility, archetype: research_maximiser, rank: Asisten Ahli, degree: doctorate }
+  - { count: 3, policy: optimiser, archetype: external_earner, rank: Asisten Ahli, degree: doctorate }
