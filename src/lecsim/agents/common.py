@@ -84,10 +84,12 @@ def fit_to_workload(
                 if other == cat:
                     continue
                 acts = [a for a in duty_acts if cat_of[a] == other]
-                hours = sum(h[a] for a in acts)
-                surplus = hours - rules.min_share.get(other, 0.0) * duty
-                if surplus > 0:
-                    donors.update({a: min(surplus * h[a] / hours, free(a)) for a in acts})
+                surplus = sum(h[a] for a in acts) - rules.min_share.get(other, 0.0) * duty
+                spare = sum(free(a) for a in acts)
+                if surplus > 0 and spare > 0:
+                    # split by free hours, not total hours: a floored activity can't give
+                    scale = min(1.0, surplus / spare)
+                    donors.update({a: free(a) * scale for a in acts})
             take = min(need, sum(donors.values()))
             _move(h, donors, mine, take)
             need -= take

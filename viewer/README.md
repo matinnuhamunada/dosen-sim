@@ -55,4 +55,5 @@ Regenerate the test fixture after changing the log format:
 Cloudflare Pages at that branch with no build command and output directory `/`. With no
 `?run=` the page opens `runs/policy_experiments/baseline_seed1/events.jsonl`; other bundled
 runs: `?run=runs/archetypes_seed1/events.jsonl`, `?run=runs/department_stress_seed1/events.jsonl`,
+`?run=runs/faculty_case_seed1/events.jsonl` (faculty case),
 `?run=runs/policy_experiments/<baseline|teaching_cap|reward_supervision|reward_community>_seed1/events.jsonl`.

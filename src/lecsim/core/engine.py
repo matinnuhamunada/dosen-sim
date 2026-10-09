@@ -92,7 +92,8 @@ class Engine:
     def _add_lecturer(
         self, policy: str, archetype: str | None, rank: str, degree: str, t: int
     ) -> str:
-        lid = f"L{len(self.state.lecturers) + 1:02d}"
+        n = len(self.state.lecturers)
+        lid = f"L{n + 1:02d}" + (f"_{self.sc.names[n]}" if n < len(self.sc.names) else "")
         zero = dict.fromkeys(self.reg.credit_categories, 0.0)
         self.state.lecturers[lid] = LecturerState(
             id=lid, policy=policy, archetype=archetype, rank=rank, degree=degree, hired_at=t,

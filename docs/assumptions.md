@@ -162,3 +162,23 @@ external_earner, balanced_strategist.
 
 33. **Scores** use the rank held during a semester, that semester's total income relative to income_ref, and rest share minus end-of-semester burnout. They average over semesters actually served, so leavers and late hires are comparable.
 34. **Time to rank** in metrics counts semesters from hiring, so replacement hires are comparable with founders. Condition comparisons by archetype use founders only (`hired_at == 0`).
+
+## Case scenario: faculty sized like an anonymised faculty (`configs/scenarios/faculty_case.yaml`)
+
+Source for headcount: the faculty's public staff directory (source withheld) (accessed 2026-10-09): 68 lecturers in 12 laboratories, 16 with the title Profesor, about 53 with a doctoral title (inferred from name suffixes).
+
+| Item | Value | Status | Meaning |
+| --- | --- | --- | --- |
+| Headcount | 68 | sourced | Founders at t = 0 |
+| Profesor | 16 | sourced | Initial rank |
+| Lektor Kepala / Lektor / Asisten Ahli | 24 / 18 / 10 | TODO | Non-professor split; page gives none |
+| Degrees | 53 doctorate, 15 master | sourced (approx.) | From displayed titles |
+| Dean, 3 vice deans (academic, finance, collaboration) | 20 h / 16 h per week, 8 semesters, 10 M / 7.5 M IDR per month | TODO | Structural roles |
+| Head of department | 12 h/week, 8 semesters, 4 M IDR/month | TODO | |
+| Heads of study programme (S1, S2, S3) | 8 h/week, 8 semesters, 3 M IDR/month | TODO | |
+| Regulation | `ptnbh.yaml` (PTNBH remuneration on) | struct | the case university is a PTNBH |
+
+35. **Masking:** lecturers are pseudonymous. IDs are `L01_<common Indonesian given name>` from the scenario's `names` list, in creation order, so they do not identify the real staff. Hires continue down the list.
+36. **Archetypes and policies** are cycled across lecturers (stage, utility, optimiser; five archetypes); they are not observed behaviour.
+37. **Roles have no rank or degree eligibility** yet: any lecturer below the commitment cap can be asked, so an Asisten Ahli can become dean. Real eligibility rules (e.g. statute requirements for dean) are a calibration item.
+38. **Workload fit fix (2026-10-09):** when moving hours to meet a category's minimum share, a donor category's surplus is now split by each activity's free hours (above its commitment floor) rather than by its total hours. Before, floored teaching hid spare supervision hours, so the fit pulled hours from rest instead, and at a full commitment cap (dean) it failed. All logs change slightly; the M4 sweep was rerun and the ODD §8 numbers updated (headline results unchanged).

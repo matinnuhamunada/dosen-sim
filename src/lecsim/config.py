@@ -275,10 +275,15 @@ class Scenario(_Model):
     agents: AgentBook | None = None
     candidate_grid_steps: int = Field(default=8, ge=1)  # allocation grid: utility agents
     optimiser_grid_steps: int = Field(default=6, ge=1)  # coarser grid: optimiser enumerates plans
+    # Optional pseudonyms appended to generated IDs in creation order (L01_<name>, ...);
+    # hires continue down the list. Never real names.
+    names: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _cross_check(self) -> Scenario:
         reg = self.regulation
+        if len(set(self.names)) != len(self.names):
+            raise ValueError("scenario names must be unique")
         for spec in self.lecturers:
             if spec.rank not in reg.rank_names:
                 raise ValueError(f"unknown initial rank {spec.rank!r}")

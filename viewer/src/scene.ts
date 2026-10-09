@@ -61,6 +61,7 @@ const POLAR = 0.96; // isometric tilt from vertical (≈ atan √2)
 const HOME_AZIMUTH = Math.PI / 4;
 const MAP_LIMIT = 18; // camera target stays within this square
 const BUILDING_OUT = 3.4; // building sits this far behind its gathering spot
+const CROWD = 24; // above this many lecturers, hide unfocused name tags
 
 export type CameraCommand = "in" | "out" | "left" | "right" | "home";
 
@@ -493,6 +494,8 @@ export class CampusScene {
       const dim = focused.size > 0 && !focused.has(a.id);
       c.body.opacity = c.head.opacity = dim ? 0.25 : 1;
       c.label.material.opacity = dim ? 0.2 : 1;
+      // crowded runs: only focused lecturers keep a name tag (click or search to identify)
+      c.label.visible = run.agents.size <= CROWD || focused.has(a.id);
       const selected = a.id === focus.selected;
       const text = selected ? `${a.id} · ${ZONES[this.zoneAt(a, t, tau)]?.label ?? "away"}` : a.id;
       if (text !== c.labelText) {

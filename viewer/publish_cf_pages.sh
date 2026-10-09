@@ -11,6 +11,7 @@ for c in baseline teaching_cap reward_supervision reward_community; do
 done
 .venv/bin/lecsim run configs/scenarios/archetypes.yaml --seed 1 --out "$out" >/dev/null
 .venv/bin/lecsim run configs/scenarios/department_stress.yaml --seed 1 --out "$out" >/dev/null
+.venv/bin/lecsim run configs/scenarios/faculty_case.yaml --seed 1 --out "$out" >/dev/null
 (cd viewer && npm test --silent && npm run build --silent)
 
 src=$(git rev-parse --short HEAD)

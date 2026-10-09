@@ -110,3 +110,27 @@ def test_min_share_from_free_time_when_duty_is_pinned():
     }
     h = fit_to_workload(shares, rules, 40, {"admin": 8.0, "teaching": 16.0})
     assert not check_workload(h, rules, 40)
+
+
+def test_surplus_taken_from_unfloored_activities_at_capacity():
+    # regression (faculty run, dean role): commitments fill the whole commit cap, so research
+    # and community service must come from supervision, not from floored teaching
+    rules = RULES.model_copy(
+        update={
+            "max_duty_hours_per_week": 36,
+            "min_share": {"education": 0.2, "research": 0.1, "community_service": 0.05},
+        }
+    )
+    shares = {
+        "teaching": 0.4,
+        "supervision": 0.1,
+        "research": 0.1,
+        "community_service": 0.08,
+        "admin": 0.07,
+        "external": 0.0,
+        "rest": 0.25,
+    }
+    floors = {"admin": 20.0, "teaching": 36 * 0.85 - 20}
+    h = fit_to_workload(shares, rules, 40, floors)
+    assert not check_workload(h, rules, 40)
+    assert h[A.ADMIN] >= 20 - 1e-9 and h[A.TEACHING] >= floors["teaching"] - 1e-9

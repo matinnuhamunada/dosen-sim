@@ -47,6 +47,14 @@ Status: open unless marked. Add new items under the right heading as they come u
 - [ ] Viewer multi-seed board includes replacement hires in group counts (e.g. n=18 for a seat with many leavers); decide whether to show founders only.
 - [ ] Viewer was checked in headless Chrome screenshots only; try it interactively in a browser.
 
+## Faculty case (faculty_case) notes
+
+- Real rank split of non-professors at the faculty (only the 16 professors are known).
+- Real hours, terms and allowances for dean, vice deans, head of department and study-programme heads.
+- Role eligibility (minimum rank/degree for dean, vice dean, heads); currently anyone below the commitment cap can be asked.
+- Whether the 12 laboratory heads should be modelled as roles.
+- Faculty-level teaching demand (currently 8 h/week per lecturer, as in the department scenario).
+
 ## Engineering to-dos
 
 - [ ] Invalid allocations abort the run; add a fallback-to-rule-policy path (needed for Phase 2 LLM agents).

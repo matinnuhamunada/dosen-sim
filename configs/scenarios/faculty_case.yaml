@@ -1,0 +1,106 @@
+# Case: a faculty sized like an anonymised faculty (the faculty's public staff directory (source withheld),
+# accessed 2026-10-09): 68 lecturers in 12 laboratories, 16 of them Profesor, about 53 with a
+# doctorate. The page gives no other rank breakdown: the non-professor split below is a
+# PLACEHOLDER (TODO(source)). Lecturers are masked: IDs are L01_<common Indonesian name>,
+# pseudonyms only, not the real staff.
+name: faculty_case
+include: [../department.yaml]
+regulation: ../regulations/ptnbh.yaml
+agents: ../agents/archetypes.yaml
+semesters: 40
+
+department:
+  # Structural positions. Hours, terms and allowances are PLACEHOLDERS (TODO(source)).
+  roles:
+    - { name: dean, hours_per_week: 20, duration_semesters: 8, allowance_monthly: 10000000 } # TODO(source)
+    - { name: vice_dean_academic, hours_per_week: 16, duration_semesters: 8, allowance_monthly: 7500000 } # TODO(source)
+    - { name: vice_dean_finance, hours_per_week: 16, duration_semesters: 8, allowance_monthly: 7500000 } # TODO(source)
+    - { name: vice_dean_collaboration, hours_per_week: 16, duration_semesters: 8, allowance_monthly: 7500000 } # TODO(source)
+    - { name: head_of_department, hours_per_week: 12, duration_semesters: 8, allowance_monthly: 4000000 } # TODO(source)
+    - { name: head_of_program_undergraduate, hours_per_week: 8, duration_semesters: 8, allowance_monthly: 3000000 } # TODO(source)
+    - { name: head_of_program_master, hours_per_week: 8, duration_semesters: 8, allowance_monthly: 3000000 } # TODO(source)
+    - { name: head_of_program_doctoral, hours_per_week: 8, duration_semesters: 8, allowance_monthly: 3000000 } # TODO(source)
+
+# Rank x degree mix: 16 Profesor (from the page); the rest is a PLACEHOLDER split
+# (24 Lektor Kepala, 18 Lektor, 10 Asisten Ahli) chosen to give ~53 doctorates. TODO(source)
+# Archetypes and policies are cycled across lecturers (modelling assumption).
+lecturers:
+  - { count: 1, policy: stage, archetype: research_maximiser, rank: Profesor, degree: doctorate }
+  - { count: 1, policy: utility, archetype: teaching_loyalist, rank: Profesor, degree: doctorate }
+  - { count: 1, policy: optimiser, archetype: admin_climber, rank: Profesor, degree: doctorate }
+  - { count: 1, policy: stage, archetype: external_earner, rank: Profesor, degree: doctorate }
+  - { count: 1, policy: utility, archetype: balanced_strategist, rank: Profesor, degree: doctorate }
+  - { count: 1, policy: optimiser, archetype: research_maximiser, rank: Profesor, degree: doctorate }
+  - { count: 1, policy: stage, archetype: teaching_loyalist, rank: Profesor, degree: doctorate }
+  - { count: 1, policy: utility, archetype: admin_climber, rank: Profesor, degree: doctorate }
+  - { count: 1, policy: optimiser, archetype: external_earner, rank: Profesor, degree: doctorate }
+  - { count: 1, policy: stage, archetype: balanced_strategist, rank: Profesor, degree: doctorate }
+  - { count: 1, policy: utility, archetype: research_maximiser, rank: Profesor, degree: doctorate }
+  - { count: 1, policy: optimiser, archetype: teaching_loyalist, rank: Profesor, degree: doctorate }
+  - { count: 1, policy: stage, archetype: admin_climber, rank: Profesor, degree: doctorate }
+  - { count: 1, policy: utility, archetype: external_earner, rank: Profesor, degree: doctorate }
+  - { count: 1, policy: optimiser, archetype: balanced_strategist, rank: Profesor, degree: doctorate }
+  - { count: 1, policy: stage, archetype: research_maximiser, rank: Profesor, degree: doctorate }
+  - { count: 1, policy: utility, archetype: teaching_loyalist, rank: Lektor Kepala, degree: doctorate }
+  - { count: 1, policy: optimiser, archetype: admin_climber, rank: Lektor Kepala, degree: doctorate }
+  - { count: 1, policy: stage, archetype: external_earner, rank: Lektor Kepala, degree: doctorate }
+  - { count: 1, policy: utility, archetype: balanced_strategist, rank: Lektor Kepala, degree: doctorate }
+  - { count: 1, policy: optimiser, archetype: research_maximiser, rank: Lektor Kepala, degree: doctorate }
+  - { count: 1, policy: stage, archetype: teaching_loyalist, rank: Lektor Kepala, degree: doctorate }
+  - { count: 1, policy: utility, archetype: admin_climber, rank: Lektor Kepala, degree: doctorate }
+  - { count: 1, policy: optimiser, archetype: external_earner, rank: Lektor Kepala, degree: doctorate }
+  - { count: 1, policy: stage, archetype: balanced_strategist, rank: Lektor Kepala, degree: doctorate }
+  - { count: 1, policy: utility, archetype: research_maximiser, rank: Lektor Kepala, degree: doctorate }
+  - { count: 1, policy: optimiser, archetype: teaching_loyalist, rank: Lektor Kepala, degree: doctorate }
+  - { count: 1, policy: stage, archetype: admin_climber, rank: Lektor Kepala, degree: doctorate }
+  - { count: 1, policy: utility, archetype: external_earner, rank: Lektor Kepala, degree: doctorate }
+  - { count: 1, policy: optimiser, archetype: balanced_strategist, rank: Lektor Kepala, degree: doctorate }
+  - { count: 1, policy: stage, archetype: research_maximiser, rank: Lektor Kepala, degree: doctorate }
+  - { count: 1, policy: utility, archetype: teaching_loyalist, rank: Lektor Kepala, degree: doctorate }
+  - { count: 1, policy: optimiser, archetype: admin_climber, rank: Lektor Kepala, degree: doctorate }
+  - { count: 1, policy: stage, archetype: external_earner, rank: Lektor Kepala, degree: doctorate }
+  - { count: 1, policy: utility, archetype: balanced_strategist, rank: Lektor Kepala, degree: doctorate }
+  - { count: 1, policy: optimiser, archetype: research_maximiser, rank: Lektor Kepala, degree: doctorate }
+  - { count: 1, policy: stage, archetype: teaching_loyalist, rank: Lektor Kepala, degree: doctorate }
+  - { count: 1, policy: utility, archetype: admin_climber, rank: Lektor Kepala, degree: doctorate }
+  - { count: 1, policy: optimiser, archetype: external_earner, rank: Lektor Kepala, degree: doctorate }
+  - { count: 1, policy: stage, archetype: balanced_strategist, rank: Lektor Kepala, degree: doctorate }
+  - { count: 1, policy: utility, archetype: research_maximiser, rank: Lektor, degree: doctorate }
+  - { count: 1, policy: optimiser, archetype: teaching_loyalist, rank: Lektor, degree: doctorate }
+  - { count: 1, policy: stage, archetype: admin_climber, rank: Lektor, degree: doctorate }
+  - { count: 1, policy: utility, archetype: external_earner, rank: Lektor, degree: doctorate }
+  - { count: 1, policy: optimiser, archetype: balanced_strategist, rank: Lektor, degree: doctorate }
+  - { count: 1, policy: stage, archetype: research_maximiser, rank: Lektor, degree: doctorate }
+  - { count: 1, policy: utility, archetype: teaching_loyalist, rank: Lektor, degree: doctorate }
+  - { count: 1, policy: optimiser, archetype: admin_climber, rank: Lektor, degree: doctorate }
+  - { count: 1, policy: stage, archetype: external_earner, rank: Lektor, degree: doctorate }
+  - { count: 1, policy: utility, archetype: balanced_strategist, rank: Lektor, degree: doctorate }
+  - { count: 1, policy: optimiser, archetype: research_maximiser, rank: Lektor, degree: doctorate }
+  - { count: 1, policy: stage, archetype: teaching_loyalist, rank: Lektor, degree: doctorate }
+  - { count: 1, policy: utility, archetype: admin_climber, rank: Lektor, degree: doctorate }
+  - { count: 1, policy: optimiser, archetype: external_earner, rank: Lektor, degree: master }
+  - { count: 1, policy: stage, archetype: balanced_strategist, rank: Lektor, degree: master }
+  - { count: 1, policy: utility, archetype: research_maximiser, rank: Lektor, degree: master }
+  - { count: 1, policy: optimiser, archetype: teaching_loyalist, rank: Lektor, degree: master }
+  - { count: 1, policy: stage, archetype: admin_climber, rank: Lektor, degree: master }
+  - { count: 1, policy: utility, archetype: external_earner, rank: Asisten Ahli, degree: master }
+  - { count: 1, policy: optimiser, archetype: balanced_strategist, rank: Asisten Ahli, degree: master }
+  - { count: 1, policy: stage, archetype: research_maximiser, rank: Asisten Ahli, degree: master }
+  - { count: 1, policy: utility, archetype: teaching_loyalist, rank: Asisten Ahli, degree: master }
+  - { count: 1, policy: optimiser, archetype: admin_climber, rank: Asisten Ahli, degree: master }
+  - { count: 1, policy: stage, archetype: external_earner, rank: Asisten Ahli, degree: master }
+  - { count: 1, policy: utility, archetype: balanced_strategist, rank: Asisten Ahli, degree: master }
+  - { count: 1, policy: optimiser, archetype: research_maximiser, rank: Asisten Ahli, degree: master }
+  - { count: 1, policy: stage, archetype: teaching_loyalist, rank: Asisten Ahli, degree: master }
+  - { count: 1, policy: utility, archetype: admin_climber, rank: Asisten Ahli, degree: master }
+
+names: [
+  Budi, Siti, Agus, Sri, Dewi, Andi, Rina, Hendra, Wahyu, Dian, Eko, Nur,
+  Rudi, Yuni, Joko, Ratna, Bambang, Ani, Slamet, Wati, Hadi, Lestari, Irwan, Indah,
+  Teguh, Fitri, Dedi, Rahma, Arif, Putri, Suryani, Hari, Ayu, Rizki, Yanti, Adi,
+  Novi, Bayu, Maya, Setiawan, Endang, Puji, Heru, Lina, Agung, Tri, Retno, Fajar,
+  Wulan, Rahmat, Ika, Dwi, Sari, Iwan, Nurul, Asep, Ningsih, Ahmad, Susanti, Yusuf,
+  Handayani, Didik, Anita, Surya, Kartika, Ari, Murni, Gunawan, Diah, Hidayat, Wahyuni, Rini,
+  Supriyadi, Erna, Prasetyo, Yulia, Sutrisno, Eka, Nugroho, Desi, Imam, Rosita, Taufik, Mega,
+  Rizal, Utami, Hasan, Nining, Firman, Lia, Sigit, Yanto, Purnama
+]

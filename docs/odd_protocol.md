@@ -204,14 +204,15 @@ Effects are differences in medians versus the baseline, with percentile-bootstra
   - A teaching cap lowers worst-semester coverage: median 1.00 → 0.95, CI of the difference
     −0.07 to −0.02.
   - Rewarding supervision or community service raises the mean common score slightly
-    (+0.008 and +0.009; both CIs exclude 0).
-  - Rewarding supervision slightly lowers income inequality (Gini −0.005).
+    (+0.007 and +0.009; both CIs exclude 0).
+  - Income inequality falls slightly under both reward conditions (Gini about −0.006), but
+    neither CI excludes 0.
   - Attrition, burnout and imposed loads do not change detectably.
 - **Individual level, the reweighting policies mainly help those whose time already goes to
   the rewarded activities.**
-  - Teaching loyalists reach Profesor 1–2 semesters sooner and earn 50–94 M IDR more over 20
+  - Teaching loyalists reach Profesor 0.5–2 semesters sooner and earn 25–88 M IDR more over 20
     years under reward_supervision.
-  - Utility-policy external earners earn about 144 M IDR more under reward_community.
+  - Utility-policy external earners earn about 124 M IDR more under reward_community.
 - **Why the effects are small.** Research credit dominates the placeholder promotion rules
   (high productivity, high publication credit). Reweighting the minor categories therefore
   changes little until real credit tables and production rates are supplied.
