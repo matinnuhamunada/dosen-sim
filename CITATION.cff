@@ -1,0 +1,36 @@
+cff-version: 1.2.0
+message: "If you use dosen-sim, please cite the preprint and the software as below."
+title: "dosen-sim: an agent-based, game-theoretic simulation of lecturer careers in an Indonesian faculty"
+type: software
+authors:
+  - family-names: Nuhamunada
+    given-names: Matin
+    email: matin_nuhamunada@ugm.ac.id
+version: 0.2.4
+date-released: 2026-10-10
+license: MIT
+repository-code: "https://github.com/matinnuhamunada/dosen-sim"
+keywords:
+  - agent-based modelling
+  - game theory
+  - academic careers
+  - higher education policy
+  - Indonesia
+abstract: >-
+  dosen-sim simulates how Indonesian university lecturers divide their working week between
+  teaching, research, community service, supervision, administration, outside work and rest
+  under configurable regulations (credit points, workload reporting in SKS, promotion, pay) and
+  faculty power dynamics. Rule-based agents choose; a rules engine computes every outcome. The
+  main scenario is an anonymised faculty, partly calibrated to aggregate data and the author's
+  own (subjective) estimates. Developed with Claude (Anthropic), an AI assistant, under the
+  author's direction.
+preferred-citation:
+  type: report
+  title: "How to win the lecturer game: an agent-based, game-theoretic simulation of an Indonesian faculty"
+  authors:
+    - family-names: Nuhamunada
+      given-names: Matin
+      email: matin_nuhamunada@ugm.ac.id
+  year: 2026
+  status: preprint
+  notes: "Preprint distributed with the software (paper/main.pdf)."

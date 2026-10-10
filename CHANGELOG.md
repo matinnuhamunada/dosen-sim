@@ -5,6 +5,14 @@ package and the run log header read it) and adds an entry here. The viewer shows
 of the run it replays. Minor versions change model behaviour or calibration; patch versions
 fix bugs, docs or tooling without changing results.
 
+## 0.2.4 — 2026-10-10
+
+Docs only; results unchanged.
+
+- README rewritten from the manuscript: what is modelled, the first result, quick start, a
+  step-by-step guide to adapting the simulation to another institution, citation.
+- `CITATION.cff` for GitHub's "Cite this repository" (software + preprint).
+
 ## 0.2.3 — 2026-10-10
 
 Viewer, naming and licence; results unchanged.
