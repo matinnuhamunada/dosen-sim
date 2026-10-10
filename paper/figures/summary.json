@@ -1,0 +1,20 @@
+{
+  "runs": 5,
+  "years_in_rank_median": {
+    "Asisten Ahli \u2192 Lektor": 2.0,
+    "Lektor Kepala \u2192 Profesor": 5.0,
+    "Lektor \u2192 Lektor Kepala": 3.5
+  },
+  "pay_median": {
+    "study leave": 3.6,
+    "Profesor": 30.8,
+    "Lektor Kepala": 18.2,
+    "Lektor": 16.8,
+    "Asisten Ahli": 13.8,
+    "teaching staff": 11.8
+  },
+  "hours_median": {
+    "reported": 44.305217433879605,
+    "real": 43.45420455961776
+  }
+}

@@ -5,6 +5,14 @@ package and the run log header read it) and adds an entry here. The viewer shows
 of the run it replays. Minor versions change model behaviour or calibration; patch versions
 fix bugs, docs or tooling without changing results.
 
+## 0.2.2 — 2026-10-10
+
+Manuscript; results unchanged.
+
+- `paper/`: preprint in Typst (mechanisms, rules and parameters, power dynamics, faculty-case
+  calibration, which archetype wins among new hires, alignment with the tridharma, caveats,
+  outlook), `refs.bib`, figures from five seeds (`make_figures.py`), compiled `main.pdf`.
+
 ## 0.2.1 — 2026-10-10
 
 Docs only; results unchanged.
