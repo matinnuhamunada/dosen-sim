@@ -159,7 +159,7 @@ If you use dosen-sim, cite the preprint and the software (GitHub's "Cite this re
   title  = {How to win the lecturer game: an agent-based, game-theoretic simulation of an
             {Indonesian} faculty},
   year   = {2026},
-  note   = {Preprint; software: dosen-sim 0.2.5, https://github.com/matinnuhamunada/dosen-sim}
+  note   = {Preprint; software: dosen-sim 0.2.6, https://github.com/matinnuhamunada/dosen-sim}
 }
 ```
 

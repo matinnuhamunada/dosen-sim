@@ -5,6 +5,14 @@ package and the run log header read it) and adds an entry here. The viewer shows
 of the run it replays. Minor versions change model behaviour or calibration; patch versions
 fix bugs, docs or tooling without changing results.
 
+## 0.2.6 — 2026-10-10
+
+Docs only; results unchanged.
+
+- `DESIGN.md`: slide-deck design direction derived from the author's lecture template (navy and
+  yellow, Arial, eyebrow, title underline, right-edge bar, callouts, tables, dividers), with the
+  anti-slop writing rules used for the conference deck.
+
 ## 0.2.5 — 2026-10-10
 
 Docs only; results unchanged.
