@@ -46,6 +46,8 @@ class LecturerState(BaseModel):
     coauthor: str | None = None  # partner this semester
     age: float | None = None  # years, at the start of the current semester
     teaching_effort: float = 1.0  # real hours per reported teaching hour
+    study_start: int | None = None  # doctoral study leave: first semester away
+    study_until: int | None = None  # ... first semester back (with the degree)
     dumper: bool = False  # passes work to juniors once senior (power dynamics)
     probation_until: int | None = None  # first semester after probation (new hires only)
     appointed_at: int | None = None  # first semester holding a rank (new hires only)
@@ -58,6 +60,9 @@ class LecturerState(BaseModel):
 
     def on_probation(self, t: int) -> bool:
         return self.probation_until is not None and t < self.probation_until
+
+    def on_study_leave(self, t: int) -> bool:
+        return self.study_start is not None and self.study_start <= t < self.study_until
 
     def unranked(self, t: int) -> bool:
         """Probation and the teaching-staff period after it: no rank held yet."""

@@ -119,6 +119,16 @@ class ProbationRules(_Model):
     teaching_staff_semesters: tuple[int, int] = (0, 0)
 
 
+class StudyLeaveRules(_Model):
+    """Doctoral study leave (tugas belajar): holders of a lower degree must start studying
+    for ``degree`` within a window of entry (founders: of the run start), or resign. On
+    leave: base salary only, no workload, no credit; they return with the degree."""
+
+    degree: str
+    start_within_semesters: int = Field(ge=1)  # start drawn uniformly within the window
+    duration_semesters: tuple[int, int]  # drawn uniformly
+
+
 class Regulation(_Model):
     version: str
     time: TimeRules
@@ -134,6 +144,7 @@ class Regulation(_Model):
     retirement: RetirementRules | None = None  # None: nobody retires
     recruitment: RecruitmentRules | None = None  # None: hire at the first rank, leaver's degree
     probation: ProbationRules | None = None  # None: no probation
+    study_leave: StudyLeaveRules | None = None  # None: degrees never change
     bkd: BkdRules | None = None  # None: the bonus has no workload condition
 
     @property

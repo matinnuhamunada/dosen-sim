@@ -145,12 +145,39 @@ def test_seniors_dump_work_on_juniors(tmp_path):
     for e in dumps:
         assert rank[(e["agent"], e["t"])] in d.senior_ranks
         assert rank[(e["junior"], e["t"])] in d.junior_ranks
-        assert d.hours[0] - 1e-9 <= e["hours"] <= d.hours[1] + 1e-9
+        assert 0 < e["hours"] <= d.hours[1] + 1e-9  # a draw, or what fits under the cap
         load[(e["junior"], e["t"])] = load.get((e["junior"], e["t"]), 0) + e["hours"]
     assert max(load.values()) <= d.max_junior_hours + 1e-9
     e = dumps[0]  # one-sided: the senior likes the junior more, the junior resents the senior
     one = eng.state.affinity_one
     assert one[f"{e['agent']}>{e['junior']}"] > 0 > one[f"{e['junior']}>{e['agent']}"]
+
+
+def test_masters_holders_take_doctoral_study_leave(tmp_path):
+    sc = load_scenario(ROOT / "configs/scenarios/faculty_case.yaml").model_copy(
+        update={"semesters": 16}
+    )
+    rule = sc.regulation.study_leave
+    path = tmp_path / "ev.jsonl"
+    with EventLog(path) as log:
+        Engine(sc, 1, log).run()
+    _, ev = read_events(path)
+    first = {e["agent"]: e["state"] for e in ev if e["type"] == "snapshot" and e["t"] == 0}
+    masters = {a for a, s in first.items() if s["degree"] == "master"}
+    assert masters and all(first[a]["study_start"] < rule.start_within_semesters for a in masters)
+    lo, hi = rule.duration_semesters
+    assert all(lo <= first[a]["study_until"] - first[a]["study_start"] <= hi for a in masters)
+    away = {
+        (a, t) for a in masters for t in range(first[a]["study_start"], first[a]["study_until"])
+    }
+    alloc = {(e["agent"], e["t"]) for e in ev if e["type"] == "allocation"}
+    assert not away & alloc  # no workload while away
+    for e in ev:
+        if e["type"] == "pay" and (e["agent"], e["t"]) in away:  # base salary only
+            assert all(v == 0 for k, v in e["semester"].items()
+                       if k not in ("base_salary", "total"))  # fmt: skip
+    done = {e["agent"] for e in ev if e["type"] == "doctorate"}
+    assert done == {a for a in masters if first[a]["study_until"] <= sc.semesters}
 
 
 def test_bonus_needs_bkd_minimum_unless_exempt():

@@ -60,7 +60,9 @@ processed in sorted-id order. Each stochastic process draws from its own named R
    age retire; burnout-driven attrition is drawn; both are queued for replacement. Due hires
    join as Asisten Ahli, or under the recruitment rule if one is set (e.g. doctorate only,
    as Lektor), starting probation if one is set, then (if set) a drawn teaching-staff period
-   with no rank yet before the entry rank takes effect. Journal decisions fall due:
+   with no rank yet before the entry rank takes effect. Master's holders are scheduled for
+   doctoral study leave within a window of entry (no workload, base salary only, doctorate at
+   the end). Journal decisions fall due:
    for accepted papers, every author gets the publication count and the credit is split
    between authors; rejected manuscripts return to the first author.
 2. **Negotiation.**

@@ -68,6 +68,7 @@ Status: open unless marked. Add new items under the right heading as they come u
 - Office holders at the start (user-stated): dean a Profesor; vice deans two Profesor and one non-professor with a doctorate; head of department a non-professor with a doctorate. The model's initial appointments give three Profesor vice deans; add fixed incumbents at semester 1?
 - Assessment quota: real share allowed "very good", and whether the quota is per faculty, department/unit or assessor (`assumptions.md` 58).
 - Workload dumping (`assumptions.md` 59): user-stated frequency, hours, target order and refusal rate are in; still placeholders: the most-junior vs favourite split, the per-junior cap, liking and standing sizes. Non-dumping seniors end up more burnt out than seniors without dumping (0.18–0.26 vs 0.17): likely burnout carried from being dumped on as juniors, to verify.
+- Study leave (`assumptions.md` 60): real duration, age limit, how many may be away at once (staggering), pay details (does the certification allowance continue?), and whether anyone actually resigns instead. Degree credit in KUM (master ~150, doctorate ~200 at appointment?) to confirm: without it Asisten Ahli need 4–6 years to Lektor.
 - Committees: real list of teams, sizes, hours, honoraria and cycles; whether committee membership earns its own BKD/KUM support credit (now only admin hours count); how seats are really chosen (seniority vs. age vs. head's choice).
 
 ## Engineering to-dos

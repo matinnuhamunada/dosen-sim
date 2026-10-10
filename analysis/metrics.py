@@ -2,7 +2,8 @@
 
 Scores (also shown by the viewer, which re-implements them in TypeScript):
 per served semester, u = w_pay * income / income_ref + w_rank * rank_index / (n_ranks - 1)
-+ w_wellbeing * (rest_share - burnout); a score is the mean of u over served semesters.
++ w_wellbeing * (rest_share - burnout); a score is the mean of u over served semesters
+(study leave: all rest, no allocation).
 The *own* score uses the agent's archetype weights; the *common* score uses equal weights.
 """
 
@@ -50,7 +51,8 @@ def score(sem: dict[int, dict], weights: dict[str, float], info: dict) -> float:
     us = [
         weights["w_pay"] * r["income"] / info["income_ref"]
         + weights["w_rank"] * ranks.index(r["rank"]) / max(len(ranks) - 1, 1)
-        + weights["w_wellbeing"] * (r["rest"] / info["hours_per_week"] - r["burnout"])
+        + weights["w_wellbeing"]
+        * (r.get("rest", info["hours_per_week"]) / info["hours_per_week"] - r["burnout"])
         for r in sem.values()
     ]
     return sum(us) / len(us) if us else math.nan
@@ -138,7 +140,7 @@ def run_metrics(events_path: str | Path) -> dict[str, Any]:
         free = {"external", "rest"}
         duty = [sum(h for a, h in e["hours"].items() if a not in free) / k
                 for e in events if e["type"] == "allocation"]  # fmt: skip
-        pays = [e["bonus_eligible"] for e in events if e["type"] == "pay"]
+        pays = [e["bonus_eligible"] for e in events if e["type"] == "pay" and "bonus_eligible" in e]
         out["bonus_share"] = statistics.fmean(pays)
         out["mean_duty_sks"] = statistics.fmean(duty)
         if norm:

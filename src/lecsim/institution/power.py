@@ -56,7 +56,8 @@ class Power:
         self, t: int, lecs: dict[str, LecturerState], duty: dict[str, float]
     ) -> list[tuple[str, str, float]]:
         """Senior dumpers pass drawn weekly hours of their (claimed) duty to a junior in the
-        same lab if possible: the most junior, or else the one they like most. Returns
+        same lab if possible: the most junior, or else the one they like most; only what fits
+        under the junior's cap moves. Returns
         (senior, junior, hours) for the hand-overs the junior accepted."""
         d = self.p.dumping
         if d is None:
@@ -66,10 +67,10 @@ class Power:
         out = []
         for s in sorted(i for i, x in lecs.items() if x.dumper and x.rank in d.senior_ranks
                         and not x.unranked(t)):  # fmt: skip
-            hours = min(float(rng.uniform(*d.hours)), duty[s])
-            room = [j for j in given if given[j] + hours <= d.max_junior_hours]
+            want = min(float(rng.uniform(*d.hours)), duty[s])
+            room = [j for j in given if given[j] < d.max_junior_hours]
             pool = [j for j in room if lecs[j].lab == lecs[s].lab] or room
-            if not pool or hours <= 0:
+            if not pool or want <= 0:
                 continue
             if rng.random() < d.most_junior_prob:
                 j = min(pool, key=lambda i: (not lecs[i].unranked(t), self.rank_of[lecs[i].rank],
@@ -79,6 +80,7 @@ class Power:
             if rng.random() < d.refusal_prob:
                 self.nudge_one(s, j, -d.affinity_gain)
                 continue
+            hours = min(want, d.max_junior_hours - given[j])  # what fits; the senior keeps the rest
             given[j] += hours
             lecs[j].favor += d.favor_gain
             self.nudge_one(s, j, d.affinity_gain)

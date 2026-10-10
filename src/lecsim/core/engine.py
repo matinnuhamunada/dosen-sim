@@ -148,6 +148,14 @@ class Engine:
             credits_total=dict(zero), credits_in_rank=dict(zero),
             publications=dict.fromkeys(self.reg.journal_tiers, 0),
         )  # fmt: skip
+        study = self.reg.study_leave
+        degrees = self.reg.degrees
+        if study is not None and degrees.index(degree) < degrees.index(study.degree):
+            rng = self.rng.get("study")
+            start = t + int(rng.integers(study.start_within_semesters))
+            lo, hi = study.duration_semesters
+            lec = self.state.lecturers[lid]
+            lec.study_start, lec.study_until = start, start + int(rng.integers(lo, hi + 1))
         effort = self.sc.environment.teaching_effort
         if effort is not None and self.rng.get("effort").random() < effort.share:
             self.state.lecturers[lid].teaching_effort = effort.factor
@@ -243,7 +251,11 @@ class Engine:
     def step(self) -> None:
         t = self.state.semester
         self._events(t)
-        ids = self.state.active_ids()
+        ids = [i for i in self.state.active_ids()
+               if not self.state.lecturers[i].on_study_leave(t)]  # fmt: skip
+        for i in self.state.active_ids():
+            if self.state.lecturers[i].on_study_leave(t):
+                self._study(t, i)
         outputs: dict[str, dict[str, float]] = {i: {} for i in ids}
         self._collect_publications(t, outputs)
         uncovered, demand = self._negotiate(t, ids)
@@ -262,6 +274,40 @@ class Engine:
         self.state.semester += 1
 
     # --- phases -------------------------------------------------------------
+
+    def _study(self, t: int, lid: str) -> None:
+        """A semester of doctoral study leave: no work, base salary only, burnout recovers;
+        the degree is awarded at the end."""
+        lec, reg = self.state.lecturers[lid], self.reg
+        if t == lec.study_start:
+            lec.roles, lec.committees, lec.commitments, lec.coauthor = {}, {}, {}, None
+            self.log.event(t, "events", "study_leave", lid, until=lec.study_until)
+        monthly = pay.monthly_pay(
+            rank=lec.rank, years_of_service=self.clock.years(lec.semesters_service),
+            certified=lec.certified, rules=reg.pay, probation_salary_factor=1.0,
+        )  # fmt: skip
+        income = pay.semester_income(
+            monthly=monthly, months=reg.time.months_per_semester, credits_earned=0,
+            external_hours=0, rules=reg.pay, performance_pay=False, rank=lec.rank,
+            royalty=0.0 if self.state.labs else None,  # ponytail: no royalties while away
+        )  # fmt: skip
+        lec.monthly_pay = sum(monthly.values())
+        lec.cumulative_income += income["total"]
+        self.log.event(t, "evaluation", "pay", lid, rank=lec.rank, monthly=monthly,
+                       semester=income)  # fmt: skip
+        budget = reg.time.hours_per_week
+        lec.burnout = burnout.update_burnout(
+            lec.burnout, 0.0, budget, budget, self.sc.environment.burnout, self._sensitivity(lec)
+        )
+        lec.semesters_service += 1
+        if lec.age is not None:
+            lec.age += 1 / self.clock.semesters_per_year
+        if t + 1 == lec.study_until:
+            lec.degree = reg.study_leave.degree
+            self.log.event(t, "evaluation", "doctorate", lid)
+        self.log.event(t, "evaluation", "snapshot", lid, label=self.clock.label(t),
+                       blockers=["on doctoral study leave"],
+                       state=lec.model_dump(mode="json", exclude={"grants"}))  # fmt: skip
 
     def _events(self, t: int) -> None:
         for lid in self.state.active_ids():

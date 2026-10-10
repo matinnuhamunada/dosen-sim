@@ -153,7 +153,7 @@ export function parseLog(text: string, name = "run"): Run {
   const part = (agent: string, t: number) => {
     const k = `${agent}@${t}`;
     let p = pending.get(k);
-    if (!p) pending.set(k, (p = { t }));
+    if (!p) pending.set(k, (p = { t, hours: { rest: info.hours_per_week } })); // study leave: no allocation
     return p;
   };
   const dept: DeptSem[] = [];
@@ -279,6 +279,12 @@ export function parseLog(text: string, name = "run"): Run {
           agent: e.agent,
           text: e.rank ? `hired as ${e.rank}${e.probation_until != null ? " (probation)" : ""}` : "hired",
         });
+        break;
+      case "study_leave":
+        push({ t, kind: "hire", agent: e.agent, text: "doctoral study leave (tugas belajar)" });
+        break;
+      case "doctorate":
+        push({ t, kind: "certified", agent: e.agent, text: "doctorate awarded" });
         break;
       case "appointed": // end of the teaching-staff period: the entry rank takes effect
         push({ t, kind: "promotion", agent: e.agent, text: `appointed ${e.rank} (was teaching staff)` });
