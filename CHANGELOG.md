@@ -5,6 +5,13 @@ package and the run log header read it) and adds an entry here. The viewer shows
 of the run it replays. Minor versions change model behaviour or calibration; patch versions
 fix bugs, docs or tooling without changing results.
 
+## 0.2.5 — 2026-10-10
+
+Docs only; results unchanged.
+
+- Progress log: M2–M4 gate review recorded; sign-off deferred, gates stay open.
+- To-do: professor share at year 30 (~64 % vs 24 % today) as a failed hold-out check.
+
 ## 0.2.4 — 2026-10-10
 
 Docs only; results unchanged.

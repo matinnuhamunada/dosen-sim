@@ -69,6 +69,7 @@ Status: open unless marked. Add new items under the right heading as they come u
 - Assessment quota: real share allowed "very good", and whether the quota is per faculty, department/unit or assessor (`assumptions.md` 58).
 - Workload dumping (`assumptions.md` 59): user-stated frequency, hours, target order and refusal rate are in; still placeholders: the most-junior vs favourite split, the per-junior cap, liking and standing sizes. Non-dumping seniors end up more burnt out than seniors without dumping (0.18–0.26 vs 0.17): likely burnout carried from being dumped on as juniors, to verify.
 - Study leave (`assumptions.md` 60, 62): age limit; whether anyone resigns instead; confirm the degree credit values (master 150, doctorate 200); apply degree credit and study leave nationally (M4)?
+- Professor share (hold-out check, failed): ~64 % of active lecturers are Profesor at year 30 (35–52 of ~67 over 30 seeds) vs 24 % today. Each promotion step looks plausible but the ladder is too easy overall: real promotion requirements (credit, first-author reputable papers, external review, rejections and delays) are placeholders. Fix before the strategy race and policy experiments.
 - Committees: real list of teams, sizes, hours, honoraria and cycles; whether committee membership earns its own BKD/KUM support credit (now only admin hours count); how seats are really chosen (seniority vs. age vs. head's choice).
 
 ## Engineering to-dos

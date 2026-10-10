@@ -209,3 +209,13 @@ below the unconfirmed 40–60 M (38 M).
 faculty-case policy experiment; robustness sweep; placeholders (quota size and scope, dumping
 split and cap, liking and standing sizes, effort factor, base pay and honoraria by rank,
 degree credit values, study-leave age limit); M2–M4 gate sign-off.
+
+## 2026-10-10 — M2–M4 gate review (open)
+
+Reviewed with the user; **sign-off deferred, all three gates stay open.** Evidence: M2 machinery
+works but the rank–pay frontier is nearly degenerate (rank and pay move together); M3 stable
+(faculty case, 30 seeds × 60 semesters: 0 crashes, 0 rule violations, worst coverage 1.00, peak
+mean burnout 0.17–0.26, 0–6 burnout departures); M4 pipeline and viewer done, but no 30-seed
+experiment or strategy race on the calibrated faculty case yet. First hold-out check fails: at
+year 30 a median 43 of ~67 active lecturers are Profesor (35–52 across seeds), ~64 %, against
+16 of 68 (24 %) today.
