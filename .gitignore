@@ -9,3 +9,4 @@ runs/
 viewer/node_modules/
 viewer/dist/
 viewer/public/runs/
+data/

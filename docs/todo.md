@@ -61,6 +61,8 @@ Status: open unless marked. Add new items under the right heading as they come u
 - Apply the SKS rules nationally and rerun the M4 sweep? (Decided 2026-10-09: no, faculty case only.)
 - Power dynamics: every weight is a placeholder (grade cut-offs, liking spread, standing gains and losses, appointment weights); real lab sizes; who assesses the head of department and programme heads in practice; whether grades also affect pay or the bonus.
 - Patents: real licensing rates and royalty sizes for Indonesian faculties; inventor share (PMK 136/2021 tariff, university IP policy); patent KUM; grant/filing delays and fees; whether several lines per lab run in parallel.
+- Publication calibration (2026-10-10, see `assumptions.md` 52): replace the Wikidata "ever in Scopus" proxy with the Scopus source list (login) or SINTA ranks per journal, by year; share of faculty authorships that are lecturers (students also list the faculty); split national into accredited/non-accredited. The record grows ~8 %/yr (articles roughly doubled 2016–2025) while the run is flat after year ~10; model a growing research culture or student numbers?
+- Pay (user-reported, unconfirmed): a vice dean who is Profesor takes home ~40–60 M IDR a month, consulting excluded; the model gives ~26 M (median, excluding external and royalties).
 - Committees: real list of teams, sizes, hours, honoraria and cycles; whether committee membership earns its own BKD/KUM support credit (now only admin hours count); how seats are really chosen (seniority vs. age vs. head's choice).
 
 ## Engineering to-dos
