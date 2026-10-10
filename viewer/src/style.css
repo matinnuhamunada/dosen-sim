@@ -299,6 +299,7 @@ body.overlay #career { z-index: 7; }
 body.overlay #career-body { display: none; }
 body.overlay #scoreboard, body.overlay #tracker.wide { bottom: calc(var(--play-h) + 2 * var(--gap)); }
 body.overlay #ops { display: none; }
+@media (max-width: 760px) { body.overlay #career { bottom: var(--gap); } }
 @media (max-width: 1400px) { .kpi .ic { display: none; } .kpi { padding-left: 12px; } }
 
 .kpi.podium .chips.labs { margin-top: 4px; }
