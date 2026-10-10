@@ -108,6 +108,7 @@ class Engine:
             if scenario.environment.patents is not None:
                 self.state.labs = {lab: LabState() for lab in dept.labs}
         self._made: dict[str, float] = {}  # research output this semester (patents)
+        self._real: dict[str, dict[str, float]] = {}  # real-hour shifts (workload dumping)
         self.power = None
         if dept.power is not None:
             self.power = Power(dept, self.state, self.rng, self.reg.rank_names)
@@ -243,6 +244,7 @@ class Engine:
         self._collect_publications(t, outputs)
         uncovered, demand = self._negotiate(t, ids)
         allocations = {i: self._allocate(t, i) for i in ids}
+        self._dump(t, ids, allocations)
         for i in ids:
             self._resolve(t, i, allocations[i], outputs[i])
         royalty = self._patents(t, ids, outputs) if self.state.labs else None
@@ -385,11 +387,33 @@ class Engine:
             raise InvalidAllocation(f"{lid} at t={t}: {violations}")
         return alloc
 
+    def _dump(self, t: int, ids: list[str], allocations: dict[str, Allocation]) -> None:
+        """Seniors pass teaching to juniors (power dynamics). Reported hours are untouched;
+        ``_real`` records the real-hour shifts: the senior gains rest, the junior loses rest
+        first, then research time."""
+        self._real: dict[str, dict[str, float]] = {}
+        if self.power is None:
+            return
+        lecs = {i: self.state.lecturers[i] for i in ids}
+        teaching = {i: allocations[i].hours[Activity.TEACHING] for i in ids}
+        for s, j, h in self.power.dump_teaching(t, lecs, teaching):
+            out = self._real.setdefault(s, {})
+            out["dumped_out"] = out.get("dumped_out", 0.0) + h
+            r = self._real.setdefault(j, {})
+            r["dumped_in"] = r.get("dumped_in", 0.0) + h
+            self.log.event(t, "negotiation", "workload_dumped", s, junior=j, hours=h)
+        for j, r in self._real.items():
+            if "dumped_in" in r:
+                hours = allocations[j].hours
+                r["from_rest"] = min(r["dumped_in"], hours[Activity.REST])
+                r["research_cut"] = min(r["dumped_in"] - r["from_rest"], hours[Activity.RESEARCH])
+
     def _resolve(self, t: int, lid: str, alloc: Allocation, out: dict[str, float]) -> None:
         lec = self.state.lecturers[lid]
         env = self.sc.environment
         weeks = self.reg.time.weeks_per_semester
         sem_hours = {a: h * weeks for a, h in alloc.hours.items()}
+        sem_hours[Activity.RESEARCH] -= self._real.get(lid, {}).get("research_cut", 0.0) * weeks
         prod_rng = self.rng.get("production", lid)
 
         active_grant = any(g.start <= t < g.end for g in lec.grants)
@@ -561,10 +585,13 @@ class Engine:
         self.log.event(t, "evaluation", "pay", lid, rank=lec.rank, monthly=monthly, semester=income,
                        **({"bonus_eligible": bonus} if reg.bkd else {}))  # fmt: skip
 
-        # low-effort teaching: reported hours count in full, the unworked part is rest
-        rest = alloc.hours[Activity.REST] + alloc.hours[Activity.TEACHING] * (
-            1 - lec.teaching_effort
-        )
+        # Real hours for burnout: low-effort teaching and dumped hours shift rest; reported
+        # hours (credit, BKD, pay) are unchanged.
+        real = self._real.get(lid, {})
+        out_h = real.get("dumped_out", 0.0)
+        taught = alloc.hours[Activity.TEACHING] - out_h
+        rest = (alloc.hours[Activity.REST] + taught * (1 - lec.teaching_effort) + out_h
+                - real.get("from_rest", 0.0))  # fmt: skip
         lec.burnout = burnout.update_burnout(
             lec.burnout, reg.time.hours_per_week - rest, rest, reg.time.hours_per_week,
             self.sc.environment.burnout, self._sensitivity(lec),

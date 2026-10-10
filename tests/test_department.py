@@ -127,6 +127,33 @@ def test_low_teaching_effort_rests_more(tmp_path):
     assert burn[1.0] < burn[0.0]  # same reported teaching, fewer real hours
 
 
+def test_seniors_dump_teaching_on_juniors(tmp_path):
+    base = load_scenario(ROOT / "configs/scenarios/faculty_case.yaml")
+    power = base.department.power
+    d = power.dumping.model_copy(update={"prob": 1.0})
+    dept = base.department.model_copy(update={"power": power.model_copy(update={"dumping": d})})
+    sc = base.model_copy(update={"semesters": 3, "department": dept})
+    path = tmp_path / "ev.jsonl"
+    with EventLog(path) as log:
+        eng = Engine(sc, 1, log)
+        eng.run()
+    _, ev = read_events(path)
+    rank = {(e["agent"], e["t"]): e["state"]["rank"] for e in ev if e["type"] == "snapshot"}
+    teach = {(e["agent"], e["t"]): e["hours"]["teaching"] for e in ev if e["type"] == "allocation"}
+    dumps = [e for e in ev if e["type"] == "workload_dumped"]
+    assert dumps
+    load = {}
+    for e in dumps:
+        assert rank[(e["agent"], e["t"])] in d.senior_ranks
+        assert rank[(e["junior"], e["t"])] in d.junior_ranks
+        assert e["hours"] <= d.share * teach[(e["agent"], e["t"])] + 1e-9
+        load[(e["junior"], e["t"])] = load.get((e["junior"], e["t"]), 0) + e["hours"]
+    assert max(load.values()) <= d.max_junior_hours + 1e-9
+    e = dumps[0]  # one-sided: the senior likes the junior more, the junior resents the senior
+    one = eng.state.affinity_one
+    assert one[f"{e['agent']}>{e['junior']}"] > 0 > one[f"{e['junior']}>{e['agent']}"]
+
+
 def test_bonus_needs_bkd_minimum_unless_exempt():
     sc = load_scenario(ROOT / "configs/scenarios/faculty_case.yaml")
     eng = Engine(sc, 1, EventLog(os.devnull))

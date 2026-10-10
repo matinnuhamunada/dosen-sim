@@ -302,6 +302,21 @@ class Grade(_Model):
     quota: float | None = Field(default=None, ge=0, le=1)  # max share of staff with it
 
 
+class DumpingParams(_Model):
+    """Seniors hand part of their teaching to a junior: the senior still claims the hours
+    (credit, BKD, pay) but works less; the junior works them with no credit. The junior
+    resents it, but gains the senior's liking and standing."""
+
+    senior_ranks: list[str]
+    junior_ranks: list[str]  # plus new hires without a rank yet
+    prob: float = Field(ge=0, le=1)  # chance per senior per semester
+    share: float = Field(ge=0, le=1)  # of the senior's reported teaching hours
+    max_junior_hours: float = Field(ge=0)  # extra weekly hours one junior can be given
+    favor_gain: float = Field(ge=0)  # junior's standing, per senior dumping on them
+    affinity_gain: float = Field(ge=0)  # senior's liking of the junior
+    resentment: float = Field(ge=0)  # junior's liking of the senior lost
+
+
 class PowerParams(_Model):
     """Favoritism: supervisors' assessments scale career credit; committee service and
     consulting move a lecturer's standing; appointments weigh seniority, standing, liking
@@ -342,6 +357,7 @@ class PowerParams(_Model):
     same_archetype_affinity: float = 0.0  # homophily: added to the liking of like-minded pairs
     dean_lab_access_bonus: float = 0.0  # the dean channels funding to their own lab
     dean_archetype_access_bonus: float = 0.0  # ... and to lecturers like themselves
+    dumping: DumpingParams | None = None  # seniors pass teaching to juniors
 
     @model_validator(mode="after")
     def _check(self) -> PowerParams:

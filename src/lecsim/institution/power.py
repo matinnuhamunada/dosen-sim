@@ -30,7 +30,8 @@ class Power:
     # --- like / dislike -------------------------------------------------------------
 
     def affinity(self, a: str, b: str) -> float:
-        """Mutual like (+) or dislike (-) between two lecturers; drawn once per pair."""
+        """How much ``a`` likes (+) or dislikes (-) ``b``: a mutual part drawn once per pair,
+        plus ``a``'s own one-sided shift (see ``nudge_one``)."""
         if a == b:
             return 0.0
         key = "|".join(sorted((a, b)))
@@ -39,12 +40,43 @@ class Power:
             x, y = self.state.lecturers[a], self.state.lecturers[b]
             same = x.archetype is not None and x.archetype == y.archetype
             self.state.affinity[key] = float(draw) + self.p.same_archetype_affinity * same
-        return self.state.affinity[key]
+        return self.state.affinity[key] + self.state.affinity_one.get(f"{a}>{b}", 0.0)
 
     def nudge(self, a: str, b: str, delta: float) -> None:
         if a != b:
             self.affinity(a, b)
             self.state.affinity["|".join(sorted((a, b)))] += delta
+
+    def nudge_one(self, a: str, b: str, delta: float) -> None:
+        """Change only how much ``a`` likes ``b``."""
+        key = f"{a}>{b}"
+        self.state.affinity_one[key] = self.state.affinity_one.get(key, 0.0) + delta
+
+    def dump_teaching(
+        self, t: int, lecs: dict[str, LecturerState], teaching: dict[str, float]
+    ) -> list[tuple[str, str, float]]:
+        """Seniors who dump (drawn) pass ``share`` of their reported teaching to a junior,
+        same lab first, then the least loaded; returns (senior, junior, weekly hours)."""
+        d = self.p.dumping
+        if d is None:
+            return []
+        juniors = [i for i, x in lecs.items() if x.rank in d.junior_ranks or x.unranked(t)]
+        given = dict.fromkeys(juniors, 0.0)
+        out = []
+        for s in sorted(i for i, x in lecs.items()
+                        if x.rank in d.senior_ranks and not x.unranked(t)):  # fmt: skip
+            if not juniors or self.rng.get("dumping").random() >= d.prob:
+                continue
+            j = min(juniors, key=lambda i: (lecs[i].lab != lecs[s].lab, given[i], i))
+            hours = min(d.share * teaching[s], d.max_junior_hours - given[j])
+            if hours <= 1e-9:
+                continue
+            given[j] += hours
+            lecs[j].favor += d.favor_gain
+            self.nudge_one(s, j, d.affinity_gain)
+            self.nudge_one(j, s, -d.resentment)
+            out.append((s, j, hours))
+        return out
 
     # --- reporting chain --------------------------------------------------------------
 

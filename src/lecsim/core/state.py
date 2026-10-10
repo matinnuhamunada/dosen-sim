@@ -94,6 +94,7 @@ class DepartmentState(BaseModel):
     coauthor_memory: dict[str, bool] = Field(default_factory=dict)
     # "a|b" (a < b) -> mutual like (+) / dislike (-); committee service and refusals move it
     affinity: dict[str, float] = Field(default_factory=dict)
+    affinity_one: dict[str, float] = Field(default_factory=dict)  # "a>b": a's own shift
     labs: dict[str, LabState] = Field(default_factory=dict)
 
     def active_ids(self) -> list[str]:
