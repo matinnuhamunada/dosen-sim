@@ -188,9 +188,9 @@ department:
   # appointer's liking and lab ties; the dean is elected (mean liking, lab size).
   power:
     grades: # user-stated: very good -> 100 % credit, good -> 80 %, "and so on"
-      - { name: very_good, min_score: 0.5, credit_factor: 1.0 }
-      - { name: good, min_score: 0.0, credit_factor: 0.8 }
-      - { name: fair, min_score: -0.5, credit_factor: 0.6 }
+      - { name: very_good, min_score: 0.5, credit_factor: 1.0, quota: 0.3 } # user-stated: limited quota; share TODO(source)
+      - { name: good, min_score: -1.0, credit_factor: 0.8 } # user-stated: grades below good are rare
+      - { name: fair, min_score: -1.5, credit_factor: 0.6 }
       - { name: poor, min_score: -1.0e9, credit_factor: 0.4 }
     affinity_sigma: 0.5
     w_performance: 1.0

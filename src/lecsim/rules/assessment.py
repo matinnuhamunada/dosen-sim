@@ -32,6 +32,22 @@ def grade_for(score: float, grades: Sequence[Grade]) -> Grade:
     return next((g for g in grades if score >= g.min_score), grades[-1])
 
 
+def assign_grades(scores: dict[str, float], grades: Sequence[Grade]) -> dict[str, Grade]:
+    """Grade everyone at once: by score threshold, but a grade with a ``quota`` goes to at
+    most ``floor(quota * n)`` people (highest scores first); the rest drop to the next grade."""
+    cap = {g.name: int(g.quota * len(scores)) for g in grades if g.quota is not None}
+    used: dict[str, int] = {}
+    out: dict[str, Grade] = {}
+    for lid in sorted(scores, key=lambda i: (-scores[i], i)):
+        k = grades.index(grade_for(scores[lid], grades))
+        full = lambda g: g.name in cap and used.get(g.name, 0) >= cap[g.name]  # noqa: E731
+        while k < len(grades) - 1 and full(grades[k]):
+            k += 1
+        out[lid] = grades[k]
+        used[grades[k].name] = used.get(grades[k].name, 0) + 1
+    return out
+
+
 def update_favor(favor: float, external_share: float, p: PowerParams) -> float:
     """Semester drift of standing: it decays, and consulting (absence from shared work)
     lowers it. Willing committee service adds ``favor_per_committee`` when assigned."""

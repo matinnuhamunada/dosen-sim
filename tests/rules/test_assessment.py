@@ -4,6 +4,7 @@ from lecsim.config import PowerParams
 from lecsim.rules.assessment import (
     appointment_score,
     assessment_score,
+    assign_grades,
     grade_for,
     performance,
     update_favor,
@@ -47,3 +48,15 @@ def test_grades_must_descend():
     bad = P.model_dump() | {"grades": list(reversed(P.model_dump()["grades"]))}
     with pytest.raises(ValueError, match="descending"):
         PowerParams.model_validate(bad)
+
+
+def test_assign_grades_quota():
+    q = [g.model_copy(update={"quota": 0.25}) if g.name == "very_good" else g for g in P.grades]
+    scores = {"a": 0.9, "b": 0.8, "c": 0.6, "d": 0.1, "e": -2, "f": 0.7, "g": 0.2, "h": 0.55}
+    g = {k: v.name for k, v in assign_grades(scores, q).items()}
+    # 6 score very good, but the quota is floor(0.25 * 8) = 2: the two best keep it
+    assert [k for k in scores if g[k] == "very_good"] == ["a", "b"]
+    assert all(g[k] == "good" for k in "cfdgh") and g["e"] == "poor"
+    assert assign_grades(scores, P.grades)["c"].name == "very_good"  # no quota: thresholds
+    tiny = {k: v.name for k, v in assign_grades({"x": 1.0}, q).items()}
+    assert tiny == {"x": "good"}  # floor(0.25 * 1) = 0 seats

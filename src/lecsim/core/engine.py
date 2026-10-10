@@ -509,11 +509,12 @@ class Engine:
                   for i in ids}  # fmt: skip
         median = statistics.median(totals.values())
         holders = self.power.holders()
+        assessed = {i: self.power.assess(self.state.lecturers[i], totals[i], median, holders)
+                    for i in ids}  # fmt: skip
+        grades = assessment.assign_grades({i: s for i, (_, s) in assessed.items()}, p.grades)
         factor = {}
         for i in ids:
-            lec = self.state.lecturers[i]
-            sup, score = self.power.assess(lec, totals[i], median, holders)
-            g = assessment.grade_for(score, p.grades)
+            lec, (sup, score), g = self.state.lecturers[i], assessed[i], grades[i]
             lec.grade, factor[i] = g.name, g.credit_factor
             self.log.event(t, "evaluation", "assessment", i, supervisor=sup, score=score,
                            grade=g.name, credit_factor=g.credit_factor)  # fmt: skip

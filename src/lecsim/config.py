@@ -299,6 +299,7 @@ class Grade(_Model):
     name: str
     min_score: float  # lowest assessment score for this grade (grades in descending order)
     credit_factor: float = Field(ge=0, le=1)  # share of the semester's credit that counts
+    quota: float | None = Field(default=None, ge=0, le=1)  # max share of staff with it
 
 
 class PowerParams(_Model):
