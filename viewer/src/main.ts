@@ -5,7 +5,7 @@ import { ARCHETYPE_COLORS, type CameraCommand, CampusScene, PIN_COLORS, SELECT_C
 import { aggregateRows, fmt, gini, quantile, type ScoreRow, scoreRows, toCsv } from "./scores";
 
 const SEMESTER_SECONDS = 4; // playback duration of one semester at 1x
-const DEFAULT_RUN = "runs/faculty_case_seed1/events.jsonl";
+const DEFAULT_RUN = "runs/faculty_case_seed1/events.jsonl.gz";
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
 type Tab = "lecturers" | "events" | "dept";
@@ -52,11 +52,19 @@ const boardOpen = () => !$("scoreboard").classList.contains("hidden");
 
 // --- loading -------------------------------------------------------------------------
 
+// Bundled logs are gzipped (Cloudflare Pages caps files at 25 MiB); sniff the magic bytes
+// rather than the name, since a server may already have decoded it.
+async function readText(blob: Blob): Promise<string> {
+  const magic = new Uint8Array(await blob.slice(0, 2).arrayBuffer());
+  if (magic[0] !== 0x1f || magic[1] !== 0x8b) return blob.text();
+  return new Response(blob.stream().pipeThrough(new DecompressionStream("gzip"))).text();
+}
+
 async function loadFiles(files: FileList | File[]): Promise<void> {
   const loaded: Run[] = [];
   for (const f of Array.from(files)) {
     try {
-      loaded.push(parseLog(await f.text(), f.name));
+      loaded.push(parseLog(await readText(f), f.name));
     } catch (err) {
       alert(`${f.name}: ${(err as Error).message}`);
     }
@@ -69,7 +77,7 @@ async function loadUrls(urls: string[]): Promise<void> {
   for (const url of urls) {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
-    runs.push(parseLog(await res.text(), url.split("/").slice(-2).join("/")));
+    runs.push(parseLog(await readText(await res.blob()), url.split("/").slice(-2).join("/")));
   }
   setRuns(runs, urls);
 }
