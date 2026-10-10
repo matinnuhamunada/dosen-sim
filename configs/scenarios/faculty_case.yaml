@@ -99,6 +99,10 @@ environment:
   # Research resources by rank (students, lab, network); grants x1.5 on top. Calibrated so an
   # early-career lecturer publishes ~1 paper a semester and a professor 4-8 (user-stated).
   research_productivity_by_rank: { Asisten Ahli: 0.7, Lektor: 0.9, Lektor Kepala: 1.2, Profesor: 1.7 }
+  # User-stated: ~10 % of lecturers put in only 30-35 h a week through less effort (minimal
+  # preparation), not outside work. Their reported SKS are unchanged; real teaching time is
+  # scaled by the factor (calibrated so they work ~30-35 h).
+  teaching_effort: { share: 0.1, factor: 0.4 }
   # Calibrated, not sourced: with 0.3 the run's accepted papers split ~39 % national, ~11 %
   # international, ~50 % reputable, matching the faculty's bibliographic record 2015-2025
   # (~33-40 % / ~6 % / ~50-59 %; see docs/assumptions.md). Volume needed no change.

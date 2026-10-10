@@ -147,6 +147,9 @@ class Engine:
             credits_total=dict(zero), credits_in_rank=dict(zero),
             publications=dict.fromkeys(self.reg.journal_tiers, 0),
         )  # fmt: skip
+        effort = self.sc.environment.teaching_effort
+        if effort is not None and self.rng.get("effort").random() < effort.share:
+            self.state.lecturers[lid].teaching_effort = effort.factor
         book = self.sc.agents
         self.policies[lid] = POLICIES[policy](
             self.rng.get("policy", lid),
@@ -557,7 +560,10 @@ class Engine:
         self.log.event(t, "evaluation", "pay", lid, rank=lec.rank, monthly=monthly, semester=income,
                        **({"bonus_eligible": bonus} if reg.bkd else {}))  # fmt: skip
 
-        rest = alloc.hours[Activity.REST]
+        # low-effort teaching: reported hours count in full, the unworked part is rest
+        rest = alloc.hours[Activity.REST] + alloc.hours[Activity.TEACHING] * (
+            1 - lec.teaching_effort
+        )
         lec.burnout = burnout.update_burnout(
             lec.burnout, reg.time.hours_per_week - rest, rest, reg.time.hours_per_week,
             self.sc.environment.burnout, self._sensitivity(lec),

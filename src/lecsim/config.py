@@ -223,6 +223,14 @@ class PatentParams(_Model):
     royalty_semesters: int = Field(ge=1)
 
 
+class TeachingEffort(_Model):
+    """A share of lecturers spend less real time per reported teaching hour (minimal
+    preparation); reported SKS, credit and pay are unchanged, the freed time is rest."""
+
+    share: float = Field(ge=0, le=1)  # drawn once per lecturer
+    factor: float = Field(ge=0, le=1)  # real hours per reported teaching hour
+
+
 class Environment(_Model):
     production: dict[str, ProductionParams]
     journals: dict[str, JournalParams]
@@ -232,6 +240,7 @@ class Environment(_Model):
     # Research resources by rank (students, lab, network) as an output multiplier; grants
     # and co-authorship multiply on top. Missing rank: 1.
     research_productivity_by_rank: dict[str, float] = {}
+    teaching_effort: TeachingEffort | None = None  # None: every reported hour is worked
 
 
 # --- department -------------------------------------------------------------

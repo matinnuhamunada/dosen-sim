@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from lecsim.config import load_scenario
+from lecsim.config import TeachingEffort, load_scenario
 from lecsim.core.engine import Engine
 from lecsim.core.state import Submission
 from lecsim.logging.events import EventLog, read_events
@@ -107,6 +107,24 @@ def test_faculty_case_teaching_staff_then_lektor(tmp_path):
     assert ranked and all(s["limits"].get("supervision") != 0 for s in ranked)  # allowed again
     appointed = {e["agent"]: e["t"] for e in ev if e["type"] == "appointed"}
     assert all(appointed[a] == h["appointed_at"] - 1 for a, h in hires.items() if a in appointed)
+
+
+def test_low_teaching_effort_rests_more(tmp_path):
+    base = load_scenario(ROOT / "configs/scenarios/faculty_case.yaml")
+    burn = {}
+    for share in (0.0, 1.0):
+        env = base.environment.model_copy(
+            update={"teaching_effort": TeachingEffort(share=share, factor=0.4)}
+        )
+        sc = base.model_copy(update={"semesters": 8, "environment": env})
+        path = tmp_path / f"ev{share}.jsonl"
+        with EventLog(path) as log:
+            Engine(sc, 1, log).run()
+        _, ev = read_events(path)
+        snaps = [e["state"] for e in ev if e["type"] == "snapshot"]
+        assert {s["teaching_effort"] for s in snaps} == {0.4 if share else 1.0}
+        burn[share] = sum(s["burnout"] for s in snaps) / len(snaps)
+    assert burn[1.0] < burn[0.0]  # same reported teaching, fewer real hours
 
 
 def test_bonus_needs_bkd_minimum_unless_exempt():
