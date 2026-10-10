@@ -174,3 +174,38 @@ The user confirmed the 10–20 M IDR BKD bonus is paid per semester, as already 
 - BKD minimum is checked on reported SKS (as modelled: claimable hours); community service needs one activity of any size (0.1 SKS minimum, assumption).
 - Archetype shares are rescaled from their 40 h calibration to the 56 h budget (rest takes the difference), so overtime no longer comes from a 40 % inflation of every share.
 - 30 seeds × 60 semesters: mean burnout 0.132 (was ~0.18), burnout leavers 26.5 per run, overload (> 16 SKS) 43 % of lecturer-semesters, bonus share 0.41 (0.47 without power). Unconditional bonus: overload 21 %, burnout −0.017, leavers −2.5. Pay per year: research maximiser 173, admin climber 164, teaching loyalist 160, balanced 149, external earner 146 M IDR. Deans: teaching loyalists 129 terms, admin climbers 82.
+
+## 2026-10-10 — Faculty case calibration (lecsim v0.2.0)
+
+**Built** (faculty case only; the generic scenarios' logs are identical apart from new
+null/default fields, checked by rerunning all six at the session's starting commit):
+- Journal-tier mix calibrated to the faculty's articles 2015–2025 (OpenAlex, Scopus status via
+  Wikidata): reputable acceptance 0.15 → 0.3. Volume left unchanged (~2.5 faculty authors per
+  article).
+- Pay: public allowance rules, 13th salary and THR, user-stated base salary, meal allowance and
+  honoraria; checked against one lecturer's private payslips (not in the repository).
+- New hires: probation, then 1–2 years as teaching staff without a rank. Master's holders:
+  doctoral study leave (12 of 16 founders part-way at the start; 4–5 years; base salary only);
+  degree credit in KUM.
+- Teaching imposed and calibrated to one semester's scheduled SKS (~10.4 per lecturer).
+- Burnout calibrated to user-stated hours and burnout; burnt-out lecturers rarely leave.
+- Low-effort lecturers (10 %), assessment quota on "very good", workload dumping by senior
+  dumpers (45 %, 3–8 h of any work, most junior first, 5 % refuse).
+- Viewer: gzipped bundled log (Cloudflare 25 MiB limit), render on change, mobile scoreboard
+  layout, version and estimated monthly pay shown; only the faculty case is published.
+- Versioning from v0.2.0 (`CHANGELOG.md`). Tests: 153 Python + 8 viewer.
+
+**Calibration** (seeds 1–5): see ODD §9. All user-stated and data targets are met within the
+seed spread, except pay slightly high for teaching staff (11.8 vs ~10.5 M) and the vice dean
+below the unconfirmed 40–60 M (38 M).
+
+**Found along the way:**
+- Long Lektor Kepala spells were master's holders who could never become Profesor; fixed by
+  study leave and degree credit (median ~3.5 years in rank at the end, was 13.5–17.8).
+- Dumping traps low-research juniors (teaching loyalists, external earners) who stay burnt out
+  and Lektor for 10–20 years; the user confirms this happens, if less often.
+
+**Open** (`todo.md`): real hours in metrics and viewer; strategy scoring (twin runs); a
+faculty-case policy experiment; robustness sweep; placeholders (quota size and scope, dumping
+split and cap, liking and standing sizes, effort factor, base pay and honoraria by rank,
+degree credit values, study-leave age limit); M2–M4 gate sign-off.

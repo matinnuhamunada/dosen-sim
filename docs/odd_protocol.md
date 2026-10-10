@@ -4,9 +4,11 @@ Model description following the ODD protocol (Grimm et al. 2006; 2020 update). I
 the rule-based MVP (milestones M1–M4). Model-driven agents (Phase 2) will be added as new
 `Policy` implementations without changing the processes described here.
 
-**Caveat.** Every regulation and calibration value is currently a placeholder marked
-`TODO(source)` (see `assumptions.md`). Results below show what the model *does* under
-these placeholders. They are not findings about Indonesian universities.
+**Caveat.** The generic scenarios (§8) run on placeholder values marked `TODO(source)`
+(see `assumptions.md`); their results show what the model *does*, not findings about
+Indonesian universities. The faculty case (§9, model version 0.2.0) is partly calibrated to
+an anonymised real faculty (public records, one lecturer's pay and user-stated estimates);
+its remaining placeholders are listed in `assumptions.md` 52–62 and `todo.md`.
 
 ---
 
@@ -25,9 +27,10 @@ administration, external work and rest. The model asks:
 The model is built for researchers comparing strategies and policies in silico. It does not
 predict any individual's career.
 
-**Patterns for evaluation** (planned, pending data): time-in-rank distributions, publication
-counts per lecturer, attrition rates; face validity of archetype trajectories judged by
-senior lecturers.
+**Patterns for evaluation.** Faculty case (§9): journal-tier mix and papers per year,
+scheduled teaching SKS by rank, weekly hours worked, share burnt out, burnout departures,
+assessment grades, monthly pay by status, and time in rank. Face validity of trajectories is
+judged by a lecturer at the faculty. Generic scenarios: none yet.
 
 ## 2. Entities, state variables and scales
 
@@ -73,17 +76,22 @@ processed in sorted-id order. Each stochastic process draws from its own named R
       seniority, standing, the appointer's liking, lab ties), then staffs committees formed
       this semester (junior staff first; with power dynamics, assigned by the vice dean).
    2. Teaching demand is drawn, and the head bargains a load with each lecturer, then runs a
-      volunteering round for any shortfall.
+      volunteering round for any shortfall (faculty case: the load and the shortfall are
+      imposed, not bargained).
    3. Lecturers are paired as co-authors.
 
    Agreed hours become weekly commitments.
 3. **Allocation.** Each lecturer's policy returns an `Allocation`: weekly hours, a journal
    tier and whether to apply for a grant. The engine rejects allocations that break the
    hour budget, the duty-hour limits, the minimum tridharma shares or the commitments.
+   Lecturers on doctoral study leave do not allocate. With workload dumping (faculty case),
+   senior dumpers then pass part of their claimed hours to juniors: reported hours stay
+   with the senior, real hours move to the junior (rest first, then research).
 4. **Resolution.** The engine draws research and community output. Completed manuscripts are
    submitted, and grant applications are drawn.
 5. **Evaluation.**
-   1. Credits are scored and certification is checked.
+   1. Credits are scored and certification is checked. With power dynamics, supervisors
+      grade everyone; a quota caps the top grade, and the grade scales the credit counted.
    2. Pay is computed, including role allowances and external income.
    3. Burnout is updated, and promotion is checked (an eligible lecturer is promoted).
    4. Per-agent snapshots and a department summary are logged.
@@ -123,19 +131,24 @@ comparison reports and the viewer read only the log.
   compute outcomes themselves.
 - **Sensing.** A policy sees its own state, the workload rules, its engine-computed
   promotion gaps and distance, its commitments, and the forecaster. It does not see other
-  lecturers' states.
+  lecturers' states, and it does not anticipate grades, dumping, study leave or the
+  teaching-staff period (agents plan as if ranked and credited in full).
 - **Interaction.**
   - Teaching load uses alternating offers with the head (propose, then accept, reject or
     counter; the head imposes its last offer after the maximum rounds).
   - Roles are offered in order of least commitment, then imposed if nobody accepts.
   - Co-authorship pairs a lecturer with the strongest available partner; both must accept.
     Engine-held tit-for-tat memory supports reciprocity.
+  - Faculty case: teaching is imposed; senior dumpers hand claimed hours to juniors (most
+    junior first, else a favourite; 5 % refuse), shifting one-sided liking and standing.
   - All messages are structured `Proposal`/`Response` envelopes, and all are logged.
 - **Stochasticity.**
   - Production noise is lognormal with mean one.
   - Journal acceptance and grant success are Bernoulli draws.
   - Teaching demand varies lognormally.
   - Attrition is a Bernoulli hazard while burnout is above a threshold.
+  - Faculty case: teaching-staff period, study-leave start and length, low teaching effort,
+    the dumping habit, hand-over hours and targets, refusals, and assessment noise.
   - Co-authorship order is random; random agents and logit choice also draw.
 
   Streams are named and derived from the run seed, so adding an agent or a stream does not
@@ -150,22 +163,34 @@ comparison reports and the viewer read only the log.
   - an *own-goal* score (mean per-semester utility under the agent's archetype weights) and
     a *common* score (equal weights).
 
+  Logs and metrics record *reported* hours. Real hours worked (low teaching effort, dumped
+  hours) can be reconstructed from snapshots and `workload_dumped` events but are not yet
+  reported by the metrics or the viewer.
+
 ## 5. Initialisation
 
 From the scenario file:
 - lecturer groups (count, policy, archetype, initial rank, degree);
 - base teaching demand = hours per lecturer × initial headcount.
 
-All credits, publications, income and burnout start at zero, and nobody holds a role at
-t = 0. Main scenarios start every lecturer as Asisten Ahli with a doctorate. If the
+Income and burnout start at zero, and nobody holds a role at t = 0. Generic scenarios start
+every lecturer as Asisten Ahli with a doctorate and zero credits and publications. If the
 scenario has a `demography` block (faculty case), each founder gets a start age (uniform
-29–31) plus years of service drawn by rank; these set age and seniority. Ages are not
+29–31) plus years of service drawn by rank, and a seeded history: credits at their rank's
+cumulative requirement (at least their degree's credit) and papers along their career.
+In the faculty case, 12 of the 16 master's-holding founders start part-way through doctoral
+study leave; each lecturer's teaching effort and dumping habit are drawn once. Ages are not
 modelled otherwise, and nobody retires.
 
 ## 6. Input data
 
-None yet. The regulation, environment, department and archetype values are placeholders;
-real values and their sources are listed as needed in `assumptions.md` and `todo.md`.
+Generic scenarios: none; their values are placeholders. Faculty case (aggregates only,
+sources withheld for anonymity): the faculty's public staff directory (headcount, ranks,
+labs), its articles 2015–2025 in OpenAlex with journal Scopus status from Wikidata (tier mix,
+authors per article), one semester's public teaching timetable (scheduled SKS), public pay
+rules (Perpres 65/2007, UU 14/2005), one lecturer's payslips (kept private; only rounded
+estimates enter the config) and user-stated estimates (hours, burnout, effort, dumping,
+study leave). Each value's source is recorded in `assumptions.md`.
 
 ## 7. Submodels
 
@@ -243,3 +268,46 @@ trade-off is pay against rest.
 **Reproducibility.** Each run's log header records the config hash, seed, git commit and
 package version. Metrics and reports can be recomputed from logs (`lecsim metrics`,
 `lecsim compare`) without rerunning.
+
+## 9. Faculty case (calibrated scenario, v0.2.0)
+
+`configs/scenarios/faculty_case.yaml`: an anonymised Indonesian faculty (PTNBH university),
+70 lecturers in 12 labs over 60 semesters (30 years), lecturer IDs are pseudonyms. It is the
+only published scenario. Faculty-specific rules are applied through `regulation_overrides`,
+`environment` and `department` blocks, so the generic scenarios (§8) are unchanged.
+
+**Added mechanisms** (details and sources: `assumptions.md` 40–62):
+- Recruitment (doctorate only, entry as Lektor), one-year probation (80 % base salary, half
+  teaching credit, no supervision), then 1–2 years as teaching staff without a rank.
+- Doctoral study leave for master's holders (start within 3 years, 4–5 years away on base
+  salary only); the degree counts toward the cumulative credit.
+- Workload in SKS (2.5 h each; 16 SKS paid norm) and the BKD bonus condition on reported SKS.
+- Teaching imposed by the department, calibrated to the scheduled SKS of one semester.
+- Pay from public rules (functional, professional, honorary allowances; 13th salary and THR)
+  and user-stated estimates (base salary, meal allowance, honoraria, the BKD bonus).
+- Structural roles and committees, power dynamics (supervisor grades with a quota on "very
+  good", standing, one-sided and mutual liking, lab ties, access to grants, students and
+  courses), workload dumping by senior dumpers, low-effort lecturers, patents, retirement.
+
+**Calibration results** (seeds 1–5, ranges across seeds):
+
+| Pattern | Model | Target |
+| --- | --- | --- |
+| Journal tiers, national / international / reputable | 40–44 / 10–11 / 45–49 % | ~33–40 / ~6 / ~50–59 % (bibliographic record) |
+| Accepted papers a year | 297–315 | ~300–450 (lecturer-level, inferred) |
+| Scheduled teaching SKS, all / Profesor | 10.4–10.6 / 10.5–10.8 | 10.4 / ~12 (timetable) |
+| Weekly hours worked, median | 48–49 | 48–56 (user-stated) |
+| Low-effort lecturers (10 %), hours | 30–35 | 30–35 (user-stated) |
+| Burnt out (burnout ≥ 0.5) | 12–16 % | 10–20 % (user-stated) |
+| Burnout departures in 30 years | 0–6 | rare (user-stated) |
+| Grades very good / good / lower | 29 / 67–68 / 3–4 % | quota / most / rare (user-stated) |
+| Monthly pay, certified Lektor / teaching staff | 16.8 / 11.8 M IDR | ~15.7 / ~10.5 M (payslips) |
+| Monthly pay, professor vice dean | 38 M IDR | 40–60 M (hearsay, unconfirmed) |
+| Years in rank: Asisten Ahli → Lektor | ~2–2.5 (the minimum binds) | plausible (user) |
+| Years in rank: Lektor → Lektor Kepala, median (90th pct) | ~3.5 (~6–7) | plausible (user) |
+| Years in rank: Lektor Kepala → Profesor, median (90th pct) | ~5 (~10) | plausible (user) |
+| Senior dumpers vs other seniors, mean burnout | 0.07–0.13 vs 0.18–0.26 | dumpers stay unburnt (user) |
+
+Most targets were used to tune parameters, so this is a calibration, not an independent
+validation. Not yet done: a hold-out check, robustness to ±20 % perturbations of the
+placeholders, and reporting real (not reported) hours in the metrics and viewer.

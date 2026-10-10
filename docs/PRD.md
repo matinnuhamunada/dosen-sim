@@ -1,6 +1,6 @@
 # PRD: Lecturer Career Simulation (lecsim)
 
-Oct 9, 2026 · @matinnu · Status: Draft v0.1
+Oct 9, 2026 · @matinnu · Status: Draft v0.2 (updated Oct 10, 2026 for lecsim v0.2.0)
 
 ## Overview
 
@@ -16,7 +16,7 @@ The v1 goal is a reproducible simulator that answers which lecturer strategies r
 
 **Goals**
 
-1. Model one department of 5–20 lecturers over a 10–30 year horizon, one tick per semester.
+1. Model one department of 5–20 lecturers (generic scenarios) or one faculty of about 70 lecturers (the calibrated, anonymised faculty case) over a 10–30 year horizon, one tick per semester.
 2. Encode regulations as swappable configuration (national rules, PTNBH overrides).
 3. Run the same scenario with random, heuristic, optimiser and LLM agents through one interface.
 4. Support policy scenarios (e.g. teaching caps, reweighted credit categories) as first-class experiments.
@@ -68,6 +68,8 @@ The simulator is built to answer five questions, ordered from individual strateg
 4. **Institutional design.** How do policies such as teaching caps, rewarding supervision, or reweighting community service change individual strategies and department outcomes?
 5. **Collective outcomes.** When every lecturer optimises individually, what happens to teaching quality, student outcomes, metric gaming and burnout across the department?
 
+**Scoring strategies when lecturers start unequal.** In the faculty case lecturers differ in starting rank, service, age, lab and degree, so raw outcomes mostly reflect starting points. Planned primary method: twin runs (same seed and initial state; change one focal lecturer's archetype and policy; compare that lecturer's outcomes), which measures a best response in the given environment including others' reactions. Cross-check on the new-hire cohort (all start alike), and report several outcomes side by side (years to each rank, discounted pay per year served, papers per year, burnout) rather than one composite unless weights are chosen deliberately. Whether a strategy wins only when rare is tested by varying the population mix.
+
 ## Model scope
 
 v1 models one department: lecturers are full agents, institutional actors are rule-driven or lightweight agents, and external systems are stochastic processes.
@@ -106,6 +108,10 @@ v1 models one department: lecturers are full agents, institutional actors are ru
 | Student supervision | Repeated principal–agent |
 | Shared lab resources | Commons |
 | Metric gaming | Collective action / Goodhart |
+| Workload dumping (faculty case) | Patronage: a senior extracts uncredited labour; the junior gains favour |
+| Assessment quota (faculty case) | Rank-order tournament for a limited top grade |
+
+**Faculty case (since v0.2.0).** The main scenario is an anonymised real faculty (70 lecturers, 12 labs, 30 years), partly calibrated to aggregate public data, one lecturer's pay and estimates from a lecturer at the faculty. It adds recruitment, probation and a teaching-staff period, doctoral study leave, SKS-based workload with the BKD bonus, imposed teaching, power dynamics (graded assessment with a quota, standing, liking, lab ties, access), workload dumping, low-effort lecturers, structural roles, committees and patents. The ODD protocol (§9) gives the calibration table; `assumptions.md` gives every source.
 
 ## MVP agent behaviour (rule-based)
 
@@ -345,7 +351,8 @@ Reproducibility and auditability come before speed; every result must be traceab
 | Testability | ≥ 90% test coverage on `rules/`; smoke test for a full short run in CI |
 | Extensibility | New agent types, interactions and regulation files added without changing the engine |
 | Documentation | Model described with the ODD protocol; every parameter listed with its source in `assumptions.md` |
-| Privacy and ethics | No real personal data in configs; calibration uses aggregates only |
+| Privacy and ethics | No real personal data in configs; calibration uses aggregates only. The faculty case is anonymised (pseudonymous IDs, institution and sources withheld); private inputs (payslips) stay outside the repository and only rounded estimates enter configs |
+| Versioning | One version (`lecsim.__version__`) recorded in every run header and shown in the viewer; every change bumps it and adds a `CHANGELOG.md` entry |
 | Stack | Python 3.11+, Pydantic, NumPy/Polars, LiteLLM (or equivalent), Snakemake for sweeps, pytest; viewer in TypeScript with Vite and Three.js |
 
 ## Architecture and tick loop
@@ -378,13 +385,17 @@ The simulator is only as credible as its rules and production functions, so cali
 4. **Pattern level:** simulated distributions (time in rank, publication counts) roughly match aggregate data.
 5. **Robustness:** key findings survive prompt variants, model swaps and ±20% parameter perturbations.
 
+**Status (v0.2.0, faculty case).** Level 1: rules unit-tested; real credit and pay values partly sourced (public pay rules, degree credit as recalled, the rest placeholders). Level 2: not done (only volunteer's-dilemma role filling exists). Level 3: trajectories judged plausible by a lecturer at the faculty (pay, hours, burnout, promotion timing). Level 4: journal-tier mix, papers per year, scheduled teaching SKS and pay match aggregate targets, but these were used for tuning (calibration, not hold-out validation). Level 5: not done.
+
 ## Milestones and roadmap
 
 Build in five phases, each adding one layer of complexity only after the previous layer passes its gate.
 
 &#91;embedded content: roadmap · 5 phases, 4 gates\]
 
-M1–M4 form the MVP: a complete rule-based department study with policy experiments, a Three.js replay viewer and no LLM cost. M5 is Phase 2: local decision models first, then small local LLMs, then frontier models, each measured by how far it deviates from the rule-based and optimiser baselines. Durations will be set once the open questions on scope and team capacity are answered.
+M1–M4 form the MVP: a complete rule-based department study with policy experiments, a Three.js replay viewer and no LLM cost.
+
+**MVP status (v0.2.0).** M1–M4 are built; the M1 gate passed, and M2–M4 await sign-off. The faculty case has since been calibrated (see Data, calibration and validation). Left for the MVP: report real hours worked (effort, dumping) in metrics and viewer; the strategy race on the faculty case with the scoring method above; a faculty-case policy experiment with ≥ 30 seeds per condition written up in ODD form; a ±20 % robustness sweep over the placeholders that drive results; and either a game-theory benchmark or an explicit decision to drop it. M5 is Phase 2: local decision models first, then small local LLMs, then frontier models, each measured by how far it deviates from the rule-based and optimiser baselines. Durations will be set once the open questions on scope and team capacity are answered.
 
 ## Related work
 
@@ -423,10 +434,10 @@ The biggest risk is defensibility: results hinge on production functions and reg
 
 **Open questions**
 
-- [ ] National rules only, or PTNBH remuneration from v1?
-- [ ] Single focal lecturer first, or the full department from the start?
+- [x] National rules only, or PTNBH remuneration from v1? PTNBH from v1: the faculty case uses the BKD bonus as performance pay.
+- [x] Single focal lecturer first, or the full department from the start? Full department, then a 70-lecturer faculty.
 - [ ] Which current regulations define the credit and promotion rules to encode?
 - [ ] Which LLM providers and local models, and what is the run budget?
-- [ ] Which aggregate data can the faculty share for calibration?
+- [x] Which aggregate data can the faculty share for calibration? Public records (staff directory, publications, timetable), one lecturer's payslips (private) and expert estimates; HR time-to-promotion data are not available.
 - [ ] Target venue: computational social science journal, higher-education policy journal, or a teaching resource?
-- [ ] Repository hosting: GitHub (public) or the self-hosted GitLab?
+- [x] Repository hosting: GitHub (public) or the self-hosted GitLab? GitHub (public), viewer on Cloudflare Pages.

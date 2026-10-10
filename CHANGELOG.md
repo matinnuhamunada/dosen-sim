@@ -5,6 +5,15 @@ package and the run log header read it) and adds an entry here. The viewer shows
 of the run it replays. Minor versions change model behaviour or calibration; patch versions
 fix bugs, docs or tooling without changing results.
 
+## 0.2.1 — 2026-10-10
+
+Docs only; results unchanged.
+
+- ODD protocol: faculty-case processes, initialisation, input data and calibration table (§9).
+- PRD v0.2: faculty-case scope, new interactions, strategy-scoring plan, versioning and privacy
+  requirements, validation status, what is left for the MVP, answered open questions.
+- Progress log entry for v0.2.0.
+
 ## 0.2.0 — 2026-10-10
 
 Faculty case calibration (other scenarios unchanged apart from new null/default fields in the
