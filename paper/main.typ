@@ -1,4 +1,4 @@
-// lecsim manuscript. Build: see paper/README.md.
+// dosen-sim manuscript. Build: see paper/README.md.
 #set document(
   title: "How to win the lecturer game: an agent-based, game-theoretic simulation of an Indonesian faculty",
   author: "Matin Nuhamunada",
@@ -23,7 +23,7 @@
   #text(size: 9pt)[#link("mailto:matin_nuhamunada@ugm.ac.id")[matin\_nuhamunada\@ugm.ac.id]]\
   #v(0.3em)
   #text(size: 9pt, style: "italic")[Prepared with Claude (Anthropic), an AI assistant; see the AI-use statement.]\
-  #text(size: 9pt)[Preprint, simulator version 0.2.2 · October 2026]
+  #text(size: 9pt)[Preprint, dosen-sim version 0.2.3 · October 2026]
 ]
 
 #v(1em)
@@ -32,7 +32,7 @@
   #text(weight: "bold")[Abstract.] Indonesian university lecturers play a long game: they divide
   limited weekly hours between the _tridharma_ duties (teaching, research, community service),
   supervision, administration, outside work and rest, under a cumulative credit system that
-  decides promotion and a pay system that rewards different things. I built `lecsim`, an
+  decides promotion and a pay system that rewards different things. I built `dosen-sim`, an
   agent-based simulator in which rule-based lecturer agents allocate their time under
   configurable regulations, and an engine computes every credit, salary and promotion. The main
   scenario is my own faculty: 70 lecturers in 12 laboratories over 30 years, with recruitment,
@@ -75,7 +75,7 @@ writing the unwritten rules down as explicit mechanisms, the simulation makes th
 open to argument. It is not a study commissioned by anyone, and it is not a prediction of any
 person's career.
 
-The simulator, `lecsim` @lecsim2026, follows a few strict design rules. The engine owns the
+The simulator, `dosen-sim` @lecsim2026, follows a few strict design rules. The engine owns the
 truth: agents only choose actions, and the engine computes every outcome. Rules are pure,
 unit-tested functions. Regulations live in configuration files, and every value either cites a
 source or is marked as a placeholder. Every random draw comes from a seeded stream, so a run is
@@ -83,7 +83,7 @@ reproducible to the byte. Every action, message and outcome is appended to an ev
 which all metrics and a 3D replay viewer are computed. The model is described following the
 ODD protocol @grimm2006odd @grimm2020odd.
 
-This paper documents version 0.2.2 in detail: the mechanisms (@sec-model), the agents
+This paper documents version 0.2.3 in detail: the mechanisms (@sec-model), the agents
 (@sec-agents), the rules and their parameters (@sec-rules), the department and its power
 dynamics (@sec-power), the faculty case and its calibration (@sec-case), what the model shows
 so far (@sec-obs), who wins and whether the game serves higher education (@sec-discussion), its
@@ -122,7 +122,7 @@ simulator encodes; values are given in @sec-rules.
 
 Agent-based models grow social patterns from individual rules @epstein1996growing
 @macal2010tutorial, and Python frameworks such as Mesa @kazil2020mesa make them routine.
-`lecsim` borrows its interaction games from the game-theory canon: alternating-offers
+`dosen-sim` borrows its interaction games from the game-theory canon: alternating-offers
 bargaining @rubinstein1982bargaining for teaching loads, the volunteer's dilemma
 @diekmann1985volunteer for administrative roles, tit-for-tat reciprocity @axelrod1984evolution
 for co-authorship, a contest @tullock1980rent for grants, and quantal-response choice
@@ -607,7 +607,7 @@ first draft of this manuscript were produced with Claude (Anthropic), an AI assi
 under the author's direction in Claude Code. The author reviewed the design decisions and is
 accountable for the text. Claude is not an author.
 
-*Code and data availability.* `lecsim` is open source @lecsim2026. Every number in this paper
+*Code and data availability.* `dosen-sim` is released under the MIT License @lecsim2026; the repository is currently private and will be opened with the preprint. Every number in this paper
 can be recomputed from the event logs of `configs/scenarios/faculty_case.yaml` (seeds 1–5) with
 `paper/make_figures.py` and the repository's validation scripts. The payslips are private and
 not included. Bibliographic and timetable data were used only in aggregate.

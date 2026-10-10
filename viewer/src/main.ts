@@ -18,6 +18,7 @@ interface State {
   playing: boolean;
   speed: number;
   selected: string | null;
+  lab: string | null; // open lab card
   pinned: string[];
   trail: boolean;
   tab: Tab;
@@ -41,6 +42,7 @@ const state: State = {
   tab: "lecturers",
   trackerWide: false,
   podium: "common score",
+  lab: null,
   runUrls: null,
   sort: { key: "own score", dir: -1 },
   shownEndBoard: false,
@@ -112,7 +114,7 @@ function showRun(): void {
   const tiers = [...new Set(agents.map((a) => tierOf(a.policy)))].join(", ");
   $("run-chip").textContent = `S${r.header.seed}`;
   $("run-title").textContent = r.header.scenario;
-  $("run-sub").textContent = `lecsim v${r.header.lecsim_version} · seed ${r.header.seed} · ${agents.length} lecturers · ${policies}`;
+  $("run-sub").textContent = `dosen-sim v${r.header.lecsim_version} · seed ${r.header.seed} · ${agents.length} lecturers · ${policies}`;
   $("run-sub").title = `tier ${tiers} · regulation ${r.info.regulation_version} · commit ${r.header.git_commit.slice(0, 8)}`;
   $("search-list").innerHTML = agents
     .map((a) => `<option value="${a.id}">${a.archetype ?? "no archetype"} · ${a.policy}</option>`)
@@ -163,6 +165,7 @@ function setTime(t: number, tau: number): void {
 
 function select(id: string | null): void {
   state.selected = id;
+  if (id) state.lab = null; // one card at a time
   refreshHud();
   syncUrl();
 }
@@ -202,6 +205,7 @@ function refreshHud(): void {
   renderOps(r);
   renderCareer(r);
   renderTracker(r);
+  renderLab(r);
   if (boardOpen()) renderScoreboard();
 }
 
@@ -246,6 +250,8 @@ function renderKpis(r: Run): void {
   });
   document.querySelectorAll<HTMLElement>("#kpis .podium [data-id]").forEach((el) =>
     el.addEventListener("click", () => select(el.dataset.id!)));
+  document.querySelectorAll<HTMLElement>("#kpis .podium [data-lab]").forEach((el) =>
+    el.addEventListener("click", () => openLab(el.dataset.lab!)));
 }
 
 const PODIUM_METRICS: Record<string, string> = {
@@ -255,6 +261,30 @@ const PODIUM_METRICS: Record<string, string> = {
   "pay/yr (M IDR)": "Pay per year",
   papers: "Papers",
 };
+
+/** Plain-language descriptions shown on hover (behaviour models and archetypes). */
+const POLICY_INFO: Record<string, string> = {
+  random: "Random: weekly hours split at random, then repaired to fit the rules (a null benchmark).",
+  fixed_share: "Fixed share: always spends the archetype's standard share of the week on each activity.",
+  threshold: "Threshold rules: standard shares, moving hours toward unmet promotion requirements and toward rest when burnt out.",
+  stage: "Career-stage machine: different standard shares per career stage (early, mid, pre-promotion push, post-promotion, senior), plus the threshold rules. A rule of thumb, no forecasting.",
+  utility: "Myopic utility: scores about 400 possible weekly plans with the engine's forecast of this semester's credit, pay and burnout, and picks one with some randomness (logit choice).",
+  optimiser: "Optimiser: plans the best weekly allocation for each rank to maximise the archetype's long-run utility, re-planning after each promotion (the rational benchmark).",
+};
+const ARCH_INFO: Record<string, string> = {
+  research_maximiser: "Research maximiser: puts research first (about 40 % of a standard week) and aims for reputable international journals; values rank most.",
+  teaching_loyalist: "Teaching loyalist: puts teaching first (about 40 % of the week), publishes nationally, skips grants; values wellbeing most.",
+  admin_climber: "Admin climber: seeks administrative roles and committees (about 30 % of the week), publishes in accredited national journals; values rank and pay.",
+  external_earner: "External earner: spends about 30 % of the week on consulting outside the university; values pay above all.",
+  balanced_strategist: "Balanced strategist: spreads time evenly across duties with a research tilt; values rank and pay equally.",
+};
+function archTip(r: Run, arch: string | null): string {
+  if (!arch) return "No archetype (random policy)";
+  const p = r.info.archetypes[arch];
+  const w = p ? ` Weights: rank ${p.w_rank} · pay ${p.w_pay} · wellbeing ${p.w_wellbeing}.` : "";
+  return (ARCH_INFO[arch] ?? arch) + w;
+}
+const policyTip = (policy: string) => POLICY_INFO[policy] ?? policy;
 
 /** Top three active lecturers at semester t by the chosen scoreboard metric. */
 function podium(r: Run): string {
@@ -268,7 +298,7 @@ function podium(r: Run): string {
   const chips = top.map((row, i) => {
     const a = r.agents.get(row.agent)!;
     return `<button class="chip${row.agent === state.selected ? " sel" : ""}" data-id="${row.agent}"
-      title="${row.agent} · ${row.archetype} · ${row.policy}">
+      title="${row.agent} · ${archTip(r, String(row.archetype))} ${policyTip(String(row.policy))}">
       <span class="medal">${["🥇", "🥈", "🥉"][i]}</span><span class="dot" style="background:${color(a)}"></span>
       <b>${row.agent}</b><span class="pv">${fmt(row[key])}</span></button>`;
   }).join("");
@@ -289,8 +319,8 @@ function labPodium(r: Run): string {
   if (!labs.size) return "";
   const top = [...labs].map(([lab, v]) => ({ lab, n: v.length, mean: v.reduce((a, b) => a + b, 0) / v.length }))
     .sort((p, q) => q.mean - p.mean).slice(0, 3);
-  const chips = top.map((x, i) => `<span class="chip" title="${x.lab}: mean ${PODIUM_METRICS[key]} of ${x.n} members">
-      <span class="medal">${["🥇", "🥈", "🥉"][i]}</span><b>${x.lab}</b><span class="pv">${fmt(x.mean)}</span></span>`).join("");
+  const chips = top.map((x, i) => `<button class="chip lab-chip" data-lab="${x.lab}" title="${x.lab}: mean ${PODIUM_METRICS[key]} of ${x.n} members (click for the lab card)">
+      <span class="medal">${["🥇", "🥈", "🥉"][i]}</span><b>${x.lab}</b><span class="pv">${fmt(x.mean)}</span></button>`).join("");
   return `<div class="chips labs"><span class="lbl" title="Mean of the metric over each lab's active members">Labs</span>${chips}</div>`;
 }
 
@@ -418,8 +448,8 @@ function renderTracker(r: Run): void {
   panel.innerHTML = `
     <div class="tr-head">
       <span class="avatar" style="background:${color(a)}">${a.id.slice(0, 3)}</span>
-      <div class="tr-title"><div class="eyebrow">Lecturer · ${a.archetype ?? "no archetype"}</div>
-        <h2>${a.id}</h2><small>${a.policy} policy · ${tierOf(a.policy)}</small></div>
+      <div class="tr-title"><div class="eyebrow">Lecturer · <span class="has-tip" title="${archTip(r, a.archetype)}">${a.archetype ?? "no archetype"}</span></div>
+        <h2>${a.id}</h2><small><span class="has-tip" title="${policyTip(a.policy)}">${a.policy} policy</span> · ${tierOf(a.policy)}</small></div>
       <button class="btn icon" id="pin-btn" title="${pinned ? "Unpin" : "Pin to compare (max 3)"}"
         ${!pinned && state.pinned.length >= 3 ? "disabled" : ""}>${pinned ? "📌" : "📍"}</button>
       <button class="btn icon" id="wide-tracker" title="${wide ? "Collapse" : "Expand"}">${wide ? "⤡" : "⤢"}</button>
@@ -442,7 +472,7 @@ function renderTracker(r: Run): void {
       ${s?.committees?.length ? `<span>Committees</span><span>${s.committees.join(", ").replaceAll("_", " ")}</span>` : ""}
       <span>Co-author</span><span>${s?.coauthor ?? "–"}</span>
       ${s?.mentor ? `<span>Mentor</span><span>${s.mentor} (co-teaching)</span>` : ""}
-      ${s?.lab ? `<span>Lab</span><span>${s.lab}</span>` : ""}
+      ${s?.lab ? `<span>Lab</span><span><a href="#" data-lab="${s.lab}" title="Open the lab card">${s.lab}</a></span>` : ""}
       ${s?.grade ? `<span>Assessment</span><span>${s.grade.replace("_", " ")} → ${Math.round((s.creditFactor ?? 1) * 100)} % credit${s.supervisor ? ` (by ${s.supervisor})` : ""}</span>
         <span>Standing</span><span>${(s.favor ?? 0) >= 0 ? "+" : ""}${(s.favor ?? 0).toFixed(2)}</span>
         <span>Access</span><span>${Math.round((s.access ?? 1) * 100)} % (grants, students, courses)</span>` : ""}
@@ -467,6 +497,8 @@ function renderTracker(r: Run): void {
     <h3>Key events</h3>
     <ul class="timeline-list" id="tr-events"></ul></div></div>`;
   $("pin-btn").addEventListener("click", () => togglePin(a.id));
+  panel.querySelectorAll<HTMLElement>("[data-lab]").forEach((el) =>
+    el.addEventListener("click", (ev) => { ev.preventDefault(); openLab(el.dataset.lab!); }));
   $("close-tracker").addEventListener("click", () => select(null));
   $("wide-tracker").addEventListener("click", () => {
     state.trackerWide = !state.trackerWide;
@@ -556,13 +588,72 @@ function boardRows(): { rows: ScoreRow[]; cols: string[] } {
   return { rows, cols };
 }
 
+// --- lab card ------------------------------------------------------------------------
+
+function openLab(lab: string | null): void {
+  state.lab = lab;
+  if (lab) state.selected = null; // one card at a time
+  refreshHud();
+}
+
+/** Lab card: members' achievements at semester t (active members only). */
+function renderLab(r: Run): void {
+  const panel = $("labcard");
+  const lab = state.lab;
+  panel.classList.toggle("hidden", !lab);
+  if (!lab) return;
+  const rows = scoreRows(r, state.t).filter((row) => row.lab === lab && row.status === "active");
+  const ranks = r.info.rank_names;
+  const num = (row: Record<string, unknown>, k: string) => (typeof row[k] === "number" ? (row[k] as number) : 0);
+  const sum = (k: string) => rows.reduce((x, row) => x + num(row, k), 0);
+  const mean = (k: string) => (rows.length ? sum(k) / rows.length : NaN);
+  const sems = rows.map((row) => semAt(r.agents.get(String(row.agent))!, state.t));
+  const head = rows.find((_, i) => sems[i]?.roles.some((x) => x.startsWith("lab_head")));
+  const pay = sems.map((s) => s?.monthlyPay ?? NaN).filter(Number.isFinite);
+  const mix = ranks.map((rk) => [rk, rows.filter((row) => row.rank === rk).length] as const)
+    .filter(([, n]) => n > 0).map(([rk, n]) => `${n} ${rk}`).join(" · ");
+  const filed = new Set<number>();
+  for (const [t, evs] of r.events) {
+    if (t > state.t) continue;
+    for (const e of evs) if (e.kind === "patent" && e.text.includes("filed") && e.text.includes(`(${lab},`)) filed.add(t);
+  }
+  const members = [...rows].sort((p, q) => num(q, "rankIndex") - num(p, "rankIndex") || num(q, "papers") - num(p, "papers"))
+    .map((row) => {
+      const a = r.agents.get(String(row.agent))!;
+      return `<li data-id="${a.id}" title="${archTip(r, a.archetype)} ${policyTip(a.policy)}">
+        <span class="dot" style="background:${color(a)}"></span><b>${a.id}</b> ${row.rank}
+        <small>${num(row, "papers")} papers · burnout ${num(row, "avg burnout").toFixed(2)}</small></li>`;
+    }).join("");
+  panel.innerHTML = `
+    <div class="tr-head">
+      <span class="avatar" style="background:var(--blue)">🔬</span>
+      <div class="tr-title"><div class="eyebrow">Laboratory</div><h2>${lab}</h2>
+        <small>${rows.length} active members · semester ${state.t + 1}</small></div>
+      <button class="btn icon" id="close-lab" title="Close">✕</button>
+    </div>
+    <div class="kv">
+      <span>Members</span><span>${mix || "–"}</span>
+      <span>Lab head</span><span>${head ? `<a href="#" data-id="${head.agent}">${head.agent}</a>` : "–"}</span>
+      <span>Papers</span><span>${sum("papers")} total · ${mean("papers/yr").toFixed(1)} per member per year</span>
+      <span>Grants / patents</span><span>${sum("grants")} grants · ${filed.size} patent${filed.size === 1 ? "" : "s"} filed</span>
+      <span>Monthly pay (est.)</span><span>${pay.length ? (pay.reduce((x, y) => x + y, 0) / pay.length / 1e6).toFixed(1) : "–"} M IDR mean</span>
+      <span>Burnout</span><span>${mean("avg burnout").toFixed(2)} mean (career average)</span>
+      <span>Common score</span><span>${fmt(mean("common score"))} mean</span>
+    </div>
+    <h3>Members</h3>
+    <ul class="lab-members">${members || "<li>No active members</li>"}</ul>`;
+  $("close-lab").addEventListener("click", () => openLab(null));
+  panel.querySelectorAll<HTMLElement>("[data-id]").forEach((el) =>
+    el.addEventListener("click", (ev) => { ev.preventDefault(); select(el.dataset.id!); }));
+}
+
 function renderScoreboard(): void {
   const r = run();
   if (!r) return;
   const multi = $<HTMLInputElement>("sb-multi").checked && state.runs.length > 1;
   $("sb-at").textContent = multi
     ? `median (IQR) over ${state.runs.length} runs, final semester`
-    : `${r.header.scenario} · seed ${r.header.seed} · semester ${state.t + 1} (${label(r, state.t)}) · lecsim v${r.header.lecsim_version} (${r.header.git_commit.slice(0, 7)})`;
+    : `${r.header.scenario} · seed ${r.header.seed} · semester ${state.t + 1} (${label(r, state.t)}) · dosen-sim v${r.header.lecsim_version} (${r.header.git_commit.slice(0, 7)})`;
   const { rows, cols } = boardRows();
   const table = $("sb-table");
   table.innerHTML =
@@ -570,7 +661,8 @@ function renderScoreboard(): void {
     `<tbody>${rows.map((row) => `<tr data-id="${multi ? "" : row.agent}">${cols.map((c) => {
       const v = row[c];
       const dot = c === "archetype" ? `<span class="dot" style="background:${ARCHETYPE_COLORS[String(v)] ?? ARCHETYPE_COLORS.none}"></span> ` : "";
-      return `<td>${dot}${fmt(v)}</td>`;
+      const tip = c === "archetype" ? archTip(r, String(v)) : c === "policy" ? policyTip(String(v)) : "";
+      return `<td${tip ? ` title="${tip}"` : ""}>${dot}${fmt(v)}</td>`;
     }).join("")}</tr>`).join("")}</tbody>`;
   table.querySelectorAll<HTMLElement>("th").forEach((th) =>
     th.addEventListener("click", () => {
@@ -674,6 +766,11 @@ function updateOverlay(): void {
 }
 
 function setBoard(open: boolean): void {
+  if (open && (state.selected || state.lab)) {
+    state.selected = null; // the scoreboard replaces any open card
+    state.lab = null;
+    refreshHud();
+  }
   $("scoreboard").classList.toggle("hidden", !open);
   updateOverlay();
   $("open-scoreboard").classList.toggle("active", open);

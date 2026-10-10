@@ -5,6 +5,20 @@ package and the run log header read it) and adds an entry here. The viewer shows
 of the run it replays. Minor versions change model behaviour or calibration; patch versions
 fix bugs, docs or tooling without changing results.
 
+## 0.2.3 — 2026-10-10
+
+Viewer, naming and licence; results unchanged.
+
+- The project is now called **dosen-sim** (viewer, paper, docs; `dosen-sim` CLI alias). The Python
+  package and the log header field keep the internal name `lecsim`.
+- MIT License.
+- Viewer: lab card (members, rank mix, lab head, papers, grants, patents, pay, burnout; opened
+  from the lab chips or a lecturer's lab row); hover explanations of behaviour models and
+  archetypes (lecturer card, top 3, scoreboard); opening the scoreboard closes any open card;
+  the placeholder badge now links to the preprint (`paper.pdf`, published with the viewer);
+  GitHub source link.
+- Paper: code availability states the MIT License and that the repository is still private.
+
 ## 0.2.2 — 2026-10-10
 
 Manuscript; results unchanged.

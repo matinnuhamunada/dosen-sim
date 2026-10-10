@@ -9,4 +9,5 @@ runs/
 viewer/node_modules/
 viewer/dist/
 viewer/public/runs/
+viewer/public/paper.pdf
 data/

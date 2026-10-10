@@ -1,4 +1,4 @@
-# ODD protocol: lecsim (MVP)
+# ODD protocol: dosen-sim (MVP)
 
 Model description following the ODD protocol (Grimm et al. 2006; 2020 update). It covers
 the rule-based MVP (milestones M1–M4). Model-driven agents (Phase 2) will be added as new

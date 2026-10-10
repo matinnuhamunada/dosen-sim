@@ -10,6 +10,7 @@ rm -rf "$out"
 .venv/bin/lecsim run configs/scenarios/faculty_case.yaml --seed 1 --out "$out" >/dev/null
 # Pages rejects files over 25 MiB; the viewer gunzips in the browser.
 find "$out" -name events.jsonl -exec gzip -9 {} +
+cp paper/main.pdf viewer/public/paper.pdf # linked from the top bar
 (cd viewer && npm test --silent && npm run build --silent)
 
 src=$(git rev-parse --short HEAD)

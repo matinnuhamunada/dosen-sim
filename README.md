@@ -1,4 +1,6 @@
-# lecsim — lecturer career simulation
+# dosen-sim — lecturer career simulation
+
+(Python package and CLI: `lecsim`; `dosen-sim` is an alias for the CLI. MIT License.)
 
 Agent-based, game-theoretic simulation of an Indonesian university department: lecturers
 allocate time across teaching, research, supervision, community service, admin, external

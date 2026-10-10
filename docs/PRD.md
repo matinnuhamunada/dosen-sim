@@ -1,4 +1,4 @@
-# PRD: Lecturer Career Simulation (lecsim)
+# PRD: Lecturer Career Simulation (dosen-sim)
 
 Oct 9, 2026 · @matinnu · Status: Draft v0.2 (updated Oct 10, 2026 for lecsim v0.2.0)
 

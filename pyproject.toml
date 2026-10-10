@@ -5,7 +5,8 @@ build-backend = "hatchling.build"
 [project]
 name = "lecsim"
 dynamic = ["version"]
-description = "Agent-based simulation of lecturer careers in an Indonesian university department"
+description = "dosen-sim: agent-based simulation of lecturer careers in an Indonesian university department"
+license = "MIT"
 requires-python = ">=3.11"
 dependencies = [
     "pydantic>=2.6",
@@ -20,6 +21,7 @@ dev = ["pytest>=8", "pytest-cov>=5", "ruff>=0.5", "snakemake>=8"]
 
 [project.scripts]
 lecsim = "lecsim.cli:app"
+dosen-sim = "lecsim.cli:app"
 
 [tool.hatch.version]
 path = "src/lecsim/__init__.py"

@@ -1,4 +1,6 @@
-# lecsim — Lecturer Career Simulation
+# dosen-sim — Lecturer Career Simulation
+
+The project is named **dosen-sim**; the Python package and CLI keep the internal name `lecsim` (`dosen-sim` is a CLI alias), and run logs keep the `lecsim_version` header field.
 
 Agent-based, game-theoretic simulation of an Indonesian university department. Lecturers allocate scarce time across teaching, research, supervision, community service, admin, external work and rest to maximise career rank and take-home pay under configurable regulations.
 

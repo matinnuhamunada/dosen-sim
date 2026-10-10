@@ -1,4 +1,4 @@
-# Manuscript
+# Manuscript (dosen-sim)
 
 `main.typ` (Typst) with `refs.bib`; `main.pdf` is the compiled preprint. Figures in `figures/`
 are computed from faculty-case event logs by `make_figures.py`.
