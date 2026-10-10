@@ -34,8 +34,28 @@ regulation_overrides:
       - { categories: [community_service], min_sks: 0.1 } # user-stated: one activity of any size; 0.1 SKS (~4 h a semester) as the smallest activity is an assumption. TODO(source)
   credit_table:
     patent_filed: { category: research, points_per_unit: 40.0 } # TODO(source): KUM for a granted patent; shared by inventors
+  # Pay as reported by a lecturer at the faculty (user-stated, rounded; consulting excluded)
+  # where no public rule applies. Applies to this case only.
   pay:
+    base_salary_by_rank: # user-stated for Lektor (~4 M incl. family allowances); others TODO(source)
+      Asisten Ahli: 3500000
+      Lektor: 4000000
+      Lektor Kepala: 4500000
+      Profesor: 5000000
+    functional_allowance_by_rank: # Perpres 65/2007 (tunjangan jabatan fungsional dosen)
+      Asisten Ahli: 375000
+      Lektor: 700000
+      Lektor Kepala: 900000
+      Profesor: 1350000
+    professional_allowance_multiplier: 1.0 # UU 14/2005 art. 53(2): 1x base salary
+    honorary_allowance_multiplier_by_rank: { Profesor: 2.0 } # UU 14/2005 art. 56(1): 2x base salary
+    extra_salary_months_per_year: 2 # 13th salary and THR (yearly government regulation)
+    meal_allowance: 600000 # user-stated, per month
+    # Teaching (incl. international programme), examining, question-setting and small
+    # committee fees, per month: user-stated ~3 M for a Lektor; same for every rank, TODO(source)
+    honoraria_by_rank: { Asisten Ahli: 3000000, Lektor: 3000000, Lektor Kepala: 3000000, Profesor: 3000000 }
     remuneration:
+      base_by_rank: { Asisten Ahli: 0, Lektor: 0, Lektor Kepala: 0, Profesor: 0 } # user-stated: no fixed remuneration; the BKD bonus is the performance pay
       per_credit_point: 0 # replaced by the fixed BKD bonus below
       bkd_bonus_by_rank: # user-stated: 10-20 M IDR per semester
         Asisten Ahli: 10000000
@@ -48,6 +68,9 @@ regulation_overrides:
     teaching_credit_factor: 0.5 # user-stated: half credit for the same hours. TODO(source)
     barred_activities: [supervision] # user-stated: probationers may not supervise. TODO(source)
     mentor_ranks: [Lektor Kepala, Profesor] # user-stated: co-teach with senior members. TODO(source)
+    # user-stated: then "teaching staff" (tenaga pengajar, no rank yet) for 1-2 years at full
+    # pay without rank allowances and with the same credit limits, before the Lektor rank
+    teaching_staff_semesters: [2, 4]
 
 # Ages: everyone (founders and hires) starts their career at 29-31 (user-stated estimate);
 # founders' years of service are drawn by rank. TODO(source): real service-year ranges.

@@ -70,6 +70,9 @@ class PayRules(_Model):
     functional_allowance_by_rank: dict[str, float] = {}
     professional_allowance_multiplier: float = 0
     honorary_allowance_multiplier_by_rank: dict[str, float] = {}
+    extra_salary_months_per_year: float = 0  # 13th salary, THR: x (base + functional allowance)
+    meal_allowance: float = 0  # monthly
+    honoraria_by_rank: dict[str, float] = {}  # monthly teaching, examining and committee fees
     remuneration: RemunerationRules = RemunerationRules()
     external_rate_per_hour: float = 0
 
@@ -111,6 +114,9 @@ class ProbationRules(_Model):
     teaching_credit_factor: float = Field(ge=0)  # credit for the same teaching hours
     barred_activities: list[str] = []  # weekly hours capped at 0
     mentor_ranks: list[str] = []  # ranks that may co-teach with (mentor) a probationer
+    # Then "teaching staff" (no rank yet) for a drawn [min, max] semesters: full pay without
+    # rank allowances, the same credit limits as probation, then the entry rank.
+    teaching_staff_semesters: tuple[int, int] = (0, 0)
 
 
 class Regulation(_Model):

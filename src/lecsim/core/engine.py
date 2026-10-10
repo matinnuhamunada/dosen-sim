@@ -281,11 +281,15 @@ class Engine:
                 lec.age = self._draw(*self.sc.demography.start_age)
             if prob is not None:
                 lec.probation_until = t + prob.semesters
+                lo, hi = prob.teaching_staff_semesters
+                staff = int(self.rng.get("hiring").integers(lo, hi + 1)) if hi else 0
+                lec.appointed_at = lec.probation_until + staff
             if self.sc.department.labs:
                 lec.lab = h.lab or self._lab()
             self.log.event(t, "events", "hire", lid, policy=h.policy, archetype=h.archetype,
                            rank=rank, degree=degree, age=lec.age,
-                           probation_until=lec.probation_until)  # fmt: skip
+                           probation_until=lec.probation_until,
+                           appointed_at=lec.appointed_at)  # fmt: skip
 
     def _collect_publications(self, t: int, outputs: dict[str, dict[str, float]]) -> None:
         due = [s for s in self.state.submissions if s.decision_due == t]
@@ -338,8 +342,8 @@ class Engine:
         return uncovered, demand
 
     def _mentor(self, t: int, lecs: dict[str, LecturerState]) -> None:
-        """Probationers may not do barred activities and co-teach with a senior mentor
-        (least-loaded first, kept for the whole probation unless the mentor leaves)."""
+        """Probationers co-teach with a senior mentor (least-loaded first, kept for the whole
+        probation unless the mentor leaves); unranked staff may not do barred activities."""
         prob = self.reg.probation
         if prob is None:
             return
@@ -347,11 +351,12 @@ class Engine:
         for lec in lecs.values():
             if not lec.on_probation(t):
                 lec.mentor = None
+            if lec.unranked(t):
+                lec.limits = dict.fromkeys(prob.barred_activities, 0.0)
         seniors = [i for i, lec in lecs.items()
                    if lec.rank in prob.mentor_ranks and not lec.on_probation(t)]  # fmt: skip
         load = Counter(lec.mentor for lec in trainees if lec.mentor in seniors)
         for lec in trainees:
-            lec.limits = dict.fromkeys(prob.barred_activities, 0.0)
             if lec.mentor not in seniors and seniors:
                 lec.mentor = min(seniors, key=lambda i: (load[i], i))
                 load[lec.mentor] += 1
@@ -488,7 +493,7 @@ class Engine:
         return royalty
 
     def _earned(self, t: int, lec: LecturerState, out: dict[str, float]) -> dict[str, float]:
-        prob = self.reg.probation if lec.on_probation(t) else None
+        prob = self.reg.probation if lec.unranked(t) else None
         factors = {"teaching_hours": prob.teaching_credit_factor} if prob else None
         return credits.score_credits(out, self.reg.credit_table, self.reg.credit_categories,
                                      factors)  # fmt: skip
@@ -523,12 +528,14 @@ class Engine:
         counted = {k: v * ladder for k, v in earned.items()}  # supervisor grade (power)
         lec.credits_total = credits.add_credits(lec.credits_total, counted)
         lec.credits_in_rank = credits.add_credits(lec.credits_in_rank, counted)
-        lec.semesters_in_rank += 1
+        unranked = lec.unranked(t)
+        if not unranked:
+            lec.semesters_in_rank += 1
         lec.semesters_service += 1
         self.log.event(t, "evaluation", "credits", lid, outputs=out, earned=earned,
                        **({"counted": counted} if self.power else {}))  # fmt: skip
 
-        if not lec.certified and promotion.certification_eligible(lec, reg):
+        if not lec.certified and not unranked and promotion.certification_eligible(lec, reg):
             lec.certified = True
             self.log.event(t, "evaluation", "certified", lid)
 
@@ -536,7 +543,7 @@ class Engine:
             rank=lec.rank, years_of_service=self.clock.years(lec.semesters_service),
             certified=lec.certified, rules=reg.pay,
             role_allowance=self.forecast.role_allowance(lec),
-            probation_salary_factor=prob.salary_factor if prob else None,
+            probation_salary_factor=prob.salary_factor if prob else None, unranked=unranked,
         )  # fmt: skip
         income = pay.semester_income(
             monthly=monthly, months=reg.time.months_per_semester,
@@ -558,7 +565,9 @@ class Engine:
 
         blockers = promotion.promotion_blockers(lec, reg)
         target = promotion.next_rank(lec.rank, reg)
-        if target is not None and not blockers:
+        if lec.appointed_at == t + 1:
+            self.log.event(t, "evaluation", "appointed", lid, rank=lec.rank)
+        if target is not None and not blockers and not unranked:
             self.log.event(t, "evaluation", "promotion", lid, **{"from": lec.rank}, to=target.name)
             lec.rank = target.name
             lec.semesters_in_rank = 0

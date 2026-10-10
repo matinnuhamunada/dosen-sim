@@ -59,12 +59,14 @@ processed in sorted-id order. Each stochastic process draws from its own named R
 1. **Events.** Expired grants and roles end. Lecturers who have reached their retirement
    age retire; burnout-driven attrition is drawn; both are queued for replacement. Due hires
    join as Asisten Ahli, or under the recruitment rule if one is set (e.g. doctorate only,
-   as Lektor), starting probation if one is set. Journal decisions fall due:
+   as Lektor), starting probation if one is set, then (if set) a drawn teaching-staff period
+   with no rank yet before the entry rank takes effect. Journal decisions fall due:
    for accepted papers, every author gets the publication count and the credit is split
    between authors; rejected manuscripts return to the first author.
 2. **Negotiation.**
-   1. Probationers get their hour ceilings (no supervision) and a senior co-teaching mentor.
-      The head fills vacant roles (eligible: rank ≥ the role's minimum, not on probation,
+   1. Unranked new hires (probation, then teaching staff) get their hour ceilings (no
+      supervision); probationers also get a senior co-teaching mentor.
+      The head fills vacant roles (eligible: rank ≥ the role's minimum, ranked,
       below the per-lecturer role limit; with power dynamics, by appointment score:
       seniority, standing, the appointer's liking, lab ties), then staffs committees formed
       this semester (junior staff first; with power dynamics, assigned by the vice dean).
@@ -171,10 +173,10 @@ tests (`tests/rules/`, 100% line coverage).
 | Submodel | Code | Specification |
 | --- | --- | --- |
 | Workload check | `rules/workload.py` | Σ hours = weekly budget; duty hours ∈ [min, max]; each tridharma category ≥ its minimum share of duty hours; activity hours ≥ commitments and ≤ limits (probation) |
-| Credit scoring | `rules/credits.py` | Credits = units × points per unit × factor (probation: teaching 0.5), capped per semester, by category; co-author shares: first author `first_author_share`, the rest split equally |
+| Credit scoring | `rules/credits.py` | Credits = units × points per unit × factor (probation and teaching staff: teaching 0.5), capped per semester, by category; co-author shares: first author `first_author_share`, the rest split equally |
 | Promotion | `rules/promotion.py` | Eligible for the next rank when semesters in rank, cumulative credit, in-rank minimum and maximum category shares, publications at or above a tier, and degree are all met. Promotion distance = Σ normalised shortfalls. In-rank credit resets at promotion |
 | Certification | `rules/promotion.py` | Rank ≥ minimum rank and service ≥ minimum semesters; gates the professional allowance |
-| Pay | `rules/pay.py` | Monthly = base by rank + seniority × years + functional allowance + professional allowance (× base, if certified) + honorary allowance (× base) + remuneration base + role allowances. Semester = monthly × 6 + remuneration per credit + external hours × rate. On probation: base salary × factor (0.8) only, no performance pay. With BKD rules, performance pay also needs the SKS minimums (e.g. ≥ 12 SKS teaching + supervision + research and one community service activity; checked on reported (claimable) SKS; exempt roles excepted) |
+| Pay | `rules/pay.py` | Monthly = base by rank + seniority × years + functional allowance + professional allowance (× base, if certified) + honorary allowance (× base) + remuneration base + role allowances (+ where configured: extra salary months (13th, THR) × (base + functional) / 12, meal allowance, honoraria by rank). Semester = monthly × 6 + remuneration per credit + external hours × rate. On probation: base salary × factor (0.8) only, no performance pay. Teaching staff (no rank yet): full pay without functional, professional and honorary allowances; no certification, promotion or semesters in rank. With BKD rules, performance pay also needs the SKS minimums (e.g. ≥ 12 SKS teaching + supervision + research and one community service activity; checked on reported (claimable) SKS; exempt roles excepted) |
 | Assessment (power) | `rules/assessment.py`, `institution/power.py` | Supervisor along the reporting chain scores performance (credit vs median), liking, same lab, standing and noise; grade cut-offs give the credit factor for the career ladder. Standing decays, rises with willing committee service and falls with consulting. Appointment score = seniority + standing + appointer's liking + lab ties (dean: elected) |
 | Access (power) | `institution/power.py` (`grant_access`) | access = clip(base by rank or probation + w × (standing + supervisor's liking)); grant chance × access; teaching weight × access; supervision cap = access × max (halved for a new Lektor on examining boards); refusing a committee is excused with a rank-dependent chance; the dean's lab and archetype get an access bonus; like-minded pairs (same archetype) start with higher liking |
 | Research resources and leadership perks | `core/forecast.py` (`resources`, `perks`), `env/grants.py` | Research output × rank multiplier (students, lab, network) × (1 + network boost of a leadership role); grant chance + the role's bonus (may exceed the normal cap) |

@@ -89,3 +89,16 @@ def test_bkd_bonus_by_rank_only_when_performance_pay(reg):
     assert semester_income(**kw, rank="Asisten Ahli")["bkd_bonus"] == 1000
     assert semester_income(**kw, rank="Lektor", performance_pay=False)["bkd_bonus"] == 0
     assert "bkd_bonus" not in semester_income(**(kw | {"rules": reg.pay}), rank="Lektor")
+
+
+def test_unranked_and_case_components(reg):
+    # Lektor base 4000, functional 200; 13th + THR = 2 x (4000 + 200) / 12 = 700 a month
+    rules = reg.pay.model_copy(update={"extra_salary_months_per_year": 2, "meal_allowance": 60,
+                                       "honoraria_by_rank": {"Lektor": 300}})  # fmt: skip
+    m = monthly_pay(rank="Lektor", years_of_service=0, certified=True, rules=rules)
+    assert (m["extra_salary"], m["meal_allowance"], m["honoraria"]) == (700, 60, 300)
+    # teaching staff: no rank allowances (functional, professional), extra salary on base only
+    u = monthly_pay(rank="Lektor", years_of_service=0, certified=True, rules=rules, unranked=True)
+    assert u["functional_allowance"] == u["professional_allowance"] == 0
+    assert u["extra_salary"] == pytest.approx(4000 * 2 / 12)
+    assert (u["base_salary"], u["meal_allowance"], u["honoraria"]) == (4000, 60, 300)

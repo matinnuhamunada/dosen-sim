@@ -46,7 +46,8 @@ class LecturerState(BaseModel):
     coauthor: str | None = None  # partner this semester
     age: float | None = None  # years, at the start of the current semester
     probation_until: int | None = None  # first semester after probation (new hires only)
-    limits: dict[str, float] = Field(default_factory=dict)  # weekly hour ceilings (probation)
+    appointed_at: int | None = None  # first semester holding a rank (new hires only)
+    limits: dict[str, float] = Field(default_factory=dict)  # weekly hour ceilings (unranked)
     mentor: str | None = None  # co-teaching senior while on probation
     lab: str | None = None  # laboratory membership (power dynamics)
     favor: float = 0.0  # standing with leadership and peers (power dynamics)
@@ -55,6 +56,11 @@ class LecturerState(BaseModel):
 
     def on_probation(self, t: int) -> bool:
         return self.probation_until is not None and t < self.probation_until
+
+    def unranked(self, t: int) -> bool:
+        """Probation and the teaching-staff period after it: no rank held yet."""
+        until = self.appointed_at if self.appointed_at is not None else self.probation_until
+        return until is not None and t < until
 
 
 class Patent(BaseModel):

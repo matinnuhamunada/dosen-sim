@@ -75,6 +75,40 @@ def test_faculty_case_retirement_recruitment_probation(tmp_path):
                 assert rank[(e["agent"], e["t"])] in ("Lektor Kepala", "Profesor")
 
 
+def test_faculty_case_teaching_staff_then_lektor(tmp_path):
+    sc = load_scenario(ROOT / "configs/scenarios/faculty_case.yaml").model_copy(
+        update={"semesters": 20}
+    )
+    path = tmp_path / "ev.jsonl"
+    with EventLog(path) as log:
+        Engine(sc, 1, log).run()
+    _, ev = read_events(path)
+    hires = {e["agent"]: e for e in ev if e["type"] == "hire"}
+    assert hires
+    for h in hires.values():  # 1-2 years of teaching staff after the one-year probation
+        assert 2 <= h["appointed_at"] - h["probation_until"] <= 4
+    snaps = {(e["agent"], e["t"]): e["state"] for e in ev if e["type"] == "snapshot"}
+    staff = [
+        e
+        for e in ev
+        if e["type"] == "pay"
+        and e["agent"] in hires
+        and hires[e["agent"]]["probation_until"] <= e["t"] < hires[e["agent"]]["appointed_at"]
+    ]
+    assert staff
+    for e in staff:  # full base salary and bonus eligibility, but no rank allowances
+        m = e["monthly"]
+        assert m["base_salary"] > 0 and m["functional_allowance"] == 0
+        assert m["professional_allowance"] == 0
+        s = snaps[(e["agent"], e["t"])]
+        assert s["limits"]["supervision"] == 0 and s["semesters_in_rank"] == 0
+        assert not s["certified"]
+    ranked = [s for (a, t), s in snaps.items() if a in hires and t >= hires[a]["appointed_at"]]
+    assert ranked and all(s["limits"].get("supervision") != 0 for s in ranked)  # allowed again
+    appointed = {e["agent"]: e["t"] for e in ev if e["type"] == "appointed"}
+    assert all(appointed[a] == h["appointed_at"] - 1 for a, h in hires.items() if a in appointed)
+
+
 def test_bonus_needs_bkd_minimum_unless_exempt():
     sc = load_scenario(ROOT / "configs/scenarios/faculty_case.yaml")
     eng = Engine(sc, 1, EventLog(os.devnull))

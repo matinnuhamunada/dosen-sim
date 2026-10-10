@@ -43,14 +43,15 @@ class HeadOfDepartment:
         return sum(roles[r] for r in lec.roles) + sum(teams[c] for c in lec.committees)
 
     def eligible(self, t: int, lec: LecturerState, role: RoleSpec) -> bool:
-        """Hours fit under the commitment cap, rank at least ``min_rank``, not on probation,
+        """Hours fit under the commitment cap, rank at least ``min_rank``, ranked (not on
+        probation or teaching staff),
         and below the per-lecturer role limit."""
         most = self.dept.max_roles_per_lecturer
         return (
             self.admin_hours(lec) + role.hours_per_week <= self.commit_cap
             and (role.min_rank is None or self.rank_of[lec.rank] >= self.rank_of[role.min_rank])
             and (role.lab is None or lec.lab == role.lab)
-            and not lec.on_probation(t)
+            and not lec.unranked(t)
             and (most is None or len(lec.roles) < most)
         )
 

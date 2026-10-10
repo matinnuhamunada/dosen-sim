@@ -13,26 +13,40 @@ def monthly_pay(
     rules: PayRules,
     role_allowance: float = 0.0,
     probation_salary_factor: float | None = None,
+    unranked: bool = False,
 ) -> dict:
     """Fixed monthly pay components in IDR; ``role_allowance`` is the sum of the monthly
     allowances of departmental roles held. On probation (``probation_salary_factor`` set)
-    only the base salary is paid, scaled by that factor."""
+    only the base salary is paid, scaled by that factor. ``unranked`` staff (appointed but
+    without a rank yet) get no rank allowances (functional, professional, honorary)."""
     base = rules.base_salary_by_rank[rank] + rules.seniority_increment_per_year * years_of_service
     remun = rules.remuneration
     if probation_salary_factor is not None:
         zero = ("functional_allowance", "professional_allowance", "honorary_allowance",
                 "remuneration_base", "role_allowance")  # fmt: skip
         return {"base_salary": base * probation_salary_factor, **dict.fromkeys(zero, 0.0)}
-    return {
+    ranked = not unranked
+    functional = rules.functional_allowance_by_rank.get(rank, 0.0) if ranked else 0.0
+    out = {
         "base_salary": base,
-        "functional_allowance": rules.functional_allowance_by_rank.get(rank, 0.0),
+        "functional_allowance": functional,
         "professional_allowance": rules.professional_allowance_multiplier * base
-        if certified
+        if certified and ranked
         else 0.0,
-        "honorary_allowance": rules.honorary_allowance_multiplier_by_rank.get(rank, 0.0) * base,
+        "honorary_allowance": rules.honorary_allowance_multiplier_by_rank.get(rank, 0.0) * base
+        if ranked
+        else 0.0,
         "remuneration_base": remun.base_by_rank.get(rank, 0.0) if remun.enabled else 0.0,
         "role_allowance": role_allowance,
     }
+    # scenario-specific components appear only where configured (other logs unchanged)
+    if rules.extra_salary_months_per_year:
+        out["extra_salary"] = (base + functional) * rules.extra_salary_months_per_year / 12
+    if rules.meal_allowance:
+        out["meal_allowance"] = rules.meal_allowance
+    if rules.honoraria_by_rank:
+        out["honoraria"] = rules.honoraria_by_rank.get(rank, 0.0)
+    return out
 
 
 def semester_income(

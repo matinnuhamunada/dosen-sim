@@ -280,6 +280,9 @@ export function parseLog(text: string, name = "run"): Run {
           text: e.rank ? `hired as ${e.rank}${e.probation_until != null ? " (probation)" : ""}` : "hired",
         });
         break;
+      case "appointed": // end of the teaching-staff period: the entry rank takes effect
+        push({ t, kind: "promotion", agent: e.agent, text: `appointed ${e.rank} (was teaching staff)` });
+        break;
       case "certified":
         push({ t, kind: "certified", agent: e.agent, text: "certified (serdos)" });
         break;
