@@ -41,6 +41,8 @@ export interface AgentSem {
   paidRank: string; // rank held during the semester
   rank: string; // rank at the end of the semester (after any promotion)
   income: number;
+  monthlyPay: number; // university pay per month this semester (bonus spread; no consulting, royalties)
+  consulting: number; // consulting income per month this semester
   bonus: boolean | null; // performance bonus condition (BKD) met; null if not modelled
   cumIncome: number;
   burnout: number;
@@ -183,6 +185,9 @@ export function parseLog(text: string, name = "run"): Run {
         const p = part(e.agent, t);
         p.paidRank = e.rank;
         p.income = e.semester.total;
+        const months = 12 / (info.semesters_per_year || 2);
+        p.consulting = (e.semester.external ?? 0) / months;
+        p.monthlyPay = (e.semester.total - (e.semester.external ?? 0) - (e.semester.royalty ?? 0)) / months;
         p.bonus = e.bonus_eligible ?? null;
         break;
       }

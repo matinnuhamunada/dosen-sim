@@ -112,7 +112,7 @@ function showRun(): void {
   const tiers = [...new Set(agents.map((a) => tierOf(a.policy)))].join(", ");
   $("run-chip").textContent = `S${r.header.seed}`;
   $("run-title").textContent = r.header.scenario;
-  $("run-sub").textContent = `seed ${r.header.seed} · ${agents.length} lecturers · ${policies}`;
+  $("run-sub").textContent = `lecsim v${r.header.lecsim_version} · seed ${r.header.seed} · ${agents.length} lecturers · ${policies}`;
   $("run-sub").title = `tier ${tiers} · regulation ${r.info.regulation_version} · commit ${r.header.git_commit.slice(0, 8)}`;
   $("search-list").innerHTML = agents
     .map((a) => `<option value="${a.id}">${a.archetype ?? "no archetype"} · ${a.policy}</option>`)
@@ -434,6 +434,7 @@ function renderTracker(r: Run): void {
     </div>
     <div class="meter"><span>Burnout</span><span class="track"><i style="width:${Math.min(100, burn * 100)}%;background:${burnColor}"></i></span><b>${burn.toFixed(2)}</b></div>
     <div class="kv">
+      ${s?.monthlyPay != null ? `<span>Monthly pay (est.)</span><span title="This semester's university pay per month: salary, allowances, honoraria and the BKD bonus spread over the semester">${(s.monthlyPay / 1e6).toFixed(1)} M IDR${s.consulting > 0 ? ` + ${(s.consulting / 1e6).toFixed(1)} M consulting` : ""}</span>` : ""}
       <span>Cumulative pay</span><span>${((s?.cumIncome ?? 0) / 1e6).toFixed(1)} M IDR</span>
       <span>Credits</span><span>${Object.entries(s?.credits ?? {}).map(([k, v]) => `${k} ${v.toFixed(0)}`).join(" · ") || "–"}</span>
       <span>Papers / grants</span><span>${s?.publications ?? 0} / ${grants}</span>
@@ -561,7 +562,7 @@ function renderScoreboard(): void {
   const multi = $<HTMLInputElement>("sb-multi").checked && state.runs.length > 1;
   $("sb-at").textContent = multi
     ? `median (IQR) over ${state.runs.length} runs, final semester`
-    : `${r.header.scenario} · seed ${r.header.seed} · semester ${state.t + 1} (${label(r, state.t)})`;
+    : `${r.header.scenario} · seed ${r.header.seed} · semester ${state.t + 1} (${label(r, state.t)}) · lecsim v${r.header.lecsim_version} (${r.header.git_commit.slice(0, 7)})`;
   const { rows, cols } = boardRows();
   const table = $("sb-table");
   table.innerHTML =

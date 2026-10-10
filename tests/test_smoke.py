@@ -25,6 +25,10 @@ def test_run_shape(tmp_path):
     header, events = read_events(run_dir / "events.jsonl")
     assert header["type"] == "header" and header["seed"] == 1
     assert {"config_hash", "git_commit", "lecsim_version"} <= header.keys()
+    import lecsim
+
+    assert header["lecsim_version"] == lecsim.__version__  # one version source
+    assert f"## {lecsim.__version__}" in (Path(__file__).parents[1] / "CHANGELOG.md").read_text()
     allocs = [e for e in events if e["type"] == "allocation"]
     snaps = [e for e in events if e["type"] == "snapshot"]
     assert len(allocs) == len(snaps) == 5 * 10
