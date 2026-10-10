@@ -168,3 +168,9 @@ One entry per milestone gate: what was built, open inputs, and the gate outcome.
 ## 2026-10-10 — BKD bonus period confirmed
 
 The user confirmed the 10–20 M IDR BKD bonus is paid per semester, as already modelled; no results change.
+
+## 2026-10-10 — Reported SKS, one community activity, 40 h archetype hours
+
+- BKD minimum is checked on reported SKS (as modelled: claimable hours); community service needs one activity of any size (0.1 SKS minimum, assumption).
+- Archetype shares are rescaled from their 40 h calibration to the 56 h budget (rest takes the difference), so overtime no longer comes from a 40 % inflation of every share.
+- 30 seeds × 60 semesters: mean burnout 0.132 (was ~0.18), burnout leavers 26.5 per run, overload (> 16 SKS) 43 % of lecturer-semesters, bonus share 0.41 (0.47 without power). Unconditional bonus: overload 21 %, burnout −0.017, leavers −2.5. Pay per year: research maximiser 173, admin climber 164, teaching loyalist 160, balanced 149, external earner 146 M IDR. Deans: teaching loyalists 129 terms, admin climbers 82.

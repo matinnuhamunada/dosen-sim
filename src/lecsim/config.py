@@ -442,6 +442,19 @@ class StageRules(_Model):
 class AgentBook(_Model):
     stages: StageRules
     archetypes: dict[str, Archetype]
+    # Weekly budget the shares were calibrated on; a scenario with another budget keeps each
+    # archetype's working hours and puts the difference into rest (see rescale_shares).
+    calibrated_hours_per_week: float | None = Field(default=None, gt=0)
+
+
+def rescale_shares(shares: dict[str, float], factor: float) -> dict[str, float]:
+    """Scale every non-rest share by ``factor`` (calibrated / actual budget), rest takes the
+    remainder, so the same hours are worked under a bigger or smaller weekly budget."""
+    out = {a: v * factor for a, v in shares.items() if a != "rest"}
+    work = sum(out.values())
+    if work > 1 + 1e-9:
+        raise ValueError("budget too small for the calibrated working hours")
+    return out | {"rest": max(0.0, 1 - work)}
 
 
 class Scenario(_Model):
@@ -558,5 +571,12 @@ def load_scenario(path: str | Path) -> Scenario:
     reg = _load_regulation_dict(Path(data["regulation"]))
     data["regulation"] = deep_merge(reg, data.pop("regulation_overrides", {}))
     if "agents" in data:
-        data["agents"] = yaml.safe_load(Path(data["agents"]).read_text())
+        data["agents"] = book = yaml.safe_load(Path(data["agents"]).read_text())
+        calibrated = book.get("calibrated_hours_per_week")
+        if calibrated:
+            f = calibrated / data["regulation"]["time"]["hours_per_week"]
+            for arch in book["archetypes"].values():
+                arch["shares"] = rescale_shares(arch["shares"], f)
+                for stage, sh in arch.get("stage_shares", {}).items():
+                    arch["stage_shares"][stage] = rescale_shares(sh, f)
     return Scenario.model_validate(data)

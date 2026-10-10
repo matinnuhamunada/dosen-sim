@@ -8,6 +8,8 @@
 #   pre_promotion_push, post_promotion, senior).
 # gap_shift: fraction of the weekly budget a threshold rule moves toward an unmet promotion gap.
 
+calibrated_hours_per_week: 40 # shares below are fractions of a 40 h week; other budgets rescale
+
 stages: # career-stage state machine thresholds, shared by all archetypes
   early_career_semesters: 4 # TODO(source): semesters of service counted as early career
   post_promotion_semesters: 2 # TODO(source): semesters after a promotion counted as "post"

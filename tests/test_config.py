@@ -64,3 +64,20 @@ def test_duplicate_names_rejected(tmp_path):
     path.write_text(text.replace("name: baseline", "name: dup\nnames: [Budi, Budi]", 1))
     with pytest.raises(ValidationError, match="unique"):
         load_scenario(path)
+
+
+def test_rescale_shares_keeps_working_hours():
+    from lecsim.config import rescale_shares
+
+    out = rescale_shares({"teaching": 0.4, "research": 0.35, "rest": 0.25}, 40 / 56)
+    assert out["teaching"] * 56 == pytest.approx(16) and out["research"] * 56 == pytest.approx(14)
+    assert sum(out.values()) == pytest.approx(1)
+    with pytest.raises(ValueError):
+        rescale_shares({"teaching": 0.9, "rest": 0.1}, 1.5)
+
+
+def test_faculty_case_archetypes_rescaled_to_40h_of_work():
+    sc = load_scenario("configs/scenarios/faculty_case.yaml")
+    arch = sc.agents.archetypes["research_maximiser"]
+    assert arch.shares["research"] * 56 == pytest.approx(0.40 * 40)
+    assert sc.regulation.bkd.bonus_requires[1].min_sks == 0.1

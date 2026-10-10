@@ -17,10 +17,12 @@ regulation_overrides:
   # Workload in SKS (user-stated): 16 SKS = 40 h/week, so 1 SKS = 2.5 h/week. 16 SKS is the
   # paid norm, not a cap: duty above it is unpaid overtime (and strains, see burnout below).
   # The bonus needs >= 12 SKS of teaching + supervision + research and at least one community
-  # service (read as >= 1 SKS); roles and committees count as supporting SKS. Dean and vice
+  # service activity (user-stated: any size); the check uses reported (claimable) SKS,
+  # not hours actually worked; roles and committees count as supporting SKS. Dean and vice
   # deans are exempt (bkd_exempt on the role).
   time:
-    hours_per_week: 56 # assumption: weekly time budget = 40 h norm + room for overtime/rest
+    hours_per_week: 56 # assumption: weekly time budget = 40 h norm + room for overtime/rest;
+    # archetype shares are rescaled so they work the same hours as on 40 h (rest takes the rest)
   workload:
     max_duty_hours_per_week: 56 # no hard cap beyond the time budget (overload is possible)
   bkd:
@@ -29,7 +31,7 @@ regulation_overrides:
     research_sks_without_grant: 6 # assumption: research SKS needs a funded project as evidence. TODO(source)
     bonus_requires:
       - { categories: [education, research], min_sks: 12 } # user-stated
-      - { categories: [community_service], min_sks: 1 } # user-stated "one community service"; 1 SKS assumed
+      - { categories: [community_service], min_sks: 0.1 } # user-stated: one activity of any size; 0.1 SKS (~4 h a semester) as the smallest activity is an assumption. TODO(source)
   credit_table:
     patent_filed: { category: research, points_per_unit: 40.0 } # TODO(source): KUM for a granted patent; shared by inventors
   pay:
