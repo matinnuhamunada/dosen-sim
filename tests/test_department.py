@@ -163,12 +163,16 @@ def test_masters_holders_take_doctoral_study_leave(tmp_path):
         Engine(sc, 1, log).run()
     _, ev = read_events(path)
     first = {e["agent"]: e["state"] for e in ev if e["type"] == "snapshot" and e["t"] == 0}
-    masters = {a for a, s in first.items() if s["degree"] == "master"}
+    masters = {a for a, s in first.items() if s["study_start"] is not None}  # founders to study
     assert masters and all(first[a]["study_start"] < rule.start_within_semesters for a in masters)
     lo, hi = rule.duration_semesters
     assert all(lo <= first[a]["study_until"] - first[a]["study_start"] <= hi for a in masters)
+    part_way = [a for a in masters if first[a]["study_start"] < 0]  # already studying at t = 0
+    assert 0 < len(part_way) <= round(rule.founders_away * len(masters))
     away = {
-        (a, t) for a in masters for t in range(first[a]["study_start"], first[a]["study_until"])
+        (a, t)
+        for a in masters
+        for t in range(max(first[a]["study_start"], 0), first[a]["study_until"])
     }
     alloc = {(e["agent"], e["t"]) for e in ev if e["type"] == "allocation"}
     assert not away & alloc  # no workload while away
@@ -177,6 +181,13 @@ def test_masters_holders_take_doctoral_study_leave(tmp_path):
             assert all(v == 0 for k, v in e["semester"].items()
                        if k not in ("base_salary", "total"))  # fmt: skip
     done = {e["agent"] for e in ev if e["type"] == "doctorate"}
+    dc = sc.regulation.degree_credit
+    edu = {(e["agent"], e["t"]): e["state"]["credits_total"]["education"]
+           for e in ev if e["type"] == "snapshot"}  # fmt: skip
+    for e in ev:  # finishing adds the degree difference (no other credit while away)
+        if e["type"] == "doctorate" and e["t"] > 0:
+            gain = edu[(e["agent"], e["t"])] - edu[(e["agent"], e["t"] - 1)]
+            assert gain == pytest.approx(dc["doctorate"] - dc["master"])
     assert done == {a for a in masters if first[a]["study_until"] <= sc.semesters}
 
 

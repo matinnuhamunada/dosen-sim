@@ -95,6 +95,7 @@ class Engine:
                 lec.semesters_service = round(self._draw(lo, hi) * spy)
                 lec.age = self._draw(*scenario.demography.start_age) + lec.semesters_service / spy
             self._seed_history()
+        self._founders_study()
         dept = scenario.department
         if dept.labs:
             # Deal founders out over a seeded lab order, most senior and oldest first: every
@@ -171,6 +172,27 @@ class Engine:
         )
         return lid
 
+    def _founders_study(self) -> None:
+        """A share of the founders who must study are already part-way through it at t = 0
+        (elapsed time drawn); the rest keep their scheduled start."""
+        study = self.reg.study_leave
+        if study is None or not study.founders_away:
+            return
+        rng = self.rng.get("study_founders")
+        due = sorted(i for i, x in self.state.lecturers.items() if x.study_start is not None)
+        lo, hi = study.duration_semesters
+        for i in rng.permutation(due)[: round(study.founders_away * len(due))]:
+            lec, d = self.state.lecturers[str(i)], int(rng.integers(lo, hi + 1))
+            done = int(rng.integers(d))
+            lec.study_start, lec.study_until = -done, d - done
+
+    def _degree_credit(self, lec: LecturerState, old: str | None = None) -> None:
+        """Education credit for a degree (on top of the old degree's, if upgrading)."""
+        dc = self.reg.degree_credit
+        gain = dc.get(lec.degree, 0.0) - (dc.get(old, 0.0) if old else 0.0)
+        if gain:
+            lec.credits_total["education"] = lec.credits_total.get("education", 0.0) + gain
+
     def _seed_history(self) -> None:
         """Founders' credits and papers at t = 0, estimated from rank and service (the
         career is assumed to have climbed evenly from the first rank). They drive promotion
@@ -184,7 +206,9 @@ class Engine:
             top, n = ranks.index(lec.rank), lec.semesters_service
             path = [ranks[top * k // n] if n else lec.rank for k in range(n)]
             if demo.initial_credit_shares:
-                total = need[lec.rank].min_cumulative_credit
+                # the degree held counts too (KUM): at least its credit
+                total = max(need[lec.rank].min_cumulative_credit,
+                            reg.degree_credit.get(lec.degree, 0.0))  # fmt: skip
                 lec.credits_total = {c: total * demo.initial_credit_shares.get(c, 0.0)
                                      for c in reg.credit_categories}  # fmt: skip
             papers = sum(demo.initial_pubs_per_semester_by_rank.get(r, 0.0) for r in path)
@@ -279,7 +303,7 @@ class Engine:
         """A semester of doctoral study leave: no work, base salary only, burnout recovers;
         the degree is awarded at the end."""
         lec, reg = self.state.lecturers[lid], self.reg
-        if t == lec.study_start:
+        if t == max(lec.study_start, 0):  # founders may be part-way at t = 0
             lec.roles, lec.committees, lec.commitments, lec.coauthor = {}, {}, {}, None
             self.log.event(t, "events", "study_leave", lid, until=lec.study_until)
         monthly = pay.monthly_pay(
@@ -303,7 +327,8 @@ class Engine:
         if lec.age is not None:
             lec.age += 1 / self.clock.semesters_per_year
         if t + 1 == lec.study_until:
-            lec.degree = reg.study_leave.degree
+            old, lec.degree = lec.degree, reg.study_leave.degree
+            self._degree_credit(lec, old)
             self.log.event(t, "evaluation", "doctorate", lid)
         self.log.event(t, "evaluation", "snapshot", lid, label=self.clock.label(t),
                        blockers=["on doctoral study leave"],
@@ -332,6 +357,7 @@ class Engine:
                 rank, degree = rec.entry_rank, max(h.degree, rec.min_degree, key=degrees.index)
             lid = self._add_lecturer(h.policy, h.archetype, rank, degree, t)
             lec = self.state.lecturers[lid]
+            self._degree_credit(lec)
             if self.sc.demography is not None:
                 lec.age = self._draw(*self.sc.demography.start_age)
             if prob is not None:

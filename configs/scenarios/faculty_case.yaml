@@ -64,11 +64,15 @@ regulation_overrides:
         Profesor: 20000000
   # Doctoral study leave (tugas belajar, user-stated): master's holders must start a doctorate
   # within 3 years of entry (founders: of the run start) or resign; on leave they get base
-  # salary only and no workload. Everyone complies in the model. Duration TODO(source).
+  # salary only and no workload (no allowances). Everyone complies in the model.
   study_leave:
     degree: doctorate
     start_within_semesters: 6
-    duration_semesters: [6, 8] # assumption: 3-4 years
+    duration_semesters: [8, 10] # user-stated: 4-5 years on average
+    founders_away: 0.75 # user-stated: 12 of the 16 master's-holding founders are part-way at the start
+  # The degree held counts toward the cumulative credit (KUM, user-confirmed); values as in the
+  # PO PAK table as recalled, TODO(source): confirm.
+  degree_credit: { master: 150, doctorate: 200 }
   probation: # first year of a new hire
     semesters: 2 # PP 11/2017: one-year CPNS probation
     salary_factor: 0.8 # PP 7/1977 art. 5(1), Perka BKN 1/2024 art. 10: CPNS get 80 % of base salary

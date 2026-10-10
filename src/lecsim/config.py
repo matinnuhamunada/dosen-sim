@@ -127,6 +127,7 @@ class StudyLeaveRules(_Model):
     degree: str
     start_within_semesters: int = Field(ge=1)  # start drawn uniformly within the window
     duration_semesters: tuple[int, int]  # drawn uniformly
+    founders_away: float = Field(default=0.0, ge=0, le=1)  # share already part-way at the start
 
 
 class Regulation(_Model):
@@ -145,6 +146,7 @@ class Regulation(_Model):
     recruitment: RecruitmentRules | None = None  # None: hire at the first rank, leaver's degree
     probation: ProbationRules | None = None  # None: no probation
     study_leave: StudyLeaveRules | None = None  # None: degrees never change
+    degree_credit: dict[str, float] = {}  # education credit (KUM) for the degree held
     bkd: BkdRules | None = None  # None: the bonus has no workload condition
 
     @property
