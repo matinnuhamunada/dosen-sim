@@ -1,16 +1,12 @@
 #!/usr/bin/env bash
-# Build the static viewer with bundled example runs and commit it to the cf-pages branch
+# Build the static viewer with the bundled faculty-case run and commit it to the cf-pages branch
 # (Cloudflare Pages: no build command, output directory "/"). Run from the repo root.
 set -euo pipefail
 root=$(git rev-parse --show-toplevel)
 cd "$root"
 out=viewer/public/runs
 rm -rf "$out"
-for c in baseline teaching_cap reward_supervision reward_community; do
-  .venv/bin/lecsim run "configs/scenarios/policies/$c.yaml" --seed 1 --out "$out/policy_experiments" >/dev/null
-done
-.venv/bin/lecsim run configs/scenarios/archetypes.yaml --seed 1 --out "$out" >/dev/null
-.venv/bin/lecsim run configs/scenarios/department_stress.yaml --seed 1 --out "$out" >/dev/null
+# Only the faculty case is published for now (the other scenarios stay in configs/).
 .venv/bin/lecsim run configs/scenarios/faculty_case.yaml --seed 1 --out "$out" >/dev/null
 # Pages rejects files over 25 MiB; the viewer gunzips in the browser.
 find "$out" -name events.jsonl -exec gzip -9 {} +

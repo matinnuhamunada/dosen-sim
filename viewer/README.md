@@ -50,9 +50,9 @@ Regenerate the test fixture after changing the log format:
 
 ## Static hosting (Cloudflare Pages)
 
-`viewer/publish_cf_pages.sh` (from the repo root) regenerates a few seeded example runs into
+`viewer/publish_cf_pages.sh` (from the repo root) regenerates the seeded faculty-case run into
 `viewer/public/runs/`, builds, and commits `viewer/dist` to the `cf-pages` branch. Point
-Cloudflare Pages at that branch with no build command and output directory `/`. With no
-`?run=` the page opens the faculty case (the score dashboard includes lab, age and years of service; the top-3 card also ranks labs by their members' mean), `runs/faculty_case_seed1/events.jsonl.gz`; other bundled
-runs: `?run=runs/archetypes_seed1/events.jsonl.gz`, `?run=runs/department_stress_seed1/events.jsonl.gz`,
-`?run=runs/policy_experiments/<baseline|teaching_cap|reward_supervision|reward_community>_seed1/events.jsonl.gz`.
+Cloudflare Pages at that branch with no build command and output directory `/`. The page opens
+the faculty case, `runs/faculty_case_seed1/events.jsonl.gz` (the score dashboard includes lab,
+age and years of service; the top-3 card also ranks labs by their members' mean). It is the only
+bundled run for now; logs of other scenarios can still be opened with *Open logs*.
