@@ -90,6 +90,12 @@ demography:
 environment:
   burnout:
     sustainable_hours: 40 # 16 SKS norm: only work beyond it (overtime) strains
+    # User-stated: most work 48-56 h a week, ~10-20 % are burnt out at a time, and burnt-out
+    # tenured lecturers rarely leave but produce much less. Calibrated (seeds 1-4): median
+    # 49 h, 12-15 % at burnout >= 0.5, 1-6 burnout departures in 30 years.
+    strain_rate: 0.3
+    productivity_penalty: 0.8
+    attrition_prob: 0.01
   # Research resources by rank (students, lab, network); grants x1.5 on top. Calibrated so an
   # early-career lecturer publishes ~1 paper a semester and a professor 4-8 (user-stated).
   research_productivity_by_rank: { Asisten Ahli: 0.7, Lektor: 0.9, Lektor Kepala: 1.2, Profesor: 1.7 }
@@ -115,7 +121,7 @@ department:
   # Teaching benchmark: the faculty's scheduled SKS in one semester (public timetable, anonymous
   # aggregates; source withheld) average ~10.4 per lecturer: Profesor ~12, non-professors with a
   # doctorate ~11, without ~7. Teaching is assigned by the department, not negotiated (user-stated).
-  teaching_demand: { hours_per_lecturer: 26 } # 10.4 SKS x 2.5 h
+  teaching_demand: { hours_per_lecturer: 23.5 } # 657 scheduled SKS x 2.5 h over 70 lecturers
   head:
     rank_load_weights: { Asisten Ahli: 0.8, Lektor: 1.0, Lektor Kepala: 1.0, Profesor: 1.1 } # from the timetable medians (Asisten Ahli ~ no doctorate)
     max_teaching_hours: 50 # timetable maximum ~20 SKS
