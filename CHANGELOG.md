@@ -5,6 +5,15 @@ package and the run log header read it) and adds an entry here. The viewer shows
 of the run it replays. Minor versions change model behaviour or calibration; patch versions
 fix bugs, docs or tooling without changing results.
 
+## 0.2.7 — 2026-10-10
+
+Paper only; results unchanged.
+
+- Manuscript reports the untuned hold-out check (Profesor share at year 30: about 64 % in the
+  model against 24 % today): new last row of the calibration table, a sentence in the abstract,
+  a paragraph in the limitations and "fix the promotion ladder" as the first next step. PDF
+  rebuilt; figures checked against a fresh five-seed rerun (identical).
+
 ## 0.2.6 — 2026-10-10
 
 Docs only; results unchanged.

@@ -48,7 +48,9 @@
   all three; I discuss how this incentive structure aligns and misaligns with the _tridharma_
   purpose of higher education. A rigorous strategy comparison is left for future work. It is a personal, curiosity-driven experiment by a member of
   the Indonesian academic community. Many assumptions are mine and therefore subjective, and
-  the model needs independent data validation before any result is taken seriously.
+  the model needs independent data validation before any result is taken seriously: the one
+  untuned check so far fails, with about 64 % of lecturers reaching professor after 30 years
+  against 24 % today.
 
   #text(weight: "bold")[Keywords:] agent-based modelling; game theory; academic careers;
   Indonesia; higher education policy; workload; power dynamics; ODD protocol
@@ -408,8 +410,9 @@ faculty. @tab-calib compares five seeds with these targets.
     [Monthly pay: certified Lektor / teaching staff], [16.8 / 11.8 M IDR], [15.7 / 10.5 M (payslips)],
     [Monthly pay: professor vice dean], [38 M IDR], [40–60 M (hearsay)],
     [Years in rank: AA→L / L→LK / LK→Prof, median], [2 / 3.5 / 5], [plausible (mine)],
+    [*Hold-out (not tuned):* Profesor share of active lecturers at year 30], [64 % (median 43 of about 67; 35–52 over 30 seeds)], [24 % (16 of 68 today)],
   ),
-  caption: [Calibration results. Most targets were used to tune parameters, so this is a calibration, not an independent validation.],
+  caption: [Calibration results. All rows but the last were used to tune parameters, so they show a calibration, not an independent validation. The last row is the one untuned check, and it fails.],
 ) <tab-calib>
 
 The tier mix was matched by raising the acceptance rate of reputable international journals from
@@ -557,7 +560,13 @@ standards rather than quotas. These are hypotheses for the policy experiments in
   of some of these dynamics) shapes what I see.
 - *Calibration is not validation.* Nearly every target in @tab-calib was used to tune a
   parameter. The model reproduces what it was fitted to; it has not been tested on data it did
-  not see (time-in-rank records, promotion ages, attrition, grant success).
+  not see (time-in-rank records, promotion ages, attrition, grant success). The one untuned
+  check I ran fails (last row of @tab-calib): after 30 years about 64 % of active lecturers are
+  Profesor, against 24 % today. Each promotion step looks plausible on its own, but the ladder is
+  too easy overall, because the real requirements (credit, first-author papers in reputable
+  journals, external review, rejections and delays) are mostly placeholders. Until it is fixed,
+  results that depend on reaching Profesor, including the comparison of archetypes in
+  @sec-discussion, illustrate mechanisms rather than estimate outcomes.
 - *Data gaps.* The tier classification uses "ever indexed in Scopus" and misses national journals
   without DOIs; the timetable covers one semester and only scheduled classes; pay rests on one
   person's payslips and on hearsay for senior roles; the credit and promotion values are mostly
@@ -576,6 +585,8 @@ standards rather than quotas. These are hypotheses for the policy experiments in
 
 = Future outlook <sec-outlook>
 
+- *Fix the promotion ladder.* Replace the placeholder promotion requirements with the real ones
+  and recheck the professor share against today's 24 % before any strategy or policy result.
 - *The strategy race.* Because lecturers start from different ranks, ages, labs and degrees, raw
   outcomes mostly reflect starting points. The planned method is twin runs: the same seed and
   initial state with one lecturer's archetype and behaviour changed, comparing that lecturer's
