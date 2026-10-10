@@ -112,6 +112,14 @@ environment:
     royalty_semesters: 10
 
 department:
+  # Teaching benchmark: the faculty's scheduled SKS in one semester (public timetable, anonymous
+  # aggregates; source withheld) average ~10.4 per lecturer: Profesor ~12, non-professors with a
+  # doctorate ~11, without ~7. Teaching is assigned by the department, not negotiated (user-stated).
+  teaching_demand: { hours_per_lecturer: 26 } # 10.4 SKS x 2.5 h
+  head:
+    rank_load_weights: { Asisten Ahli: 0.8, Lektor: 1.0, Lektor Kepala: 1.0, Profesor: 1.1 } # from the timetable medians (Asisten Ahli ~ no doctorate)
+    max_teaching_hours: 50 # timetable maximum ~20 SKS
+    impose_teaching: true
   hiring:
     lag_semesters: 2 # TODO(source): retirements and leavers are replaced after this lag
     probation_coverage: 0.5 # assumption: a co-taught hour covers half a class-hour of demand

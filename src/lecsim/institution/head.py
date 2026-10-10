@@ -152,7 +152,8 @@ class HeadOfDepartment:
         access: dict[str, float] | None = None,
     ) -> float:  # fmt: skip
         """Split ``demand`` weekly teaching hours; returns the uncovered hours. A probationer
-        co-teaches, so each of their hours covers only ``probation_coverage`` of demand."""
+        co-teaches, so each of their hours covers only ``probation_coverage`` of demand. With
+        ``impose_teaching`` the offers and the shortfall are assigned without asking."""
         ids = sorted(lecturers)
         part = self.dept.hiring.probation_coverage
         cov = {i: part if lecturers[i].on_probation(t) else 1.0 for i in ids}
@@ -167,9 +168,13 @@ class HeadOfDepartment:
         agreed: dict[str, float] = {}
         for i in ids:
             offer = min(cap[i], demand * w[i] / total_w) if total_w > 0 else 0.0
-            hours, outcome = bargain(
-                ask, i, "teaching_load", offer, self.rules.max_rounds, self.rules.max_concession
-            )
+            if self.rules.impose_teaching:
+                hours, outcome = offer, "imposed"
+            else:
+                hours, outcome = bargain(
+                    ask, i, "teaching_load", offer, self.rules.max_rounds,
+                    self.rules.max_concession,
+                )  # fmt: skip
             agreed[i] = min(hours, cap[i])
             log(t, "negotiation", "teaching_agreed", i, offer=offer, hours=agreed[i],
                 outcome=outcome)  # fmt: skip
@@ -179,6 +184,11 @@ class HeadOfDepartment:
                 continue
             extra = min(shortfall / cov[i], cap[i] - agreed[i])
             if extra <= 1e-9:
+                continue
+            if self.rules.impose_teaching:
+                agreed[i] += extra
+                shortfall -= extra * cov[i]
+                log(t, "negotiation", "teaching_imposed", i, hours=extra)
                 continue
             terms = {"hours": extra, "current": agreed[i]}
             resp = ask(i, Proposal(sender="head", topic="extra_teaching", terms=terms))

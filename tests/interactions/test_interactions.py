@@ -132,6 +132,22 @@ def test_teaching_uncovered_when_nobody_volunteers():
     assert head.assign_teaching(0, lecs, 40, ask, lambda *a, **k: None) == pytest.approx(8)
 
 
+def test_teaching_imposed_without_asking():
+    dept = DEPT.model_copy(update={"head": DEPT.head.model_copy(update={"impose_teaching": True})})
+    head = HeadOfDepartment(dept, WORKLOAD, RANKS)
+    lecs = {"A": lec("A"), "B": lec("B")}
+
+    def ask(lid, p):
+        raise AssertionError("imposed teaching is never negotiated")
+
+    # demand 40 split 20/20, capped at 16 each; the shortfall cannot exceed the caps
+    assert head.assign_teaching(0, lecs, 40, ask, lambda *a, **k: None) == pytest.approx(8)
+    assert lecs["A"].commitments["teaching"] == lecs["B"].commitments["teaching"] == 16
+    lecs = {"A": lec("A"), "B": lec("B", rank="Lektor")}  # offers 20 -> 16 and 10; B takes 4 more
+    assert head.assign_teaching(0, lecs, 30, ask, lambda *a, **k: None) == pytest.approx(0)
+    assert lecs["B"].commitments["teaching"] == pytest.approx(14)
+
+
 def test_role_volunteer_then_imposed():
     head = HeadOfDepartment(DEPT, WORKLOAD, RANKS)
     log = []

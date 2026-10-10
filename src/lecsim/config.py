@@ -249,6 +249,7 @@ class HeadRules(_Model):
     max_concession: float = Field(ge=0, le=1)  # accept counters down to (1 - this) * offer
     max_rounds: int = Field(ge=1)
     max_teaching_hours: float = Field(ge=0)  # per lecturer per week
+    impose_teaching: bool = False  # offers (and the shortfall) are assigned, not negotiated
 
 
 class RoleSpec(_Model):
