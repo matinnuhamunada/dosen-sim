@@ -169,6 +169,8 @@ export class CampusScene {
   private chars = new Map<string, Character>();
   private cues: { sprite: THREE.Sprite; agent: string; offset: number }[] = [];
   private cueKey = "";
+  private sceneKey = "";
+  private dirty = true; // redraw needed even if the camera is still
   private trails = new Map<string, THREE.Line>();
   private run: Run | null = null;
   private raycaster = new THREE.Raycaster();
@@ -180,9 +182,12 @@ export class CampusScene {
   private panGoal: THREE.Vector3 | null = null;
 
   constructor(private container: HTMLElement, onPick: (id: string | null) => void) {
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     this.renderer.shadowMap.enabled = true;
+    // light is fixed, so the shadow map only changes when the characters move (see update)
+    this.renderer.shadowMap.autoUpdate = false;
+    this.renderer.shadowMap.needsUpdate = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(this.renderer.domElement);
     this.scene.background = new THREE.Color(C.bg);
@@ -235,6 +240,7 @@ export class CampusScene {
     const w = this.container.clientWidth;
     const h = this.container.clientHeight;
     this.renderer.setSize(w, h);
+    this.dirty = true;
     const view = 17.5;
     const aspect = w / Math.max(h, 1);
     Object.assign(this.camera, { left: -view * aspect, right: view * aspect, top: view, bottom: -view });
@@ -375,9 +381,10 @@ export class CampusScene {
 
   setRun(run: Run): void {
     this.run = run;
+    this.sceneKey = "";
     for (const c of this.chars.values()) this.scene.remove(c.group);
     this.chars.clear();
-    for (const t of this.trails.values()) this.scene.remove(t);
+    for (const t of this.trails.values()) this.removeTrail(t);
     this.trails.clear();
     this.clearCues();
     for (const a of run.agents.values()) this.chars.set(a.id, this.makeCharacter(a));
@@ -477,6 +484,11 @@ export class CampusScene {
   update(t: number, tau: number, focus: Focus): void {
     const run = this.run;
     if (!run) return;
+    const key = `${t}|${tau}|${focus.selected}|${focus.pinned}|${focus.trail}`;
+    if (key === this.sceneKey) return;
+    this.sceneKey = key;
+    this.dirty = true;
+    this.renderer.shadowMap.needsUpdate = true;
     const ranks = run.info.rank_names;
     const focused = new Set([focus.selected, ...focus.pinned].filter(Boolean) as string[]);
     if (focus.selected !== this.lastSelected) {
@@ -536,8 +548,17 @@ export class CampusScene {
     }
   }
 
-  private animateCamera(): void {
+  private removeTrail(line: THREE.Line): void {
+    this.scene.remove(line);
+    line.geometry.dispose();
+    (line.material as THREE.Material).dispose();
+  }
+
+  /** Steps the camera animations; true while anything moved. */
+  private animateCamera(): boolean {
     const k = 0.15;
+    const before = this.camera.position.clone();
+    const zoom = this.camera.zoom;
     if (this.zoomGoal !== null) {
       const dz = this.zoomGoal - this.camera.zoom;
       this.camera.zoom = Math.abs(dz) < 1e-3 ? this.zoomGoal : this.camera.zoom + dz * k;
@@ -566,10 +587,15 @@ export class CampusScene {
     );
     target.add(clamp);
     this.camera.position.add(clamp);
+    return zoom !== this.camera.zoom || before.distanceToSquared(this.camera.position) > 1e-10;
   }
 
   private clearCues(): void {
-    for (const c of this.cues) this.scene.remove(c.sprite);
+    for (const c of this.cues) {
+      this.scene.remove(c.sprite);
+      c.sprite.material.map?.dispose();
+      c.sprite.material.dispose();
+    }
     this.cues = [];
     this.cueKey = "";
   }
@@ -626,7 +652,7 @@ export class CampusScene {
     const want = focus.trail ? [focus.selected, ...focus.pinned].filter(Boolean) as string[] : [];
     for (const [id, line] of this.trails) {
       if (!want.includes(id)) {
-        this.scene.remove(line);
+        this.removeTrail(line);
         this.trails.delete(id);
       }
     }
@@ -664,9 +690,12 @@ export class CampusScene {
     return hit ? (hit.object.userData.agentId as string) : null;
   }
 
+  /** Draws only when the scene or camera changed; a paused, idle view costs nothing. */
   render(): void {
-    this.animateCamera();
-    this.controls.update();
+    const moved = this.animateCamera();
+    const changed = this.controls.update();
+    if (!moved && !changed && !this.dirty) return;
+    this.dirty = false;
     this.renderer.render(this.scene, this.camera);
   }
 }
