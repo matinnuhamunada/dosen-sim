@@ -57,7 +57,7 @@ Status: open unless marked. Add new items under the right heading as they come u
 - Whether to apply the 2025 recruitment and probation rules nationally (move from `regulation_overrides` to `national.yaml`) and rerun the M4 sweep.
 - Professor promotion is fast under placeholder rules (about half the faculty is Profesor after 20 years).
 - Faculty-level teaching demand (currently 8 h/week per lecturer, as in the department scenario).
-- BKD: is the minimum checked on reported SKS or actual hours; does "one community service" mean 1 SKS or one activity/output? Is the 10–20 M IDR bonus per semester (assumed) or per month?
+- BKD: is the minimum checked on reported SKS or actual hours; does "one community service" mean 1 SKS or one activity/output?
 - The 56 h time budget scales archetype shares (calibrated on 40 h) up by 40 %, so even with an unconditional bonus 45 % of lecturer-semesters exceed 16 SKS; recalibrate archetype shares for a 56 h week.
 - Apply the SKS rules nationally and rerun the M4 sweep? (Decided 2026-10-09: no, faculty case only.)
 - Power dynamics: every weight is a placeholder (grade cut-offs, liking spread, standing gains and losses, appointment weights); real lab sizes; who assesses the head of department and programme heads in practice; whether grades also affect pay or the bonus.

@@ -164,3 +164,7 @@ One entry per milestone gate: what was built, open inputs, and the gate outcome.
 ## 2026-10-10 — Pay starts at zero; per-year comparisons
 
 - Founders' accumulated pay is no longer seeded (credits and papers still are, since they drive promotion and grants). Scoreboard adds `pay/yr (M IDR)` and `papers/yr` (years served in the run; also a top-3 metric); `agents.csv` adds `income_per_year`, the archetype table its median.
+
+## 2026-10-10 — BKD bonus period confirmed
+
+The user confirmed the 10–20 M IDR BKD bonus is paid per semester, as already modelled; no results change.

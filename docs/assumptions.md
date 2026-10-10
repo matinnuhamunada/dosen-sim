@@ -177,7 +177,7 @@ The case is anonymised: neither the institution nor the faculty is named in the 
 | Paid load norm | 16 SKS = 40 h/week | user-stated | Not a cap: duty above it is unpaid overtime (`bkd.max_sks`) |
 | Weekly time budget | 56 h (duty cap = budget) | assumption | Room for overtime beyond the 40 h norm; archetype shares now scale to 56 h |
 | Burnout sustainable hours | 40 h/week | user-stated logic | Only overtime beyond 16 SKS strains (national placeholder 30) |
-| BKD bonus | 10 M IDR (Asisten Ahli), 20 M IDR (Lektor and above) per semester | user-stated amount; per semester assumed | Replaces the per-credit placeholder (0 here) |
+| BKD bonus | 10 M IDR (Asisten Ahli), 20 M IDR (Lektor and above) per semester | user-stated (amount and per-semester period) | Replaces the per-credit placeholder (0 here) |
 | Fear margin | target = minimum × (1 + 0.25 × risk_aversion), i.e. +5 to +15 % | assumption (user: "everyone aims above 12") | Rule-based agents; taken from rest and external work |
 | Bonus condition (BKD) | ≥ 12 SKS teaching + supervision + research, and ≥ 1 SKS community service | user-stated ("one community service" read as 1 SKS) | Otherwise the performance remuneration is withheld; not a hard constraint |
 | BKD exemption | dean and the three vice deans | user-stated | `bkd_exempt` on the role |

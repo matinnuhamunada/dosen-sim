@@ -35,7 +35,7 @@ regulation_overrides:
   pay:
     remuneration:
       per_credit_point: 0 # replaced by the fixed BKD bonus below
-      bkd_bonus_by_rank: # user-stated: 10-20 M IDR; per semester assumed
+      bkd_bonus_by_rank: # user-stated: 10-20 M IDR per semester
         Asisten Ahli: 10000000
         Lektor: 20000000
         Lektor Kepala: 20000000
