@@ -303,15 +303,17 @@ class Grade(_Model):
 
 
 class DumpingParams(_Model):
-    """Seniors hand part of their teaching to a junior: the senior still claims the hours
+    """Seniors hand part of their work to a junior: the senior still claims the hours
     (credit, BKD, pay) but works less; the junior works them with no credit. The junior
-    resents it, but gains the senior's liking and standing."""
+    resents it, but gains the senior's liking and standing; a refusal costs the liking."""
 
     senior_ranks: list[str]
     junior_ranks: list[str]  # plus new hires without a rank yet
-    prob: float = Field(ge=0, le=1)  # chance per senior per semester
-    share: float = Field(ge=0, le=1)  # of the senior's reported teaching hours
+    dumper_share: float = Field(ge=0, le=1)  # lecturers with the habit (drawn once), once senior
+    hours: tuple[float, float]  # weekly hours handed over each semester, drawn uniformly
     max_junior_hours: float = Field(ge=0)  # extra weekly hours one junior can be given
+    most_junior_prob: float = Field(ge=0, le=1)  # pick the most junior, else the favourite
+    refusal_prob: float = Field(ge=0, le=1)  # the junior says no
     favor_gain: float = Field(ge=0)  # junior's standing, per senior dumping on them
     affinity_gain: float = Field(ge=0)  # senior's liking of the junior
     resentment: float = Field(ge=0)  # junior's liking of the senior lost

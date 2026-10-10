@@ -46,6 +46,7 @@ class LecturerState(BaseModel):
     coauthor: str | None = None  # partner this semester
     age: float | None = None  # years, at the start of the current semester
     teaching_effort: float = 1.0  # real hours per reported teaching hour
+    dumper: bool = False  # passes work to juniors once senior (power dynamics)
     probation_until: int | None = None  # first semester after probation (new hires only)
     appointed_at: int | None = None  # first semester holding a rank (new hires only)
     limits: dict[str, float] = Field(default_factory=dict)  # weekly hour ceilings (unranked)

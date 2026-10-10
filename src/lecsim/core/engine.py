@@ -151,6 +151,10 @@ class Engine:
         effort = self.sc.environment.teaching_effort
         if effort is not None and self.rng.get("effort").random() < effort.share:
             self.state.lecturers[lid].teaching_effort = effort.factor
+        power = self.sc.department.power
+        if power is not None and power.dumping is not None:
+            habit = self.rng.get("dumper").random() < power.dumping.dumper_share
+            self.state.lecturers[lid].dumper = habit
         book = self.sc.agents
         self.policies[lid] = POLICIES[policy](
             self.rng.get("policy", lid),
@@ -388,15 +392,17 @@ class Engine:
         return alloc
 
     def _dump(self, t: int, ids: list[str], allocations: dict[str, Allocation]) -> None:
-        """Seniors pass teaching to juniors (power dynamics). Reported hours are untouched;
+        """Seniors pass work to juniors (power dynamics). Reported hours are untouched;
         ``_real`` records the real-hour shifts: the senior gains rest, the junior loses rest
         first, then research time."""
         self._real: dict[str, dict[str, float]] = {}
         if self.power is None:
             return
         lecs = {i: self.state.lecturers[i] for i in ids}
-        teaching = {i: allocations[i].hours[Activity.TEACHING] for i in ids}
-        for s, j, h in self.power.dump_teaching(t, lecs, teaching):
+        claimed = (Activity.REST, Activity.EXTERNAL)
+        duty = {i: sum(h for a, h in allocations[i].hours.items() if a not in claimed)
+                for i in ids}  # fmt: skip
+        for s, j, h in self.power.dump_work(t, lecs, duty):
             out = self._real.setdefault(s, {})
             out["dumped_out"] = out.get("dumped_out", 0.0) + h
             r = self._real.setdefault(j, {})
@@ -588,10 +594,10 @@ class Engine:
         # Real hours for burnout: low-effort teaching and dumped hours shift rest; reported
         # hours (credit, BKD, pay) are unchanged.
         real = self._real.get(lid, {})
-        out_h = real.get("dumped_out", 0.0)
-        taught = alloc.hours[Activity.TEACHING] - out_h
-        rest = (alloc.hours[Activity.REST] + taught * (1 - lec.teaching_effort) + out_h
-                - real.get("from_rest", 0.0))  # fmt: skip
+        rest = (alloc.hours[Activity.REST]
+                + alloc.hours[Activity.TEACHING] * (1 - lec.teaching_effort)
+                + real.get("dumped_out", 0.0) - real.get("from_rest", 0.0))  # fmt: skip
+        rest = min(rest, reg.time.hours_per_week)
         lec.burnout = burnout.update_burnout(
             lec.burnout, reg.time.hours_per_week - rest, rest, reg.time.hours_per_week,
             self.sc.environment.burnout, self._sensitivity(lec),

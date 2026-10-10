@@ -52,24 +52,32 @@ class Power:
         key = f"{a}>{b}"
         self.state.affinity_one[key] = self.state.affinity_one.get(key, 0.0) + delta
 
-    def dump_teaching(
-        self, t: int, lecs: dict[str, LecturerState], teaching: dict[str, float]
+    def dump_work(
+        self, t: int, lecs: dict[str, LecturerState], duty: dict[str, float]
     ) -> list[tuple[str, str, float]]:
-        """Seniors who dump (drawn) pass ``share`` of their reported teaching to a junior,
-        same lab first, then the least loaded; returns (senior, junior, weekly hours)."""
+        """Senior dumpers pass drawn weekly hours of their (claimed) duty to a junior in the
+        same lab if possible: the most junior, or else the one they like most. Returns
+        (senior, junior, hours) for the hand-overs the junior accepted."""
         d = self.p.dumping
         if d is None:
             return []
-        juniors = [i for i, x in lecs.items() if x.rank in d.junior_ranks or x.unranked(t)]
-        given = dict.fromkeys(juniors, 0.0)
+        rng = self.rng.get("dumping")
+        given = {i: 0.0 for i, x in lecs.items() if x.rank in d.junior_ranks or x.unranked(t)}
         out = []
-        for s in sorted(i for i, x in lecs.items()
-                        if x.rank in d.senior_ranks and not x.unranked(t)):  # fmt: skip
-            if not juniors or self.rng.get("dumping").random() >= d.prob:
+        for s in sorted(i for i, x in lecs.items() if x.dumper and x.rank in d.senior_ranks
+                        and not x.unranked(t)):  # fmt: skip
+            hours = min(float(rng.uniform(*d.hours)), duty[s])
+            room = [j for j in given if given[j] + hours <= d.max_junior_hours]
+            pool = [j for j in room if lecs[j].lab == lecs[s].lab] or room
+            if not pool or hours <= 0:
                 continue
-            j = min(juniors, key=lambda i: (lecs[i].lab != lecs[s].lab, given[i], i))
-            hours = min(d.share * teaching[s], d.max_junior_hours - given[j])
-            if hours <= 1e-9:
+            if rng.random() < d.most_junior_prob:
+                j = min(pool, key=lambda i: (not lecs[i].unranked(t), self.rank_of[lecs[i].rank],
+                                             lecs[i].semesters_service, i))  # fmt: skip
+            else:
+                j = max(pool, key=lambda i: (self.affinity(s, i), i))
+            if rng.random() < d.refusal_prob:
+                self.nudge_one(s, j, -d.affinity_gain)
                 continue
             given[j] += hours
             lecs[j].favor += d.favor_gain

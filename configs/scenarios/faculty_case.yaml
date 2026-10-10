@@ -223,19 +223,21 @@ department:
     same_archetype_affinity: 0.3
     dean_lab_access_bonus: 0.2
     dean_archetype_access_bonus: 0.1
-    # Workload dumping (user-observed): seniors pass part of their teaching to a junior, still
-    # claim the hours (credit, BKD, pay) and work overtime on paper without burning out; the
-    # junior works them without credit, resents it, but gains the senior's liking and
-    # standing. Every value is a PLACEHOLDER, TODO(source).
+    # Workload dumping (user-observed): seniors pass part of their work (any category) to a
+    # junior, still claim the hours (credit, BKD, pay) and work overtime on paper without
+    # burning out; the junior works them without credit, resents it, but gains the senior's
+    # liking and standing (grades, access, appointments).
     dumping:
       senior_ranks: [Lektor Kepala, Profesor]
       junior_ranks: [Asisten Ahli, Lektor] # plus teaching staff
-      prob: 0.3 # per senior per semester
-      share: 0.25 # of the senior's reported teaching hours
-      max_junior_hours: 8 # extra weekly hours per junior
-      favor_gain: 0.1
-      affinity_gain: 0.1
-      resentment: 0.2
+      dumper_share: 0.45 # user-stated: 40-50 % of seniors, every semester
+      hours: [3, 8] # user-stated: 3-8 h a week
+      max_junior_hours: 8 # TODO(source): extra weekly hours per junior
+      most_junior_prob: 0.6 # user-stated: most junior likeliest, then a favourite; split TODO(source)
+      refusal_prob: 0.05 # user-stated: 5 % of juniors say no
+      favor_gain: 0.1 # TODO(source)
+      affinity_gain: 0.1 # TODO(source): also lost on a refusal
+      resentment: 0.2 # TODO(source)
 
 # Rank x degree mix (70 lecturers, user-chosen; the real faculty has 68): 16 Profesor (sourced);
 # the rest is a PLACEHOLDER split (25 Lektor Kepala, 18 Lektor, 11 Asisten Ahli) giving ~54
